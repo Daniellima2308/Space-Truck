@@ -1,18 +1,31 @@
 # Bino
 
-Pasta reservada para os assets oficiais do assistente/personagem do app.
+Pasta reservada para os assets oficiais do assistente/personagem **Bino**.
+
+> **Status:** estrutura preparada. Os arquivos PNG ainda **não** estão no repositório.
+> Eles serão adicionados manualmente. Esta estrutura **não** afeta o runtime do app.
+
+---
 
 ## Estrutura
-- `official/` = versões oficiais base do Bino.
-- `poses/` = poses derivadas por versão-base.
-- `expressions/` = expressões faciais e variações por versão-base.
+
+| Pasta | Conteúdo |
+|---|---|
+| `official/` | Versões oficiais base do personagem Bino |
+| `poses/` | Poses derivadas do personagem |
+| `expressions/` | Expressões faciais e variações de estado |
+
+---
 
 ## Regra de marca
-- Bino é personagem/assistente do app.
-- Bino **não substitui** a marca principal Sentinela.
-- A marca principal oficial continua sendo a Sentinela.
-- Não misturar assets do Bino com assets da Sentinela.
+- Bino é o **personagem/assistente** do app.
+- Bino **não substitui** a marca principal **Space Truck**.
+- A marca principal oficial do produto é `space-truck/`.
+- Não misturar assets do Bino com assets da marca Space Truck.
 
-## Limite de escopo
-- Esta pasta não define nomenclatura oficial dos assets da marca Sentinela.
-- A regra híbrida oficial da marca principal deve ser seguida apenas em `public/branding/sentinela/`.
+---
+
+## Regras gerais de nomenclatura
+- Tudo em minúsculo, com hífen como separador
+- Sem espaços, sem acentos, sem nomes vagos (`final`, `novo`, `v2`)
+

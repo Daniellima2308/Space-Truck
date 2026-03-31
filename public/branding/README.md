@@ -1,50 +1,69 @@
 # Branding assets
 
-Estrutura oficial dos assets de branding do projeto.
+Estrutura oficial dos assets de branding do projeto **SPACE TRUCK**.
+
+> **Status desta estrutura:** preparada para receber os arquivos PNG.
+> Os PNGs ainda **não** estão no repositório e serão adicionados manualmente.
+> Esta estrutura **não** altera o runtime do app.
+
+---
 
 ## Arquitetura de marca
-- `sentinela/` = **marca principal oficial** do app.
-- `bino/` = personagem/assistente do app (**não substitui a marca principal**).
-- `reference/` = material de referência visual geral para consulta.
 
-## Nova identidade oficial da Sentinela
-A marca principal evoluiu para um sistema visual composto por:
-- símbolo em forma de `S`
-- moldura segmentada ao redor
-- ponto laranja de destaque
-- wordmark `SENTINELA`
-- slogan institucional: `Gestão e controle para caminhoneiros`
+| Pasta | Descrição |
+|---|---|
+| `space-truck/` | **Marca principal oficial** do app (nova identidade) |
+| `bino/` | Personagem/assistente do app (domínio separado da marca) |
+| `sentinela/` | Identidade anterior — mantida como referência histórica |
+| `reference/` | Material de referência visual geral para consulta |
 
-## Regra híbrida oficial de nomenclatura
-A marca Sentinela usa dois padrões:
+---
 
-1. Tipos que usam **`[versao]`**:
-   - `logo`
-   - `icone`
-   - `simbolo`
-   - `reference`
+## Marca principal: SPACE TRUCK
 
-   Padrão:
-   `sentinela-[tipo]-[variacao]-[versao].png`
+A marca `space-truck/` é a identidade visual oficial do produto.
+Seus assets estão organizados em sub-pastas temáticas:
 
-   Versões oficiais:
-   - `institucional`
-   - `branca`
-   - `preta`
+| Sub-pasta | Conteúdo |
+|---|---|
+| `logo/` | Símbolo + wordmark (composição completa) |
+| `simbolo/` | Símbolo isolado, sem wordmark |
+| `wordmark/` | Apenas o texto "SPACE TRUCK" |
+| `slogan/` | Apenas a frase institucional/slogan |
+| `icone/` | Versão quadrada para ícone de app |
+| `reference/` | Referências visuais e materiais de apoio |
 
-2. Tipos que usam **`[cor]`**:
-   - `wordmark`
-   - `slogan`
+Convenção de nomenclatura dos arquivos:
+`space-truck-[tipo]-[variacao]-[cor].png`
 
-   Padrão:
-   `sentinela-[tipo]-[variacao]-[cor].png`
+Cores oficiais: `branco`, `preto`, `neon`
 
-   Cores válidas:
-   - `azul-petroleo`
-   - `branco`
-   - `preto`
+---
 
-## Regras de separação
-- Não misturar assets da Sentinela com assets do Bino.
-- A convenção oficial da marca principal fica definida em `sentinela/README.md`.
-- Materiais de referência não devem sobrescrever os arquivos oficiais de marca.
+## Personagem: Bino
+
+O Bino é o assistente visual do app, **não substitui** a marca principal.
+Seus assets ficam exclusivamente em `bino/`:
+
+| Sub-pasta | Conteúdo |
+|---|---|
+| `official/` | Versões oficiais base do personagem |
+| `poses/` | Poses derivadas do personagem |
+| `expressions/` | Expressões faciais e variações |
+
+---
+
+## Regras gerais de nomenclatura
+
+- Tudo em minúsculo
+- Usar hífen (`-`) como separador
+- Sem espaços, sem acentos
+- Sem nomes vagos (`final`, `novo`, `teste`, `v2`)
+- Não misturar assets da marca com assets do Bino
+
+---
+
+## Legado
+
+- `sentinela/` = identidade anterior do projeto. Mantida como referência, não removida.
+- `reference/` = material visual geral de apoio.
