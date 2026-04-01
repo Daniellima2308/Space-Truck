@@ -460,10 +460,10 @@ describe("AppContext fueling flow", () => {
       expect.objectContaining({ trip_id: "trip-2", value: 428.57, category: "combustivel_rateio" }),
     ]);
     const allocatedTotal =
-      fueling!.total_value +
+      (fueling!.total_value as number) +
       dbState.expenses
         .filter((expense) => expense.source_fueling_id === fueling!.id)
-        .reduce((sum, expense) => sum + expense.value, 0);
+        .reduce((sum: number, expense: { value: number }) => sum + expense.value, 0);
     expect(allocatedTotal).toBe(1000);
     unmount();
   });

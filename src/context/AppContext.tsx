@@ -30,7 +30,7 @@ import {
   getCachedData,
 } from "@/lib/offlineQueue";
 import { toast } from "@/hooks/use-toast";
-import { AppContext, StartFreightResult } from "@/context/app-context";
+import { AppContext, StartFreightResult, FreightUpdateResult } from "@/context/app-context";
 import {
   getKmBounds,
   getNumericWarnings,
@@ -117,6 +117,8 @@ function showOfflineSaved(title: string) {
 
 function buildRouteFailureDetails(params: {
   reason: string | null;
+  originQueryUsed?: string;
+  destinationQueryUsed?: string;
 }): string {
   return (
     params.reason ||
@@ -228,7 +230,7 @@ async function updateTripEstimatedDistanceBySum(tripId: string): Promise<void> {
 }
 
 async function ensureMutation<T extends { message?: string } | null>(
-  mutation: Promise<{ data: unknown; error: T }>,
+  mutation: PromiseLike<{ data: unknown; error: T }>,
   fallbackMessage: string,
 ) {
   const result = await mutation;
