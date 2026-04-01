@@ -228,7 +228,7 @@ async function updateTripEstimatedDistanceBySum(tripId: string): Promise<void> {
 }
 
 async function ensureMutation<T extends { message?: string } | null>(
-  mutation: Promise<{ data: unknown; error: T }>,
+  mutation: PromiseLike<{ data: unknown; error: T }>,
   fallbackMessage: string,
 ) {
   const result = await mutation;
