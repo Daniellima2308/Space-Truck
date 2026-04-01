@@ -2,7 +2,6 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import logoImg from "@/assets/logo.png";
 
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState("");
@@ -28,7 +27,7 @@ const ForgotPasswordPage = () => {
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
-          <img src={logoImg} alt="Copiloto" className="h-16 w-auto mx-auto mb-3 drop-shadow-[0_0_16px_rgba(59,130,246,0.4)]" />
+          <img src="/branding/space-truck/logo/space-truck-logo-principal-branco.png" alt="Space Truck" className="h-16 w-auto mx-auto mb-3 drop-shadow-[0_0_16px_rgba(59,130,246,0.4)]" />
           <h1 className="text-2xl font-black">Esqueci a Senha</h1>
         </div>
 
