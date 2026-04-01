@@ -26,16 +26,6 @@ interface PxMessage {
   created_at: string;
 }
 
-interface MuralPost {
-  id: string;
-  user_id: string;
-  display_name: string;
-  image_url: string;
-  caption: string;
-  likes: number;
-  created_at: string;
-}
-
 type Tab = "conversa" | "audios" | "sobre";
 
 const PXDigitalPage = () => {
@@ -46,8 +36,6 @@ const PXDigitalPage = () => {
   const [textInput, setTextInput] = useState("");
   const [recording, setRecording] = useState(false);
   const [displayName, setDisplayName] = useState("Motorista");
-  const [muralPosts, setMuralPosts] = useState<MuralPost[]>([]);
-  const [likedPosts, setLikedPosts] = useState<Set<string>>(new Set());
   const [activeTab, setActiveTab] = useState<Tab>("conversa");
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
@@ -136,58 +124,6 @@ const PXDigitalPage = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  // Fetch mural posts (today only) + realtime
-  useEffect(() => {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const todayISO = todayStart.toISOString();
-
-    supabase
-      .from("mural_posts")
-      .select("*")
-      .gte("created_at", todayISO)
-      .order("created_at", { ascending: false })
-      .limit(50)
-      .then(({ data }) => {
-        if (data) setMuralPosts(data as MuralPost[]);
-      });
-    if (user) {
-      supabase
-        .from("mural_likes")
-        .select("post_id")
-        .eq("user_id", user.id)
-        .then(({ data }) => {
-          if (data) setLikedPosts(new Set(data.map((l: { post_id: string }) => l.post_id)));
-        });
-    }
-
-    const muralChannel = supabase
-      .channel("mural-realtime")
-      .on(
-        "postgres_changes",
-        { event: "INSERT", schema: "public", table: "mural_posts" },
-        (payload) => {
-          setMuralPosts((prev) => [payload.new as MuralPost, ...prev]);
-        }
-      )
-      .on(
-        "postgres_changes",
-        { event: "UPDATE", schema: "public", table: "mural_posts" },
-        (payload) => {
-          setMuralPosts((prev) =>
-            prev.map((p) =>
-              p.id === (payload.new as MuralPost).id ? (payload.new as MuralPost) : p
-            )
-          );
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(muralChannel);
-    };
-  }, [user]);
-
   // Send text message
   const sendTextMessage = async () => {
     if (!textInput.trim() || !selectedChannel || !user) return;
@@ -270,12 +206,6 @@ const PXDigitalPage = () => {
   };
 
   const audioMessages = messages.filter((m) => m.audio_url);
-
-  // muralPosts / likedPosts are kept intentionally: the mural realtime subscription
-  // (mural-realtime channel) must stay active per product requirements even though
-  // FeedDoTrecho is no longer rendered in this view.
-  void muralPosts;
-  void likedPosts;
 
   // ── Home view ──────────────────────────────────────────────────────────────
   if (!selectedChannel) {
