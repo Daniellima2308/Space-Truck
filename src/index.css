@@ -5,66 +5,139 @@
 @tailwind utilities;
 
 @layer base {
+  /* ─── LIGHT THEME (System Gray — base #F2F2F7) ─────────────────────────── */
   :root {
-    --background: 220 20% 10%;
-    --foreground: 210 20% 92%;
+    /* Surfaces */
+    --background: 240 6% 96%;
+    --foreground: 240 10% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 10%;
 
-    --card: 220 18% 13%;
-    --card-foreground: 210 20% 92%;
+    /* Brand accent */
+    --primary: 142 55% 36%;
+    --primary-foreground: 0 0% 100%;
 
-    --popover: 220 18% 13%;
-    --popover-foreground: 210 20% 92%;
+    /* Secondary surfaces */
+    --secondary: 240 5% 90%;
+    --secondary-foreground: 240 10% 20%;
+    --muted: 240 5% 92%;
+    --muted-foreground: 240 5% 46%;
+    --accent: 240 5% 87%;
+    --accent-foreground: 240 10% 10%;
 
-    --primary: 142 71% 45%;
-    --primary-foreground: 220 20% 6%;
-
-    --secondary: 220 16% 18%;
-    --secondary-foreground: 210 20% 85%;
-
-    --muted: 220 14% 16%;
-    --muted-foreground: 215 15% 55%;
-
-    --accent: 220 16% 20%;
-    --accent-foreground: 210 20% 92%;
-
+    /* Feedback */
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
+    --destructive-foreground: 0 0% 98%;
 
-    --border: 220 14% 20%;
-    --input: 220 14% 20%;
-    --ring: 142 71% 45%;
-
+    /* Structure */
+    --border: 240 5% 82%;
+    --input: 240 5% 88%;
+    --ring: 142 55% 36%;
     --radius: 0.75rem;
 
-    --profit: 142 71% 45%;
-    --profit-foreground: 142 80% 12%;
+    /* Semantic palette */
+    --profit: 142 55% 36%;
+    --profit-foreground: 0 0% 100%;
     --expense: 0 72% 51%;
-    --expense-foreground: 0 80% 96%;
+    --expense-foreground: 0 0% 98%;
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 80% 50%;
+    --info-foreground: 0 0% 100%;
+
+    /* Sidebar */
+    --sidebar-background: 240 6% 93%;
+    --sidebar-foreground: 240 10% 20%;
+    --sidebar-primary: 142 55% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 240 5% 86%;
+    --sidebar-accent-foreground: 240 10% 10%;
+    --sidebar-border: 240 5% 80%;
+    --sidebar-ring: 142 55% 36%;
+
+    /* PX brand */
+    --px-orange: 24 100% 50%;
+    --px-orange-foreground: 0 0% 100%;
+
+    /* Radio / PX Digital tokens */
+    --radio-panel: 240 5% 90%;
+    --radio-panel-light: 240 5% 94%;
+    --radio-display: 30 100% 46%;
+    --radio-display-bg: 240 8% 12%;
+    --radio-led-on: 142 60% 40%;
+    --radio-led-off: 240 5% 70%;
+    --radio-knob: 240 5% 76%;
+    --radio-knob-ring: 240 5% 64%;
+    --radio-tx: 0 72% 50%;
+  }
+
+  /* ─── DARK THEME (Verde Noturno — base #040F09) ─────────────────────────── */
+  .dark {
+    /* Surfaces */
+    --background: 150 54% 4%;
+    --foreground: 150 12% 88%;
+    --card: 150 40% 7%;
+    --card-foreground: 150 12% 88%;
+    --popover: 150 38% 8%;
+    --popover-foreground: 150 12% 88%;
+
+    /* Brand accent */
+    --primary: 142 71% 45%;
+    --primary-foreground: 150 54% 4%;
+
+    /* Secondary surfaces */
+    --secondary: 150 28% 12%;
+    --secondary-foreground: 150 12% 80%;
+    --muted: 150 22% 10%;
+    --muted-foreground: 150 14% 50%;
+    --accent: 150 28% 14%;
+    --accent-foreground: 150 12% 88%;
+
+    /* Feedback */
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+
+    /* Structure */
+    --border: 150 22% 15%;
+    --input: 150 24% 12%;
+    --ring: 142 71% 45%;
+    --radius: 0.75rem;
+
+    /* Semantic palette */
+    --profit: 142 71% 45%;
+    --profit-foreground: 150 54% 4%;
+    --expense: 0 72% 51%;
+    --expense-foreground: 0 0% 98%;
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 10%;
     --info: 217 91% 60%;
     --info-foreground: 217 91% 10%;
 
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 20% 85%;
+    /* Sidebar */
+    --sidebar-background: 150 50% 3%;
+    --sidebar-foreground: 150 12% 80%;
     --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 16% 15%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 18%;
+    --sidebar-primary-foreground: 150 54% 4%;
+    --sidebar-accent: 150 28% 11%;
+    --sidebar-accent-foreground: 150 12% 88%;
+    --sidebar-border: 150 22% 12%;
     --sidebar-ring: 142 71% 45%;
 
+    /* PX brand */
     --px-orange: 24 100% 50%;
     --px-orange-foreground: 0 0% 100%;
 
-    --radio-panel: 220 15% 8%;
-    --radio-panel-light: 220 12% 12%;
+    /* Radio / PX Digital tokens */
+    --radio-panel: 150 28% 7%;
+    --radio-panel-light: 150 22% 11%;
     --radio-display: 30 100% 50%;
-    --radio-display-bg: 220 20% 5%;
+    --radio-display-bg: 150 50% 3%;
     --radio-led-on: 142 80% 50%;
-    --radio-led-off: 220 10% 25%;
-    --radio-knob: 220 10% 20%;
-    --radio-knob-ring: 220 8% 30%;
+    --radio-led-off: 150 10% 24%;
+    --radio-knob: 150 10% 18%;
+    --radio-knob-ring: 150 8% 28%;
     --radio-tx: 0 80% 55%;
   }
 }
@@ -86,20 +159,20 @@
 
 @layer utilities {
   .gradient-profit {
-    background: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(160 60% 40%) 100%);
+    background: linear-gradient(135deg, hsl(var(--profit)) 0%, hsl(160 60% 40%) 100%);
   }
 
   .gradient-expense {
-    background: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(15 80% 45%) 100%);
+    background: linear-gradient(135deg, hsl(var(--expense)) 0%, hsl(15 80% 45%) 100%);
   }
 
   .gradient-card {
-    background: linear-gradient(145deg, hsl(220 18% 14%) 0%, hsl(220 18% 11%) 100%);
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--secondary)) 100%);
   }
 
   .gradient-active-trip {
-    background: linear-gradient(135deg, hsl(220 18% 14%) 0%, hsl(142 30% 14%) 100%);
-    border: 1px solid hsl(142 71% 45% / 0.3);
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(var(--accent)) 100%);
+    border: 1px solid hsl(var(--primary) / 0.3);
   }
 
   .text-mono {
@@ -107,11 +180,11 @@
   }
 
   .glow-profit {
-    box-shadow: 0 0 20px hsl(142 71% 45% / 0.15);
+    box-shadow: 0 0 20px hsl(var(--profit) / 0.15);
   }
 
   .glow-expense {
-    box-shadow: 0 0 20px hsl(0 72% 51% / 0.15);
+    box-shadow: 0 0 20px hsl(var(--expense) / 0.15);
   }
 
   .safe-area-bottom {
@@ -120,7 +193,6 @@
 
   .input-field {
     @apply bg-secondary text-foreground rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full;
-    color-scheme: dark;
   }
 
   .input-field::placeholder {
