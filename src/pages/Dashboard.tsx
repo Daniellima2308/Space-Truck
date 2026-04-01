@@ -74,10 +74,8 @@ const Dashboard = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">
-          <img src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png" alt="Space Truck" className="h-10 w-auto drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
-          <div className="flex-1">
-            <p className="text-[10px] text-muted-foreground leading-tight">gestão de frota e viagens</p>
-          </div>
+          <img src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png" alt="Space Truck" className="h-9 w-auto" />
+          <div className="flex-1" />
           <ConnectionIndicator />
           <HamburgerMenu />
         </div>

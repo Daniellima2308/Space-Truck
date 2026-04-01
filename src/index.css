@@ -6,65 +6,66 @@
 
 @layer base {
   :root {
-    --background: 220 20% 10%;
-    --foreground: 210 20% 92%;
+    /* Dark base: #111315 — graphite sophisticated, premium operational */
+    --background: 210 10% 8%;
+    --foreground: 210 15% 93%;
 
-    --card: 220 18% 13%;
-    --card-foreground: 210 20% 92%;
+    --card: 213 11% 11%;
+    --card-foreground: 210 15% 93%;
 
-    --popover: 220 18% 13%;
-    --popover-foreground: 210 20% 92%;
+    --popover: 213 11% 11%;
+    --popover-foreground: 210 15% 93%;
 
-    --primary: 142 71% 45%;
-    --primary-foreground: 220 20% 6%;
+    --primary: 142 60% 42%;
+    --primary-foreground: 210 12% 7%;
 
-    --secondary: 220 16% 18%;
-    --secondary-foreground: 210 20% 85%;
+    --secondary: 213 9% 17%;
+    --secondary-foreground: 210 15% 84%;
 
-    --muted: 220 14% 16%;
-    --muted-foreground: 215 15% 55%;
+    --muted: 213 9% 15%;
+    --muted-foreground: 213 11% 50%;
 
-    --accent: 220 16% 20%;
-    --accent-foreground: 210 20% 92%;
+    --accent: 213 9% 19%;
+    --accent-foreground: 210 15% 92%;
 
     --destructive: 0 72% 51%;
     --destructive-foreground: 210 40% 98%;
 
-    --border: 220 14% 20%;
-    --input: 220 14% 20%;
-    --ring: 142 71% 45%;
+    --border: 213 9% 19%;
+    --input: 213 9% 16%;
+    --ring: 142 60% 42%;
 
     --radius: 0.75rem;
 
-    --profit: 142 71% 45%;
-    --profit-foreground: 142 80% 12%;
+    --profit: 142 60% 42%;
+    --profit-foreground: 142 70% 10%;
     --expense: 0 72% 51%;
     --expense-foreground: 0 80% 96%;
-    --warning: 38 92% 50%;
-    --warning-foreground: 38 92% 10%;
-    --info: 217 91% 60%;
-    --info-foreground: 217 91% 10%;
+    --warning: 38 90% 50%;
+    --warning-foreground: 38 90% 10%;
+    --info: 217 85% 60%;
+    --info-foreground: 217 85% 10%;
 
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 16% 15%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 142 71% 45%;
+    --sidebar-background: 210 12% 7%;
+    --sidebar-foreground: 210 15% 82%;
+    --sidebar-primary: 142 60% 42%;
+    --sidebar-primary-foreground: 210 12% 7%;
+    --sidebar-accent: 213 9% 13%;
+    --sidebar-accent-foreground: 210 15% 92%;
+    --sidebar-border: 213 9% 15%;
+    --sidebar-ring: 142 60% 42%;
 
     --px-orange: 24 100% 50%;
     --px-orange-foreground: 0 0% 100%;
 
-    --radio-panel: 220 15% 8%;
-    --radio-panel-light: 220 12% 12%;
+    --radio-panel: 210 12% 7%;
+    --radio-panel-light: 213 10% 10%;
     --radio-display: 30 100% 50%;
-    --radio-display-bg: 220 20% 5%;
-    --radio-led-on: 142 80% 50%;
-    --radio-led-off: 220 10% 25%;
-    --radio-knob: 220 10% 20%;
-    --radio-knob-ring: 220 8% 30%;
+    --radio-display-bg: 210 14% 5%;
+    --radio-led-on: 142 70% 48%;
+    --radio-led-off: 213 8% 22%;
+    --radio-knob: 213 8% 18%;
+    --radio-knob-ring: 213 7% 26%;
     --radio-tx: 0 80% 55%;
   }
 }
@@ -86,7 +87,7 @@
 
 @layer utilities {
   .gradient-profit {
-    background: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(160 60% 40%) 100%);
+    background: linear-gradient(135deg, hsl(142 60% 42%) 0%, hsl(160 55% 38%) 100%);
   }
 
   .gradient-expense {
@@ -94,12 +95,12 @@
   }
 
   .gradient-card {
-    background: linear-gradient(145deg, hsl(220 18% 14%) 0%, hsl(220 18% 11%) 100%);
+    background: linear-gradient(145deg, hsl(213 11% 12%) 0%, hsl(210 10% 9%) 100%);
   }
 
   .gradient-active-trip {
-    background: linear-gradient(135deg, hsl(220 18% 14%) 0%, hsl(142 30% 14%) 100%);
-    border: 1px solid hsl(142 71% 45% / 0.3);
+    background: linear-gradient(135deg, hsl(213 11% 12%) 0%, hsl(142 22% 12%) 100%);
+    border: 1px solid hsl(142 60% 42% / 0.25);
   }
 
   .text-mono {
@@ -107,11 +108,11 @@
   }
 
   .glow-profit {
-    box-shadow: 0 0 20px hsl(142 71% 45% / 0.15);
+    box-shadow: 0 0 20px hsl(142 60% 42% / 0.12);
   }
 
   .glow-expense {
-    box-shadow: 0 0 20px hsl(0 72% 51% / 0.15);
+    box-shadow: 0 0 20px hsl(0 72% 51% / 0.12);
   }
 
   .safe-area-bottom {

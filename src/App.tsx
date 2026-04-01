@@ -20,6 +20,8 @@ import MaintenancePage from "./pages/MaintenancePage";
 import PersonalExpensesPage from "./pages/PersonalExpensesPage";
 import PXDigitalPage from "./pages/PXDigitalPage";
 import PXInvitePage from "./pages/PXInvitePage";
+import MorePage from "./pages/MorePage";
+import ToolsPage from "./pages/ToolsPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
@@ -41,7 +43,9 @@ function ProtectedApp() {
           <Route path="/freight-analysis" element={<FreightAnalysisPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
-          <Route path="/menu" element={<ProfilePage />} />
+          <Route path="/menu" element={<MorePage />} />
+          <Route path="/mais" element={<MorePage />} />
+          <Route path="/tools" element={<ToolsPage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/personal-expenses" element={<PersonalExpensesPage />} />
           <Route path="/px" element={<PXDigitalPage />} />

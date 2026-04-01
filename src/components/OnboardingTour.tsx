@@ -18,7 +18,7 @@ const TOUR_STEPS: TourStep[] = [
   {
     targetId: "nav-vehicles",
     title: "Cadastre o seu Bruto",
-    text: "Tudo começa aqui na aba Frota. É aqui que você vai cadastrar o seu caminhão e colocar a quantidade de eixos. Isso é fundamental para o aplicativo calcular o pedágio e a tabela ANTT exata pra você!",
+    text: "Tudo começa aqui na aba Veículos. É aqui que você vai cadastrar o seu caminhão e colocar a quantidade de eixos. Isso é fundamental para o aplicativo calcular o pedágio e a tabela ANTT exata pra você!",
   },
   {
     targetId: "nav-calculator",
