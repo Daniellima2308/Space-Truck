@@ -117,6 +117,8 @@ function showOfflineSaved(title: string) {
 
 function buildRouteFailureDetails(params: {
   reason: string | null;
+  originQueryUsed?: string;
+  destinationQueryUsed?: string;
 }): string {
   return (
     params.reason ||

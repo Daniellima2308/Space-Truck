@@ -463,7 +463,7 @@ describe("AppContext fueling flow", () => {
       fueling!.total_value +
       dbState.expenses
         .filter((expense) => expense.source_fueling_id === fueling!.id)
-        .reduce((sum, expense) => sum + expense.value, 0);
+        .reduce((sum: number, expense: { value: number }) => sum + expense.value, 0);
     expect(allocatedTotal).toBe(1000);
     unmount();
   });
