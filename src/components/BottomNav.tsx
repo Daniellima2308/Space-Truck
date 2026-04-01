@@ -70,7 +70,7 @@ export function BottomNav() {
               <Icon
                 className={cn(
                   "w-[22px] h-[22px]",
-                  isActive && "drop-shadow-[0_0_6px_hsl(142_65%_42%/0.45)]"
+                  isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
                 )}
               />
               <span

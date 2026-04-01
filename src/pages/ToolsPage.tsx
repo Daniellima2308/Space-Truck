@@ -136,7 +136,7 @@ const ToolsPage = () => {
                     <div className="flex items-center gap-2">
                       <p className="text-sm font-semibold">{item.label}</p>
                       {!item.available && (
-                        <span className="text-[9px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
+                        <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground uppercase tracking-wide">
                           Em breve
                         </span>
                       )}

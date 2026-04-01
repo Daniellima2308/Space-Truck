@@ -104,7 +104,12 @@ export default function MorePage() {
     setSubmitting(false);
   };
 
-  const initials = (profile.display_name || user?.email || "U").slice(0, 2).toUpperCase();
+  const getInitials = () => {
+    if (profile.display_name) return profile.display_name.slice(0, 2).toUpperCase();
+    if (user?.email) return user.email.split("@")[0].slice(0, 2).toUpperCase();
+    return "U";
+  };
+  const initials = getInitials();
 
   return (
     <div className="min-h-screen bg-background pb-24">
