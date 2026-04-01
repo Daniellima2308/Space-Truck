@@ -271,7 +271,9 @@ const PXDigitalPage = () => {
 
   const audioMessages = messages.filter((m) => m.audio_url);
 
-  // Suppress unused state lint for mural data kept for realtime subscriptions
+  // muralPosts / likedPosts are kept intentionally: the mural realtime subscription
+  // (mural-realtime channel) must stay active per product requirements even though
+  // FeedDoTrecho is no longer rendered in this view.
   void muralPosts;
   void likedPosts;
 
