@@ -30,7 +30,7 @@ import {
   getCachedData,
 } from "@/lib/offlineQueue";
 import { toast } from "@/hooks/use-toast";
-import { AppContext, StartFreightResult } from "@/context/app-context";
+import { AppContext, StartFreightResult, FreightUpdateResult } from "@/context/app-context";
 import {
   getKmBounds,
   getNumericWarnings,
