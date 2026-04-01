@@ -24,6 +24,9 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import ForgotPasswordPage from "./pages/ForgotPasswordPage";
 import ResetPasswordPage from "./pages/ResetPasswordPage";
+import OperationPage from "./pages/OperationPage";
+import ToolsPage from "./pages/ToolsPage";
+import MorePage from "./pages/MorePage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -41,6 +44,9 @@ function ProtectedApp() {
           <Route path="/freight-analysis" element={<FreightAnalysisPage />} />
           <Route path="/history" element={<HistoryPage />} />
           <Route path="/perfil" element={<ProfilePage />} />
+          <Route path="/operation" element={<OperationPage />} />
+          <Route path="/tools" element={<ToolsPage />} />
+          <Route path="/more" element={<MorePage />} />
           <Route path="/menu" element={<ProfilePage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/personal-expenses" element={<PersonalExpensesPage />} />

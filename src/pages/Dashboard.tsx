@@ -11,7 +11,6 @@ import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, get
 import { getMaintenanceAlerts } from "@/lib/maintenance";
 import { Trip } from "@/types";
 import { Plus, Trash2, FileDown } from "lucide-react";
-import { HamburgerMenu } from "@/components/HamburgerMenu";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
@@ -73,13 +72,13 @@ const Dashboard = () => {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-4">
-        <div className="flex items-center gap-3 mb-1">
-          <img src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png" alt="Space Truck" className="h-10 w-auto drop-shadow-[0_0_8px_rgba(59,130,246,0.4)]" />
-          <div className="flex-1">
-            <p className="text-[10px] text-muted-foreground leading-tight">gestão de frota e viagens</p>
-          </div>
+        <div className="flex items-center justify-between mb-1">
+          <img
+            src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png"
+            alt="Space Truck"
+            className="h-8 w-auto"
+          />
           <ConnectionIndicator />
-          <HamburgerMenu />
         </div>
       </header>
 

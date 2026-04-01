@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,66 +6,112 @@
 
 @layer base {
   :root {
-    --background: 220 20% 10%;
-    --foreground: 210 20% 92%;
-
-    --card: 220 18% 13%;
-    --card-foreground: 210 20% 92%;
-
-    --popover: 220 18% 13%;
-    --popover-foreground: 210 20% 92%;
-
-    --primary: 142 71% 45%;
-    --primary-foreground: 220 20% 6%;
-
-    --secondary: 220 16% 18%;
-    --secondary-foreground: 210 20% 85%;
-
-    --muted: 220 14% 16%;
-    --muted-foreground: 215 15% 55%;
-
-    --accent: 220 16% 20%;
-    --accent-foreground: 210 20% 92%;
-
+    /* LIGHT THEME - base: #F2F2F7 */
+    --background: 240 11% 96%;
+    --foreground: 220 20% 10%;
+    --card: 0 0% 100%;
+    --card-foreground: 220 20% 10%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 220 20% 10%;
+    --primary: 142 71% 38%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 220 14% 90%;
+    --secondary-foreground: 220 20% 20%;
+    --muted: 220 11% 93%;
+    --muted-foreground: 220 10% 48%;
+    --accent: 220 14% 88%;
+    --accent-foreground: 220 20% 15%;
     --destructive: 0 72% 51%;
-    --destructive-foreground: 210 40% 98%;
-
-    --border: 220 14% 20%;
-    --input: 220 14% 20%;
-    --ring: 142 71% 45%;
-
-    --radius: 0.75rem;
-
-    --profit: 142 71% 45%;
-    --profit-foreground: 142 80% 12%;
+    --destructive-foreground: 0 0% 100%;
+    --border: 220 14% 88%;
+    --input: 220 14% 88%;
+    --ring: 142 71% 38%;
+    --radius: 0.875rem;
+    --profit: 142 71% 35%;
+    --profit-foreground: 142 80% 97%;
     --expense: 0 72% 51%;
+    --expense-foreground: 0 0% 100%;
+    --warning: 38 92% 45%;
+    --warning-foreground: 0 0% 100%;
+    --info: 217 91% 55%;
+    --info-foreground: 0 0% 100%;
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 220 20% 15%;
+    --sidebar-primary: 142 71% 38%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 220 11% 93%;
+    --sidebar-accent-foreground: 220 20% 15%;
+    --sidebar-border: 220 14% 88%;
+    --sidebar-ring: 142 71% 38%;
+    --px-orange: 24 100% 50%;
+    --px-orange-foreground: 0 0% 100%;
+    --surface-1: 240 11% 96%;
+    --surface-2: 0 0% 100%;
+    --surface-3: 220 14% 92%;
+    --radio-panel: 220 14% 92%;
+    --radio-panel-light: 220 11% 96%;
+    --radio-display: 30 100% 45%;
+    --radio-display-bg: 220 14% 88%;
+    --radio-led-on: 142 71% 38%;
+    --radio-led-off: 220 14% 75%;
+    --radio-tx: 0 72% 51%;
+    --radio-knob: 220 14% 80%;
+    --radio-knob-ring: 220 14% 70%;
+  }
+
+  .dark {
+    /* DARK THEME - base: #111315 */
+    color-scheme: dark;
+    --background: 220 13% 8%;
+    --foreground: 210 18% 90%;
+    --card: 220 13% 11%;
+    --card-foreground: 210 18% 90%;
+    --popover: 220 13% 11%;
+    --popover-foreground: 210 18% 90%;
+    --primary: 142 65% 42%;
+    --primary-foreground: 220 20% 5%;
+    --secondary: 220 13% 16%;
+    --secondary-foreground: 210 18% 82%;
+    --muted: 220 12% 14%;
+    --muted-foreground: 215 12% 52%;
+    --accent: 220 13% 18%;
+    --accent-foreground: 210 18% 90%;
+    --destructive: 0 68% 48%;
+    --destructive-foreground: 210 40% 98%;
+    --border: 220 12% 18%;
+    --input: 220 12% 16%;
+    --ring: 142 65% 42%;
+    --radius: 0.875rem;
+    --profit: 142 65% 42%;
+    --profit-foreground: 142 80% 10%;
+    --expense: 0 68% 48%;
     --expense-foreground: 0 80% 96%;
     --warning: 38 92% 50%;
     --warning-foreground: 38 92% 10%;
     --info: 217 91% 60%;
     --info-foreground: 217 91% 10%;
-
-    --sidebar-background: 220 20% 8%;
-    --sidebar-foreground: 210 20% 85%;
-    --sidebar-primary: 142 71% 45%;
-    --sidebar-primary-foreground: 220 20% 6%;
-    --sidebar-accent: 220 16% 15%;
-    --sidebar-accent-foreground: 210 20% 92%;
-    --sidebar-border: 220 14% 18%;
-    --sidebar-ring: 142 71% 45%;
-
+    --sidebar-background: 220 14% 6%;
+    --sidebar-foreground: 210 18% 82%;
+    --sidebar-primary: 142 65% 42%;
+    --sidebar-primary-foreground: 220 20% 5%;
+    --sidebar-accent: 220 13% 14%;
+    --sidebar-accent-foreground: 210 18% 90%;
+    --sidebar-border: 220 12% 16%;
+    --sidebar-ring: 142 65% 42%;
     --px-orange: 24 100% 50%;
     --px-orange-foreground: 0 0% 100%;
-
+    --surface-1: 220 13% 8%;
+    --surface-2: 220 13% 11%;
+    --surface-3: 220 13% 14%;
     --radio-panel: 220 15% 8%;
     --radio-panel-light: 220 12% 12%;
     --radio-display: 30 100% 50%;
     --radio-display-bg: 220 20% 5%;
     --radio-led-on: 142 80% 50%;
     --radio-led-off: 220 10% 25%;
+    --radio-tx: 0 80% 55%;
     --radio-knob: 220 10% 20%;
     --radio-knob-ring: 220 8% 30%;
-    --radio-tx: 0 80% 55%;
   }
 }
 
@@ -86,20 +132,20 @@
 
 @layer utilities {
   .gradient-profit {
-    background: linear-gradient(135deg, hsl(142 71% 45%) 0%, hsl(160 60% 40%) 100%);
+    background: linear-gradient(135deg, hsl(var(--profit)) 0%, hsl(160 60% 40%) 100%);
   }
 
   .gradient-expense {
-    background: linear-gradient(135deg, hsl(0 72% 51%) 0%, hsl(15 80% 45%) 100%);
+    background: linear-gradient(135deg, hsl(var(--expense)) 0%, hsl(15 80% 45%) 100%);
   }
 
   .gradient-card {
-    background: linear-gradient(145deg, hsl(220 18% 14%) 0%, hsl(220 18% 11%) 100%);
+    background: linear-gradient(145deg, hsl(var(--card)) 0%, hsl(var(--surface-1)) 100%);
   }
 
   .gradient-active-trip {
-    background: linear-gradient(135deg, hsl(220 18% 14%) 0%, hsl(142 30% 14%) 100%);
-    border: 1px solid hsl(142 71% 45% / 0.3);
+    background: linear-gradient(135deg, hsl(var(--card)) 0%, hsl(142 30% 14% / 0.6) 100%);
+    border: 1px solid hsl(var(--primary) / 0.3);
   }
 
   .text-mono {
@@ -107,20 +153,39 @@
   }
 
   .glow-profit {
-    box-shadow: 0 0 20px hsl(142 71% 45% / 0.15);
+    box-shadow: 0 0 20px hsl(var(--profit) / 0.15);
   }
 
   .glow-expense {
-    box-shadow: 0 0 20px hsl(0 72% 51% / 0.15);
+    box-shadow: 0 0 20px hsl(var(--expense) / 0.15);
+  }
+
+  .glow-brand {
+    box-shadow: 0 0 16px hsl(var(--primary) / 0.2);
   }
 
   .safe-area-bottom {
     padding-bottom: env(safe-area-inset-bottom, 0px);
   }
 
+  .surface-1 {
+    background-color: hsl(var(--surface-1));
+  }
+
+  .surface-2 {
+    background-color: hsl(var(--surface-2));
+  }
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-semibold border border-border bg-muted text-muted-foreground transition-colors;
+  }
+
+  .chip-active {
+    @apply bg-primary/10 border-primary/30 text-primary;
+  }
+
   .input-field {
     @apply bg-secondary text-foreground rounded-lg px-3 py-2.5 text-sm outline-none focus:ring-1 focus:ring-primary w-full;
-    color-scheme: dark;
   }
 
   .input-field::placeholder {
@@ -128,7 +193,8 @@
   }
 
   .input-field option {
-    @apply bg-secondary text-foreground;
+    background-color: hsl(var(--secondary));
+    color: hsl(var(--foreground));
   }
 
   .no-scrollbar {

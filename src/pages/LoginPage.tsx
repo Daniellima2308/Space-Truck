@@ -52,8 +52,8 @@ const LoginPage = () => {
       <div className="w-full max-w-sm space-y-8">
         {/* Logo */}
         <div className="text-center">
-          <img src="/branding/space-truck/logo/space-truck-logo-principal-branco.png" alt="Space Truck" className="h-20 w-auto mx-auto mb-4 drop-shadow-[0_0_16px_rgba(59,130,246,0.4)]" />
-          <p className="text-sm text-muted-foreground mt-1">seu parceiro na gestão de viagem</p>
+          <img src="/branding/space-truck/logo/space-truck-logo-principal-branco.png" alt="Space Truck" className="h-20 w-auto mx-auto mb-4 drop-shadow-[0_2px_24px_rgba(0,0,0,0.35)]" />
+          <h1 className="text-2xl font-black tracking-tight">Entrar</h1>
         </div>
 
         {/* Google Button */}
