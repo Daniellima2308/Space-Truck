@@ -7,16 +7,19 @@ import { toast } from "@/hooks/use-toast";
 import {
   User,
   Lock,
-  Wrench,
+  Bell,
   MessageCircle,
   Lightbulb,
   LogOut,
-  Wallet,
   Sun,
   Moon,
   Monitor,
   ChevronRight,
-  Radio,
+  Shield,
+  HelpCircle,
+  FileText,
+  Info,
+  Bug,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -114,14 +117,14 @@ export default function MorePage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-2">
-        <h1 className="text-2xl font-black tracking-tight">Mais</h1>
+        <h1 className="text-2xl font-black tracking-tight">Configurações</h1>
       </header>
 
-      <div className="px-4 space-y-5 pt-3">
-        {/* Identity Block */}
+      <div className="px-4 space-y-6 pt-3">
+        {/* Identity Block — single entry to profile */}
         <button
           onClick={() => navigate("/perfil")}
-          className="w-full bg-card border border-border rounded-2xl p-4 flex items-center gap-4 hover:bg-accent/40 transition-colors text-left"
+          className="w-full bg-card border border-border rounded-2xl p-5 flex items-center gap-4 hover:bg-accent/40 transition-colors text-left"
         >
           <div className="w-14 h-14 rounded-full bg-primary/15 flex items-center justify-center text-primary text-xl font-black shrink-0 overflow-hidden">
             {profile.avatar_url ? (
@@ -138,32 +141,12 @@ export default function MorePage() {
           <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
         </button>
 
-        {/* Conta */}
-        <section>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
-            Conta
-          </h2>
-          <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-            <MenuItem icon={User} label="Meu Perfil" onClick={() => navigate("/perfil")} />
-            <MenuItem icon={Lock} label="Alterar Senha" onClick={() => setShowPassword(true)} />
-          </div>
-        </section>
-
-        {/* Ferramentas */}
-        <section>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
-            Ferramentas
-          </h2>
-          <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-            <MenuItem icon={Wrench} label="Manutenção" onClick={() => navigate("/maintenance")} />
-            <MenuItem
-              icon={Wallet}
-              label="Gastos Pessoais"
-              onClick={() => navigate("/personal-expenses")}
-            />
-            <MenuItem icon={Radio} label="PX Digital" onClick={() => navigate("/px")} />
-          </div>
-        </section>
+        {/* Conta e Segurança */}
+        <SectionBlock title="Conta e Segurança">
+          <MenuItem icon={User} label="Dados do Perfil" onClick={() => navigate("/perfil")} />
+          <MenuItem icon={Lock} label="Alterar Senha" onClick={() => setShowPassword(true)} />
+          <MenuItem icon={Shield} label="Privacidade" subtitle="Seus dados estão protegidos" disabled />
+        </SectionBlock>
 
         {/* Aparência */}
         <section>
@@ -198,24 +181,37 @@ export default function MorePage() {
           </div>
         </section>
 
-        {/* Suporte */}
-        <section>
-          <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
-            Suporte
-          </h2>
-          <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
-            <MenuItem
-              icon={MessageCircle}
-              label="Falar com Suporte"
-              onClick={() => setShowSupport(true)}
-            />
-            <MenuItem
-              icon={Lightbulb}
-              label="Enviar Sugestão"
-              onClick={() => setShowSuggestion(true)}
-            />
+        {/* Preferências */}
+        <SectionBlock title="Preferências">
+          <MenuItem icon={Bell} label="Notificações" subtitle="Gerencie seus alertas" disabled />
+        </SectionBlock>
+
+        {/* Suporte e Ajuda */}
+        <SectionBlock title="Suporte e Ajuda">
+          <MenuItem
+            icon={MessageCircle}
+            label="Falar com Suporte"
+            onClick={() => setShowSupport(true)}
+          />
+          <MenuItem
+            icon={Lightbulb}
+            label="Enviar Sugestão"
+            onClick={() => setShowSuggestion(true)}
+          />
+          <MenuItem icon={Bug} label="Reportar Problema" subtitle="Em breve" disabled />
+          <MenuItem icon={HelpCircle} label="Central de Ajuda" subtitle="Em breve" disabled />
+        </SectionBlock>
+
+        {/* Sobre */}
+        <SectionBlock title="Sobre">
+          <MenuItem icon={Info} label="Sobre o Space Truck" subtitle="Gestão inteligente de frota" disabled />
+          <MenuItem icon={FileText} label="Termos de Uso" subtitle="Em breve" disabled />
+          <MenuItem icon={Shield} label="Política de Privacidade" subtitle="Em breve" disabled />
+          <div className="px-4 py-3 flex items-center gap-3">
+            <div className="w-5 h-5 shrink-0" />
+            <span className="text-xs text-muted-foreground/60 font-mono">v1.0.0</span>
           </div>
-        </section>
+        </SectionBlock>
 
         {/* Sair */}
         <button
@@ -309,23 +305,46 @@ export default function MorePage() {
   );
 }
 
+function SectionBlock({ title, children }: { title: string; children: React.ReactNode }) {
+  return (
+    <section>
+      <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
+        {title}
+      </h2>
+      <div className="bg-card border border-border rounded-2xl divide-y divide-border overflow-hidden">
+        {children}
+      </div>
+    </section>
+  );
+}
+
 function MenuItem({
   icon: Icon,
   label,
+  subtitle,
   onClick,
+  disabled,
 }: {
   icon: LucideIcon;
   label: string;
-  onClick: () => void;
+  subtitle?: string;
+  onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
-      onClick={onClick}
-      className="w-full px-4 py-3.5 flex items-center gap-3 hover:bg-accent/40 transition-colors text-left"
+      onClick={disabled ? undefined : onClick}
+      className={cn(
+        "w-full px-4 py-3.5 flex items-center gap-3 text-left transition-colors",
+        disabled ? "opacity-50 cursor-default" : "hover:bg-accent/40",
+      )}
     >
       <Icon className="w-5 h-5 text-muted-foreground shrink-0" />
-      <span className="text-sm font-medium flex-1">{label}</span>
-      <ChevronRight className="w-4 h-4 text-muted-foreground" />
+      <div className="flex-1 min-w-0">
+        <span className="text-sm font-medium">{label}</span>
+        {subtitle && <p className="text-[10px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
+      </div>
+      {!disabled && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
     </button>
   );
 }

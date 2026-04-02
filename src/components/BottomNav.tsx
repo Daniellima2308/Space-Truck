@@ -13,15 +13,19 @@ function OperationIcon({ className }: { className?: string }) {
       strokeLinejoin="round"
       className={className}
     >
-      {/* Truck body */}
-      <rect x="1" y="9" width="13" height="9" rx="1" />
+      {/* Truck body — simplified side view */}
+      <path d="M2 14h11V9H2a1 1 0 0 0-1 1v3a1 1 0 0 0 1 1z" strokeWidth="0" fill="none" />
+      <rect x="1" y="9" width="12" height="7" rx="1.5" />
       {/* Cab */}
-      <path d="M14 9l3 0 3 4v5h-6V9z" />
+      <path d="M13 9h3.5l3 3.5V16H13V9z" />
       {/* Wheels */}
-      <circle cx="5" cy="18" r="2" />
-      <circle cx="18" cy="18" r="2" />
-      {/* Dollar sign integrated into truck body */}
-      <path d="M7.5 12.5v-1m0 5v-1m0-3.5a1 1 0 0 1 1-1h.5a1 1 0 0 1 0 2h-1a1 1 0 0 0 0 2h.5a1 1 0 0 1 1 1" strokeWidth="1.25" />
+      <circle cx="5.5" cy="17" r="1.75" />
+      <circle cx="17" cy="17" r="1.75" />
+      {/* Axle line */}
+      <line x1="7.25" y1="16" x2="15.25" y2="16" />
+      {/* Dollar badge — clean circle top-right */}
+      <circle cx="19" cy="6" r="4.5" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="1.5" />
+      <text x="19" y="8.5" textAnchor="middle" fill="currentColor" fontSize="7" fontWeight="700" stroke="none" fontFamily="Inter, sans-serif">$</text>
     </svg>
   );
 }

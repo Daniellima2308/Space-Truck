@@ -71,18 +71,18 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
-      <header className="px-4 pt-6 pb-4">
-        <div className="flex items-center justify-between mb-1">
+      <header className="px-4 pt-6 pb-2">
+        <div className="flex items-center justify-between">
           <img
             src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png"
             alt="Space Truck"
-            className="h-8 w-auto"
+            className="h-7 w-auto"
           />
           <ConnectionIndicator />
         </div>
       </header>
 
-      <div className="px-4 space-y-5">
+      <div className="px-4 space-y-5 pt-1">
         <NotificationPrompt />
 
         <MaintenanceAlerts alerts={maintenanceAlerts} />
@@ -142,7 +142,7 @@ const Dashboard = () => {
 
         {/* Nova Viagem button - always visible */}
         <button onClick={handleNewTrip}
-          className="w-full gradient-profit text-primary-foreground rounded-xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
+          className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
           <Plus className="w-5 h-5" /> Nova Viagem
         </button>
 
