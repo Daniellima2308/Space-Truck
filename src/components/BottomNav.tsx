@@ -25,7 +25,8 @@ function OperationIcon({ className }: { className?: string }) {
       <line x1="7.25" y1="16" x2="15.25" y2="16" />
       {/* Dollar badge — clean circle top-right */}
       <circle cx="19" cy="6" r="4.5" fill="currentColor" opacity="0.15" stroke="currentColor" strokeWidth="1.5" />
-      <text x="19" y="8.5" textAnchor="middle" fill="currentColor" fontSize="7" fontWeight="700" stroke="none" fontFamily="Inter, sans-serif">$</text>
+      {/* Dollar sign as path (not text for cross-browser consistency) */}
+      <path d="M19 2.5v1m0 5v1m0-5.5c0.8 0.2 1.5 0.7 1.5 1.5s-0.7 1.3-1.5 1.5-1.5 0.7-1.5 1.5 0.7 1.3 1.5 1.5" strokeWidth="1.25" fill="none" stroke="currentColor" />
     </svg>
   );
 }

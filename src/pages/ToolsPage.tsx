@@ -8,6 +8,7 @@ import { forwardRef } from "react";
 const VehiclesIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
   (props, ref) => (
     <svg ref={ref} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <title>Veículos</title>
       {/* Truck body — front view */}
       <rect x="3" y="8" width="18" height="11" rx="2" />
       {/* Windshield */}
