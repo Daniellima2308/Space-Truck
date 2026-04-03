@@ -17,6 +17,6 @@ type AssetKey = keyof typeof assets;
 
 export function useBrandAsset(key: AssetKey): string {
   const { resolvedTheme } = useTheme();
-  const variant = resolvedTheme === "dark" ? "dark" : "light";
+  const variant = resolvedTheme === "light" ? "light" : "dark";
   return assets[key][variant];
 }
