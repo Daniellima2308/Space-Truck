@@ -46,27 +46,31 @@ const RegisterPage = () => {
 
   return (
     <div className="min-h-screen bg-background flex flex-col items-center justify-center px-6">
-      <div className="w-full max-w-sm space-y-8">
-        <div className="text-center">
-          <img src="/branding/space-truck/logo/space-truck-logo-principal-branco.png" alt="Space Truck" className="h-16 w-auto mx-auto mb-3 drop-shadow-[0_0_16px_rgba(59,130,246,0.4)]" />
-          <h1 className="text-2xl font-black">Criar Conta</h1>
-          <p className="text-sm text-muted-foreground mt-1">Preencha seus dados para começar</p>
+      <div className="w-full max-w-sm space-y-10">
+        {/* Brand hero */}
+        <div className="flex flex-col items-center pt-2">
+          <img
+            src="/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
+            alt="Space Truck"
+            className="h-24 w-auto drop-shadow-[0_4px_32px_rgba(0,0,0,0.4)]"
+          />
+          <p className="text-sm text-muted-foreground mt-6">Crie sua conta para começar</p>
         </div>
 
-        <form onSubmit={handleRegister} className="space-y-4">
+        <form onSubmit={handleRegister} className="space-y-3">
           <input
             type="text"
             placeholder="Seu nome completo"
             value={name}
             onChange={(e) => setName(e.target.value)}
-            className="input-field w-full text-base py-4"
+            className="input-field w-full text-base py-3.5 rounded-xl"
           />
           <input
             type="email"
             placeholder="E-mail"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
-            className="input-field w-full text-base py-4"
+            className="input-field w-full text-base py-3.5 rounded-xl"
             autoComplete="email"
           />
           <input
@@ -74,22 +78,24 @@ const RegisterPage = () => {
             placeholder="Senha (mínimo 6 caracteres)"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            className="input-field w-full text-base py-4"
+            className="input-field w-full text-base py-3.5 rounded-xl"
             autoComplete="new-password"
             minLength={6}
           />
-          <button
-            type="submit"
-            disabled={submitting}
-            className="w-full gradient-profit text-primary-foreground rounded-xl py-4 text-lg font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
-          >
-            Criar Conta
-          </button>
+          <div className="pt-1">
+            <button
+              type="submit"
+              disabled={submitting}
+              className="w-full gradient-profit text-primary-foreground rounded-xl py-3.5 text-base font-bold hover:opacity-90 transition-opacity disabled:opacity-50"
+            >
+              Criar conta gratuita
+            </button>
+          </div>
         </form>
 
-        <div className="text-center">
+        <div className="text-center pb-4">
           <Link to="/login" className="text-sm text-muted-foreground hover:text-foreground">
-            Já tem conta? <span className="text-primary font-medium">Entrar</span>
+            Já tem conta? <span className="text-primary font-semibold">Entrar</span>
           </Link>
         </div>
       </div>

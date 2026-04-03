@@ -16,29 +16,29 @@ const TOUR_STEPS: TourStep[] = [
     text: "Fala, parceiro! O Space Truck foi criado para ser o seu braço direito na estrada. Vamos dar uma volta rápida pelo aplicativo para você ver como é fácil controlar seus fretes e colocar mais dinheiro no bolso. Leva só um minutinho!",
   },
   {
-    targetId: "nav-vehicles",
+    targetId: "nav-tools",
     title: "Cadastre o seu Bruto",
-    text: "Tudo começa aqui na aba Frota. É aqui que você vai cadastrar o seu caminhão e colocar a quantidade de eixos. Isso é fundamental para o aplicativo calcular o pedágio e a tabela ANTT exata pra você!",
+    text: "Em Ferramentas você encontra o cadastro de Veículos. Cadastre seu caminhão com quantidade de eixos para calcular pedágio e tabela ANTT corretamente.",
   },
   {
-    targetId: "nav-calculator",
+    targetId: "nav-tools",
     title: "Não viaje no escuro",
-    text: "Ofereceram uma carga? Antes de fechar, abra a Calculadora. Coloque a distância, o diesel e o valor do frete. O app vai te dar uma cor na hora: Vermelho (Frete Ruim), Amarelo (Mais ou menos) ou Verde (Qualificado). Nunca mais pague para trabalhar!",
+    text: "Em Ferramentas está a Análise de Frete. Coloque a distância, o diesel e o valor do frete. O app te dá uma resposta na hora: verde, amarelo ou vermelho.",
   },
   {
     targetId: "nav-home",
     title: "O seu Painel de Controle",
-    text: "Aqui no Início é onde você acompanha a viagem que está fazendo agora e vê o resumo do seu lucro no mês. É o painel do seu negócio na palma da mão.",
+    text: "Em Início você acompanha o resumo do seu negócio: faturamento, despesas e viagens do período.",
   },
   {
     targetId: "nav-history",
     title: "O fim do Caderninho",
-    text: "Sabe aquele caderninho de anotações que sempre some ou amassa? Ele virou a aba Histórico. Todas as suas viagens passadas e abastecimentos ficam salvos aqui com segurança, prontos para virar PDF.",
+    text: "Todas as suas viagens passadas ficam salvas no Histórico, prontas para exportar em PDF.",
   },
   {
-    targetId: "nav-menu",
-    title: "Precisou de ajuda?",
-    text: "Por fim, o Menu. Aqui você ajeita sua foto, muda a senha e fala direto com a nossa equipe. Se tiver uma sugestão, é só mandar pra gente por aqui!",
+    targetId: "nav-more",
+    title: "Central do App",
+    text: "Em Mais você encontra seu perfil, configurações, tema do app, suporte e muito mais.",
   },
 ];
 
