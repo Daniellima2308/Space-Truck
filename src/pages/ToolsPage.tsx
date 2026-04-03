@@ -2,29 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Calculator, Wrench, Wallet, Radio, FileText, Map, BarChart2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import type { LucideIcon } from "lucide-react";
-import { forwardRef } from "react";
-
-/* Custom composed icon: truck front + driver avatar, integrated as one symbol */
-const VehiclesIcon = forwardRef<SVGSVGElement, React.SVGProps<SVGSVGElement>>(
-  (props, ref) => (
-    <svg ref={ref} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <title>Veículos</title>
-      {/* Truck body — front view */}
-      <rect x="3" y="8" width="18" height="11" rx="2" />
-      {/* Windshield */}
-      <path d="M6 8V6.5A2 2 0 0 1 8 4.5h8a2 2 0 0 1 2 2V8" />
-      {/* Bumper */}
-      <line x1="5" y1="19" x2="19" y2="19" />
-      {/* Headlights */}
-      <rect x="4" y="14" width="2.5" height="2" rx="0.5" />
-      <rect x="17.5" y="14" width="2.5" height="2" rx="0.5" />
-      {/* Driver avatar — small circle head + arc body, centered */}
-      <circle cx="12" cy="10.5" r="1.5" strokeWidth="1.5" />
-      <path d="M9.5 15.5a2.5 2.5 0 0 1 5 0" strokeWidth="1.5" />
-    </svg>
-  ),
-);
-VehiclesIcon.displayName = "VehiclesIcon";
+import { VehiclesIcon } from "@/components/icons";
 
 interface ToolItem {
   icon: LucideIcon | typeof VehiclesIcon;
