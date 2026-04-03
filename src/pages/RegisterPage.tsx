@@ -4,14 +4,20 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useTheme } from "next-themes";
 
 const RegisterPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const { resolvedTheme } = useTheme();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
+
+  const logoSrc = resolvedTheme === "dark"
+    ? "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
+    : "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-preto.png";
 
   if (loading) {
     return (
@@ -50,7 +56,7 @@ const RegisterPage = () => {
         {/* Brand hero */}
         <div className="flex flex-col items-center pt-2">
           <img
-            src="/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
+            src={logoSrc}
             alt="Space Truck"
             className="h-24 w-auto drop-shadow-[0_4px_32px_rgba(0,0,0,0.4)]"
           />
