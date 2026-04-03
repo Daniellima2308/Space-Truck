@@ -8,6 +8,7 @@ import { AppProvider } from "@/context/AppContext";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
+import { DevPreviewBadge } from "@/components/DevPreviewBadge";
 import Dashboard from "./pages/Dashboard";
 import VehiclesPage from "./pages/VehiclesPage";
 import NewTripPage from "./pages/NewTripPage";
@@ -55,6 +56,7 @@ function ProtectedApp() {
         </Routes>
         <OnboardingTour />
         <BottomNav />
+        <DevPreviewBadge />
       </AppProvider>
     </AuthGuard>
   );

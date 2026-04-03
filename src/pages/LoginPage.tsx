@@ -6,6 +6,7 @@ import { useAuth } from "@/context/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
+import { isDevPreviewEnabled, activateDevPreview } from "@/lib/devPreview";
 
 const LoginPage = () => {
   const { user, loading } = useAuth();
@@ -121,6 +122,23 @@ const LoginPage = () => {
             Esqueci minha senha
           </Link>
         </div>
+
+        {/* Dev preview — only visible when VITE_ENABLE_DEV_PREVIEW=true */}
+        {isDevPreviewEnabled() && (
+          <div className="flex justify-center pb-6">
+            <button
+              type="button"
+              onClick={() => {
+                activateDevPreview();
+                navigate("/");
+              }}
+              aria-label="Ativar modo preview de desenvolvimento"
+              className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground border border-border/40 hover:border-border rounded-lg px-3 py-1.5 transition-colors"
+            >
+              Entrar em modo preview
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
