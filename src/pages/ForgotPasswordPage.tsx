@@ -2,8 +2,10 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 const ForgotPasswordPage = () => {
+  const logoSrc = useBrandAsset("logoWithSlogan");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
@@ -28,7 +30,7 @@ const ForgotPasswordPage = () => {
       <div className="w-full max-w-sm space-y-10">
         <div className="flex flex-col items-center pt-2">
           <img
-            src="/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
+            src={logoSrc}
             alt="Space Truck"
             className="h-20 w-auto drop-shadow-[0_4px_32px_rgba(0,0,0,0.4)]"
           />

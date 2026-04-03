@@ -14,6 +14,7 @@ import { Plus, Trash2, FileDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -30,6 +31,7 @@ function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
 
 const Dashboard = () => {
   const { data, getActiveTrips, clearHistory, loading } = useApp();
+  const wordmarkSrc = useBrandAsset("wordmarkHorizontal");
   const [period, setPeriod] = useState("month");
   const [selectedVehicleId, setSelectedVehicleId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "finished">("all");
@@ -74,7 +76,7 @@ const Dashboard = () => {
       <header className="px-4 pt-6 pb-2">
         <div className="flex items-center justify-between">
           <img
-            src="/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png"
+            src={wordmarkSrc}
             alt="Space Truck"
             className="h-7 w-auto"
           />

@@ -5,10 +5,12 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 const LoginPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
+  const logoSrc = useBrandAsset("logoWithSlogan");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
@@ -53,7 +55,7 @@ const LoginPage = () => {
         {/* Brand hero */}
         <div className="flex flex-col items-center pt-2">
           <img
-            src="/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
+            src={logoSrc}
             alt="Space Truck"
             className="h-28 w-auto drop-shadow-[0_4px_32px_rgba(0,0,0,0.4)]"
           />
