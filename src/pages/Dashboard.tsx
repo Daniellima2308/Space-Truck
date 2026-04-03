@@ -14,7 +14,7 @@ import { Plus, Trash2, FileDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
-import { useTheme } from "next-themes";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -31,15 +31,11 @@ function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
 
 const Dashboard = () => {
   const { data, getActiveTrips, clearHistory, loading } = useApp();
-  const { resolvedTheme } = useTheme();
+  const wordmarkSrc = useBrandAsset("wordmarkHorizontal");
   const [period, setPeriod] = useState("month");
   const [selectedVehicleId, setSelectedVehicleId] = useState("all");
   const [statusFilter, setStatusFilter] = useState<"all" | "open" | "finished">("all");
   const navigate = useNavigate();
-
-  const wordmarkSrc = resolvedTheme === "dark"
-    ? "/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png"
-    : "/branding/space-truck/wordmark/space-truck-wordmark-horizontal-preto.png";
 
   const vehicleFilteredTrips = useMemo(() => {
     if (selectedVehicleId === "all") return data.trips;

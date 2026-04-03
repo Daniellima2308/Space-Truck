@@ -2,17 +2,13 @@ import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Link } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { useTheme } from "next-themes";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 const ForgotPasswordPage = () => {
-  const { resolvedTheme } = useTheme();
+  const logoSrc = useBrandAsset("logoWithSlogan");
   const [email, setEmail] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [sent, setSent] = useState(false);
-
-  const logoSrc = resolvedTheme === "dark"
-    ? "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
-    : "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-preto.png";
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();

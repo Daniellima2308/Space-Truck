@@ -2,18 +2,14 @@ import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { useTheme } from "next-themes";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
-  const { resolvedTheme } = useTheme();
+  const logoSrc = useBrandAsset("logoWithSlogan");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
   const [ready, setReady] = useState(false);
-
-  const logoSrc = resolvedTheme === "dark"
-    ? "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
-    : "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-preto.png";
 
   useEffect(() => {
     // Check for recovery token in URL hash

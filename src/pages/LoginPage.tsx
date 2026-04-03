@@ -5,19 +5,15 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { Navigate } from "react-router-dom";
 import { toast } from "@/hooks/use-toast";
-import { useTheme } from "next-themes";
+import { useBrandAsset } from "@/hooks/use-brand-asset";
 
 const LoginPage = () => {
   const { user, loading } = useAuth();
   const navigate = useNavigate();
-  const { resolvedTheme } = useTheme();
+  const logoSrc = useBrandAsset("logoWithSlogan");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
-
-  const logoSrc = resolvedTheme === "dark"
-    ? "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-branco.png"
-    : "/branding/space-truck/logo/space-truck-logo-principal-com-slogan-preto.png";
 
   if (loading) {
     return (
