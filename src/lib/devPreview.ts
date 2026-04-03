@@ -22,7 +22,7 @@ function isPreviewHost(): boolean {
   return (
     hostname === "localhost" ||
     hostname === "127.0.0.1" ||
-    hostname.endsWith(".vercel.app")
+    /^[a-z0-9-]+-[a-z0-9]+-[a-z0-9]+\.vercel\.app$/.test(hostname)
   );
 }
 

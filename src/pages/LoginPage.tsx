@@ -132,6 +132,7 @@ const LoginPage = () => {
                 activateDevPreview();
                 navigate("/");
               }}
+              aria-label="Ativar modo preview de desenvolvimento"
               className="text-[11px] text-muted-foreground/60 hover:text-muted-foreground border border-border/40 hover:border-border rounded-lg px-3 py-1.5 transition-colors"
             >
               Entrar em modo preview

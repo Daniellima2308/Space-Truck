@@ -17,7 +17,7 @@ export function DevPreviewBadge() {
   };
 
   return (
-    <div className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-yellow-500/90 text-yellow-950 text-[11px] font-semibold rounded-full pl-3 pr-1.5 py-1 shadow-lg backdrop-blur-sm">
+    <div role="status" aria-live="polite" aria-label="Modo preview de desenvolvimento ativo" className="fixed top-2 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 bg-yellow-500/90 text-yellow-950 text-[11px] font-semibold rounded-full pl-3 pr-1.5 py-1 shadow-lg backdrop-blur-sm">
       <span>Modo preview</span>
       <button
         onClick={handleExit}
