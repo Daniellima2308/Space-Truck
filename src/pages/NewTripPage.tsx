@@ -3,6 +3,7 @@ import { useApp } from "@/context/app-context";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Badge } from "@/components/ui/badge";
 import { FontAwesomeIcon, iconArrowLeft, iconTruck } from "@/lib/icons";
+import { toast } from "@/hooks/use-toast";
 
 const NewTripPage = () => {
   const { data, addTrip } = useApp();
@@ -22,8 +23,16 @@ const NewTripPage = () => {
 
   const handleCreate = async () => {
     if (!vehicleId || busyVehicleIds.has(vehicleId)) return;
-    const trip = await addTrip(vehicleId);
-    navigate(`/trip/${trip.id}`);
+    try {
+      const trip = await addTrip(vehicleId);
+      navigate(`/trip/${trip.id}`);
+    } catch (error) {
+      toast({
+        title: "Não foi possível iniciar a viagem",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (

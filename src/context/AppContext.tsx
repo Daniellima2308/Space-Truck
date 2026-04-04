@@ -1330,7 +1330,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addTrip = useCallback(
     async (vehicleId: string): Promise<Trip> => {
-      if (!user) throw new Error("Not authenticated");
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
       // Check if this vehicle already has an active trip
       const existingActive = data.trips.find(
         (t) => t.vehicleId === vehicleId && t.status === "open",
@@ -1581,7 +1581,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
       >,
     ) => {
-      if (!user) throw new Error("Usuário não autenticado.");
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const kmValidation = validatePositiveNumber(
         f.kmInitial,
