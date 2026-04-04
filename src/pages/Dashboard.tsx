@@ -7,27 +7,15 @@ import { PeriodFilter } from "@/components/PeriodFilter";
 import { MaintenanceAlerts } from "@/components/MaintenanceAlerts";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { ConnectionIndicator } from "@/components/ConnectionIndicator";
-import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, getTripNetRevenue } from "@/lib/calculations";
+import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, getTripNetRevenue, filterTripsByPeriod } from "@/lib/calculations";
 import { getMaintenanceAlerts } from "@/lib/maintenance";
-import { Trip } from "@/types";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
-import { FontAwesomeIcon, iconPlus, iconFileDown, iconArrowRight, iconTruckMoving, iconOperacao } from "@/lib/icons";
+import { FontAwesomeIcon, iconPlus, iconFileDown, iconArrowRight, iconTruckMoving, iconOperacao, iconTruck } from "@/lib/icons";
 
-function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
-  if (period === "all") return trips;
-  const now = new Date();
-  const start = new Date();
-  switch (period) {
-    case "today": start.setHours(0, 0, 0, 0); break;
-    case "week": start.setDate(now.getDate() - 7); break;
-    case "month": start.setMonth(now.getMonth() - 1); break;
-    case "year": start.setFullYear(now.getFullYear() - 1); break;
-  }
-  return trips.filter((t) => new Date(t.createdAt) >= start);
-}
+const PERIOD_LABELS: Record<string, string> = { all: "Todos", today: "Hoje", week: "Semana", month: "Mês", year: "Ano" };
 
 const HISTORY_PREVIEW_LIMIT = 3;
 
@@ -66,13 +54,22 @@ const Dashboard = () => {
   // Contextual CTA logic
   const hasVehicles = data.vehicles.length > 0;
   const hasActiveTrip = activeTrips.length > 0;
-  const ctaLabel = !hasVehicles ? "Cadastrar Veículo" : hasActiveTrip ? "Continuar Operação" : "Nova Viagem";
+  const activeCount = activeTrips.length;
+
+  const ctaLabel = !hasVehicles
+    ? "Cadastrar Veículo"
+    : hasActiveTrip
+      ? activeCount > 1 ? `Operação (${activeCount} ativas)` : "Continuar Operação"
+      : "Nova Viagem";
   const ctaIcon = !hasVehicles ? iconTruckMoving : hasActiveTrip ? iconOperacao : iconPlus;
   const handleCta = () => {
     if (!hasVehicles) { navigate("/vehicles"); return; }
     if (hasActiveTrip) { navigate("/operation"); return; }
     navigate("/new-trip", { state: { preSelectedVehicleId: selectedVehicleId !== "all" ? selectedVehicleId : undefined } });
   };
+
+  // New user state: no vehicles and no trips
+  const isNewUser = !hasVehicles && data.trips.length === 0;
 
   if (loading) {
     return (
@@ -104,70 +101,100 @@ const Dashboard = () => {
           <MaintenanceAlerts alerts={maintenanceAlerts} />
         </div>
 
-        {/* Light panel filters */}
-        <div className="space-y-2">
-          {data.vehicles.length >= 2 && (
-            <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-              <SelectTrigger className="w-full bg-secondary border-none text-sm h-[42px]">
-                <SelectValue placeholder="Todos os Veículos" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todos os Veículos</SelectItem>
-                {data.vehicles.map(v => (
-                  <SelectItem key={v.id} value={v.id}>{v.plate} • {v.brand} {v.model}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          )}
-          <div className="flex items-center gap-2">
-            <div className="flex-1">
-              <PeriodFilter value={period} onChange={setPeriod} />
+        {isNewUser ? (
+          /* ── Empty state: new user welcome ────────────────────────── */
+          <div className="flex flex-col items-center justify-center py-14 gap-5">
+            <div className="w-20 h-20 rounded-2xl bg-primary/10 flex items-center justify-center">
+              <FontAwesomeIcon icon={iconTruck} className="w-10 h-10 text-primary/60" />
             </div>
-            {filteredTrips.length > 0 && (
-              <button
-                onClick={() => {
-                  const periodLabels: Record<string, string> = { all: "Todos", today: "Hoje", week: "Semana", month: "Mês", year: "Ano" };
-                  exportMultipleTripsPdf(filteredTrips, data.vehicles, periodLabels[period] || period);
-                }}
-                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
-              >
-                <FontAwesomeIcon icon={iconFileDown} className="w-4 h-4" /> PDF
-              </button>
-            )}
-          </div>
-        </div>
-
-        {/* Executive summary cards — core of the dashboard */}
-        <SummaryCards grossRevenue={grossRevenue} netRevenue={netRevenue} totalExpenses={totalExpenses} totalCommissions={totalCommissions} />
-
-        {/* Contextual CTA */}
-        <button onClick={handleCta}
-          className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
-          <FontAwesomeIcon icon={ctaIcon} className="w-5 h-5" /> {ctaLabel}
-        </button>
-
-        {/* Active trip executive summary */}
-        {activeTrips.length > 0 && (
-          <section className="space-y-3">
-            {activeTrips.map(trip => (
-              <ActiveTripCard key={trip.id} trip={trip} />
-            ))}
-          </section>
-        )}
-
-        {/* History preview */}
-        <section>
-          <div className="flex items-center justify-between mb-3">
-            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico</h2>
-            <button
-              onClick={() => navigate("/history")}
-              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-            >
-              Ver tudo <FontAwesomeIcon icon={iconArrowRight} className="w-3 h-3" />
+            <div className="text-center space-y-1">
+              <p className="text-lg font-bold">Bem-vindo ao Space Truck!</p>
+              <p className="text-sm text-muted-foreground max-w-xs mx-auto">
+                Cadastre seu primeiro veículo para começar a registrar suas viagens e acompanhar seus resultados.
+              </p>
+            </div>
+            <button onClick={handleCta}
+              className="gradient-profit text-primary-foreground rounded-2xl px-8 py-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
+              <FontAwesomeIcon icon={iconTruckMoving} className="w-5 h-5" /> Cadastrar Veículo
             </button>
           </div>
-          <TripHistoryList trips={historyPreview} />
-        </section>
+        ) : (
+          /* ── Regular dashboard content ─────────────────────────────── */
+          <>
+            {/* Light panel filters */}
+            <div className="space-y-2">
+              {data.vehicles.length >= 2 && (
+                <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+                  <SelectTrigger className="w-full bg-secondary border-none text-sm h-[42px]">
+                    <SelectValue placeholder="Todos os Veículos" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">Todos os Veículos</SelectItem>
+                    {data.vehicles.map(v => (
+                      <SelectItem key={v.id} value={v.id}>{v.plate} • {v.brand} {v.model}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              )}
+              <div className="flex items-center gap-2">
+                <div className="flex-1">
+                  <PeriodFilter value={period} onChange={setPeriod} />
+                </div>
+                {filteredTrips.length > 0 && (
+                  <button
+                    onClick={() => {
+                      exportMultipleTripsPdf(filteredTrips, data.vehicles, PERIOD_LABELS[period] || period);
+                    }}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
+                  >
+                    <FontAwesomeIcon icon={iconFileDown} className="w-4 h-4" /> PDF
+                  </button>
+                )}
+              </div>
+            </div>
+
+            {/* Executive summary cards — core of the dashboard */}
+            <SummaryCards
+              grossRevenue={grossRevenue}
+              netRevenue={netRevenue}
+              totalExpenses={totalExpenses}
+              totalCommissions={totalCommissions}
+              tripCount={filteredTrips.length}
+              periodLabel={PERIOD_LABELS[period]}
+            />
+
+            {/* Contextual CTA */}
+            <button onClick={handleCta}
+              className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
+              <FontAwesomeIcon icon={ctaIcon} className="w-5 h-5" /> {ctaLabel}
+            </button>
+
+            {/* Active trip executive summary */}
+            {activeTrips.length > 0 && (
+              <section className="space-y-3">
+                {activeTrips.map(trip => (
+                  <ActiveTripCard key={trip.id} trip={trip} />
+                ))}
+              </section>
+            )}
+
+            {/* History preview — only shown when there are finished trips */}
+            {historyPreview.length > 0 && (
+              <section>
+                <div className="flex items-center justify-between mb-3">
+                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico</h2>
+                  <button
+                    onClick={() => navigate("/history")}
+                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Ver tudo <FontAwesomeIcon icon={iconArrowRight} className="w-3 h-3" />
+                  </button>
+                </div>
+                <TripHistoryList trips={historyPreview} />
+              </section>
+            )}
+          </>
+        )}
 
       </div>
     </div>

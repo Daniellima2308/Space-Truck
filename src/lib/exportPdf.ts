@@ -22,11 +22,11 @@ function getVehicleLabel(vehicles: Vehicle[], vehicleId: string): string {
 function addHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("Estrada Real", 14, 20);
+  doc.text("Space Truck", 14, 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(120);
-  doc.text("Gestão de Fretes", 14, 26);
+  doc.text("Gestão de Viagens", 14, 26);
   doc.setTextColor(0);
 
   doc.setFontSize(14);

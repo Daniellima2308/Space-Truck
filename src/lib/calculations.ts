@@ -204,3 +204,16 @@ export function formatNumber(value: number): string {
 export function formatDate(date: string): string {
   return new Date(date).toLocaleDateString("pt-BR");
 }
+
+export function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
+  if (period === "all") return trips;
+  const now = new Date();
+  const start = new Date();
+  switch (period) {
+    case "today": start.setHours(0, 0, 0, 0); break;
+    case "week": start.setDate(now.getDate() - 7); break;
+    case "month": start.setMonth(now.getMonth() - 1); break;
+    case "year": start.setFullYear(now.getFullYear() - 1); break;
+  }
+  return trips.filter((t) => new Date(t.createdAt) >= start);
+}

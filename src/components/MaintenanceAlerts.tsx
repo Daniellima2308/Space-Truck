@@ -1,11 +1,14 @@
 import { MaintenanceAlert } from "@/types";
-import { FontAwesomeIcon, iconAlertTriangle, iconWrench } from "@/lib/icons";
+import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon, iconAlertTriangle, iconWrench, iconChevronRight } from "@/lib/icons";
 
 interface Props {
   alerts: MaintenanceAlert[];
 }
 
 export function MaintenanceAlerts({ alerts }: Props) {
+  const navigate = useNavigate();
+
   if (alerts.length === 0) return null;
 
   return (
@@ -15,10 +18,14 @@ export function MaintenanceAlerts({ alerts }: Props) {
         return (
           <div
             key={alert.service.id}
-            className={`rounded-xl p-4 flex items-center gap-3 ${
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate(`/maintenance?vehicleId=${alert.vehicle.id}`)}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/maintenance?vehicleId=${alert.vehicle.id}`); }}
+            className={`rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors ${
               isOverdue
-                ? "bg-expense/10 border border-expense/30"
-                : "bg-warning/10 border border-warning/30"
+                ? "bg-expense/10 border border-expense/30 hover:bg-expense/15"
+                : "bg-warning/10 border border-warning/30 hover:bg-warning/15"
             }`}
           >
             <div className={`p-2 rounded-lg ${isOverdue ? "bg-expense/20" : "bg-warning/20"}`}>
@@ -40,6 +47,7 @@ export function MaintenanceAlerts({ alerts }: Props) {
                   : ` • Faltam ${Math.round(alert.kmRemaining)} km`}
               </p>
             </div>
+            <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />
           </div>
         );
       })}

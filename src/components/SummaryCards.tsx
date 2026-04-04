@@ -6,9 +6,11 @@ interface SummaryCardsProps {
   netRevenue: number;
   totalExpenses: number;
   totalCommissions: number;
+  tripCount?: number;
+  periodLabel?: string;
 }
 
-export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCommissions }: SummaryCardsProps) {
+export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCommissions, tripCount, periodLabel }: SummaryCardsProps) {
   const cards = [
     {
       label: "Faturamento Bruto",
@@ -40,19 +42,29 @@ export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCom
     },
   ];
 
+  const contextLabel = [
+    tripCount != null ? `${tripCount} viagem${tripCount !== 1 ? "ns" : ""}` : null,
+    periodLabel || null,
+  ].filter(Boolean).join(" • ");
+
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-      {cards.map((card) => (
-        <div key={card.label} className={`${card.className} rounded-lg p-4`}>
-          <div className="flex items-center gap-2 mb-2">
-            <FontAwesomeIcon icon={card.icon} className="w-4 h-4 text-muted-foreground" />
-            <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
-              {card.label}
-            </span>
+    <div className="space-y-2">
+      {contextLabel && (
+        <p className="text-xs text-muted-foreground font-medium text-right">{contextLabel}</p>
+      )}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        {cards.map((card) => (
+          <div key={card.label} className={`${card.className} rounded-lg p-4`}>
+            <div className="flex items-center gap-2 mb-2">
+              <FontAwesomeIcon icon={card.icon} className="w-4 h-4 text-muted-foreground" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
+                {card.label}
+              </span>
+            </div>
+            <p className={`text-xl font-bold font-mono ${card.valueClass}`}>{card.value}</p>
           </div>
-          <p className={`text-xl font-bold font-mono ${card.valueClass}`}>{card.value}</p>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }
