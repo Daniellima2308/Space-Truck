@@ -1205,7 +1205,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addVehicle = useCallback(
     async (v: Omit<Vehicle, "id">) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const normalizedProfile = normalizeVehicleProfileForPersistence({
         operationProfile: v.operationProfile,
