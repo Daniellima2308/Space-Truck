@@ -21,7 +21,7 @@ export function MaintenanceAlerts({ alerts }: Props) {
             role="button"
             tabIndex={0}
             onClick={() => navigate(`/maintenance?vehicleId=${alert.vehicle.id}`)}
-            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") navigate(`/maintenance?vehicleId=${alert.vehicle.id}`); }}
+            onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); navigate(`/maintenance?vehicleId=${alert.vehicle.id}`); } }}
             className={`rounded-xl p-4 flex items-center gap-3 cursor-pointer transition-colors ${
               isOverdue
                 ? "bg-expense/10 border border-expense/30 hover:bg-expense/15"

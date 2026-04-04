@@ -43,7 +43,7 @@ export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCom
   ];
 
   const contextLabel = [
-    tripCount != null ? `${tripCount} viagem${tripCount !== 1 ? "ns" : ""}` : null,
+    tripCount !== undefined && tripCount !== null ? `${tripCount} viagem${tripCount !== 1 ? "ns" : ""}` : null,
     periodLabel || null,
   ].filter(Boolean).join(" • ");
 
