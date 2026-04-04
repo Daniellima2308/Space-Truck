@@ -1,14 +1,15 @@
 import { useLocation, useNavigate } from "react-router-dom";
-import { Home, Wrench, History, MoreHorizontal } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { OperationIcon } from "@/components/icons";
+import type { IconDefinition } from "@/lib/icons";
+import { FontAwesomeIcon, iconHome, iconWrench, iconHistory, iconMoreHorizontal, isIconDefinition } from "@/lib/icons";
 
-const NAV_ITEMS = [
-  { path: "/", label: "Início", icon: Home, id: "nav-home" },
+const NAV_ITEMS: { path: string; label: string; icon: IconDefinition | typeof OperationIcon; id: string }[] = [
+  { path: "/", label: "Início", icon: iconHome, id: "nav-home" },
   { path: "/operation", label: "Operação", icon: OperationIcon, id: "nav-operation" },
-  { path: "/tools", label: "Ferramentas", icon: Wrench, id: "nav-tools" },
-  { path: "/history", label: "Histórico", icon: History, id: "nav-history" },
-  { path: "/more", label: "Mais", icon: MoreHorizontal, id: "nav-more" },
+  { path: "/tools", label: "Ferramentas", icon: iconWrench, id: "nav-tools" },
+  { path: "/history", label: "Histórico", icon: iconHistory, id: "nav-history" },
+  { path: "/more", label: "Mais", icon: iconMoreHorizontal, id: "nav-more" },
 ];
 
 export function BottomNav() {
@@ -30,7 +31,6 @@ export function BottomNav() {
             item.path === "/"
               ? location.pathname === "/"
               : location.pathname.startsWith(item.path);
-          const Icon = item.icon;
           return (
             <button
               key={item.path}
@@ -44,12 +44,22 @@ export function BottomNav() {
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
               )}
-              <Icon
-                className={cn(
-                  "w-[22px] h-[22px]",
-                  isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
-                )}
-              />
+              {isIconDefinition(item.icon) ? (
+                <FontAwesomeIcon
+                  icon={item.icon}
+                  className={cn(
+                    "w-[22px] h-[22px]",
+                    isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
+                  )}
+                />
+              ) : (
+                <item.icon
+                  className={cn(
+                    "w-[22px] h-[22px]",
+                    isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
+                  )}
+                />
+              )}
               <span
                 className={cn(
                   "text-[10px] font-semibold leading-tight",
