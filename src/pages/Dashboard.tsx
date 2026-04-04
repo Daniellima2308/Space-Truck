@@ -14,7 +14,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
-import { FontAwesomeIcon, iconPlus, iconTrash2, iconFileDown } from "@/lib/icons";
+import { FontAwesomeIcon, iconPlus, iconFileDown, iconArrowRight, iconTruckMoving, iconOperacao } from "@/lib/icons";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -29,12 +29,13 @@ function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   return trips.filter((t) => new Date(t.createdAt) >= start);
 }
 
+const HISTORY_PREVIEW_LIMIT = 3;
+
 const Dashboard = () => {
-  const { data, getActiveTrips, clearHistory, loading } = useApp();
+  const { data, loading } = useApp();
   const wordmarkSrc = useBrandAsset("wordmarkHorizontal");
   const [period, setPeriod] = useState("month");
   const [selectedVehicleId, setSelectedVehicleId] = useState("all");
-  const [statusFilter, setStatusFilter] = useState<"all" | "open" | "finished">("all");
   const navigate = useNavigate();
 
   const vehicleFilteredTrips = useMemo(() => {
@@ -42,12 +43,8 @@ const Dashboard = () => {
     return data.trips.filter(t => t.vehicleId === selectedVehicleId);
   }, [data.trips, selectedVehicleId]);
 
-  const statusFilteredTrips = useMemo(() => {
-    if (statusFilter === "all") return vehicleFilteredTrips;
-    return vehicleFilteredTrips.filter(t => t.status === statusFilter);
-  }, [vehicleFilteredTrips, statusFilter]);
-
-  const filteredTrips = useMemo(() => filterTripsByPeriod(statusFilteredTrips, period), [statusFilteredTrips, period]);
+  // Period-filtered trips feed the executive summary cards
+  const filteredTrips = useMemo(() => filterTripsByPeriod(vehicleFilteredTrips, period), [vehicleFilteredTrips, period]);
   const maintenanceAlerts = useMemo(() => getMaintenanceAlerts(data.vehicles, data.maintenanceServices), [data.vehicles, data.maintenanceServices]);
 
   const grossRevenue = filteredTrips.reduce((s, t) => s + getTripGrossRevenue(t), 0);
@@ -55,11 +52,25 @@ const Dashboard = () => {
   const totalExpenses = filteredTrips.reduce((s, t) => s + getTripTotalExpenses(t), 0);
   const netRevenue = filteredTrips.reduce((s, t) => s + getTripNetRevenue(t), 0);
 
-  const activeTripsInView = filteredTrips.filter(t => t.status === "open");
-  const finishedTripsInView = filteredTrips.filter(t => t.status === "finished");
+  // Active trips are shown regardless of period filter
+  const activeTrips = useMemo(() => vehicleFilteredTrips.filter(t => t.status === "open"), [vehicleFilteredTrips]);
 
-  const handleNewTrip = () => {
-    if (data.vehicles.length === 0) { navigate("/vehicles"); return; }
+  // History preview: last N finished trips sorted by most recent (not period-filtered)
+  const historyPreview = useMemo(() => {
+    const finished = vehicleFilteredTrips
+      .filter(t => t.status === "finished")
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+    return finished.slice(0, HISTORY_PREVIEW_LIMIT);
+  }, [vehicleFilteredTrips]);
+
+  // Contextual CTA logic
+  const hasVehicles = data.vehicles.length > 0;
+  const hasActiveTrip = activeTrips.length > 0;
+  const ctaLabel = !hasVehicles ? "Cadastrar Veículo" : hasActiveTrip ? "Continuar Operação" : "Nova Viagem";
+  const ctaIcon = !hasVehicles ? iconTruckMoving : hasActiveTrip ? iconOperacao : iconPlus;
+  const handleCta = () => {
+    if (!hasVehicles) { navigate("/vehicles"); return; }
+    if (hasActiveTrip) { navigate("/operation"); return; }
     navigate("/new-trip", { state: { preSelectedVehicleId: selectedVehicleId !== "all" ? selectedVehicleId : undefined } });
   };
 
@@ -73,6 +84,7 @@ const Dashboard = () => {
 
   return (
     <div className="min-h-screen bg-background pb-24">
+      {/* Institutional header */}
       <header className="px-4 pt-6 pb-2">
         <div className="flex items-center justify-between">
           <img
@@ -85,95 +97,78 @@ const Dashboard = () => {
       </header>
 
       <div className="px-4 space-y-5 pt-1">
-        <NotificationPrompt />
 
-        <MaintenanceAlerts alerts={maintenanceAlerts} />
-
-        {data.vehicles.length >= 2 && (
-          <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
-            <SelectTrigger className="bg-secondary border-none text-sm h-[42px]">
-              <SelectValue placeholder="Todos os Veículos" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos os Veículos</SelectItem>
-              {data.vehicles.map(v => (
-                <SelectItem key={v.id} value={v.id}>{v.plate} • {v.brand} {v.model}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-
-        {/* Status Filter - Segmented Control */}
-        <div className="flex rounded-lg bg-secondary p-1 gap-1">
-          {([
-            { value: "all", label: "Todas" },
-            { value: "open", label: "Em Andamento" },
-            { value: "finished", label: "Finalizadas" },
-          ] as const).map(opt => (
-            <button
-              key={opt.value}
-              onClick={() => setStatusFilter(opt.value)}
-              className={`flex-1 text-xs font-semibold py-2 rounded-md transition-colors ${
-                statusFilter === opt.value
-                  ? "bg-background text-foreground shadow-sm"
-                  : "text-muted-foreground hover:text-foreground"
-              }`}
-            >
-              {opt.label}
-            </button>
-          ))}
+        {/* Attention zone: notifications + maintenance alerts */}
+        <div className="space-y-2">
+          <NotificationPrompt />
+          <MaintenanceAlerts alerts={maintenanceAlerts} />
         </div>
 
-        {/* Period Filter + Export PDF */}
-        <div className="flex items-center gap-2">
-          <div className="flex-1"><PeriodFilter value={period} onChange={setPeriod} /></div>
-          {filteredTrips.length > 0 && (
-            <button
-              onClick={() => {
-                const periodLabels: Record<string, string> = { all: "Todos", today: "Hoje", week: "Semana", month: "Mês", year: "Ano" };
-                exportMultipleTripsPdf(filteredTrips, data.vehicles, periodLabels[period] || period);
-              }}
-              className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
-            >
-              <FontAwesomeIcon icon={iconFileDown} className="w-4 h-4" /> PDF
-            </button>
+        {/* Light panel filters */}
+        <div className="space-y-2">
+          {data.vehicles.length >= 2 && (
+            <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
+              <SelectTrigger className="w-full bg-secondary border-none text-sm h-[42px]">
+                <SelectValue placeholder="Todos os Veículos" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos os Veículos</SelectItem>
+                {data.vehicles.map(v => (
+                  <SelectItem key={v.id} value={v.id}>{v.plate} • {v.brand} {v.model}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           )}
+          <div className="flex items-center gap-2">
+            <div className="flex-1">
+              <PeriodFilter value={period} onChange={setPeriod} />
+            </div>
+            {filteredTrips.length > 0 && (
+              <button
+                onClick={() => {
+                  const periodLabels: Record<string, string> = { all: "Todos", today: "Hoje", week: "Semana", month: "Mês", year: "Ano" };
+                  exportMultipleTripsPdf(filteredTrips, data.vehicles, periodLabels[period] || period);
+                }}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
+              >
+                <FontAwesomeIcon icon={iconFileDown} className="w-4 h-4" /> PDF
+              </button>
+            )}
+          </div>
         </div>
 
+        {/* Executive summary cards — core of the dashboard */}
         <SummaryCards grossRevenue={grossRevenue} netRevenue={netRevenue} totalExpenses={totalExpenses} totalCommissions={totalCommissions} />
 
-        {/* Nova Viagem button - always visible */}
-        <button onClick={handleNewTrip}
+        {/* Contextual CTA */}
+        <button onClick={handleCta}
           className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
-          <FontAwesomeIcon icon={iconPlus} className="w-5 h-5" /> Nova Viagem
+          <FontAwesomeIcon icon={ctaIcon} className="w-5 h-5" /> {ctaLabel}
         </button>
 
-        {/* Active trips */}
-        {activeTripsInView.length > 0 && (
+        {/* Active trip executive summary */}
+        {activeTrips.length > 0 && (
           <section className="space-y-3">
-            {activeTripsInView.map(trip => (
+            {activeTrips.map(trip => (
               <ActiveTripCard key={trip.id} trip={trip} />
             ))}
           </section>
         )}
 
-        {/* Finished trips */}
-        {(statusFilter === "all" || statusFilter === "finished") && (
-          <section>
-            <div className="flex items-center justify-between mb-3">
-              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico</h2>
-              <div className="flex items-center gap-3">
-                {finishedTripsInView.length > 0 && (
-                  <button onClick={() => { if (confirm("Limpar todo o histórico de viagens finalizadas?")) clearHistory(); }}
-                    className="flex items-center gap-1 text-xs text-expense hover:text-expense/80 transition-colors">
-                    <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5" /> Limpar
-                  </button>
-                )}
-              </div>
-            </div>
-            <TripHistoryList trips={finishedTripsInView} />
-          </section>
-        )}
+        {/* History preview */}
+        <section>
+          <div className="flex items-center justify-between mb-3">
+            <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">Histórico</h2>
+            <button
+              onClick={() => navigate("/history")}
+              className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
+            >
+              Ver tudo <FontAwesomeIcon icon={iconArrowRight} className="w-3 h-3" />
+            </button>
+          </div>
+          <TripHistoryList trips={historyPreview} />
+        </section>
+
       </div>
     </div>
   );
