@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
-import { X } from "lucide-react";
 import { isDevPreviewActive, deactivateDevPreview } from "@/lib/devPreview";
+import { FontAwesomeIcon, iconX } from "@/lib/icons";
 
 /**
  * Floating badge shown when dev-preview mode is active.
@@ -24,7 +24,7 @@ export function DevPreviewBadge() {
         className="flex items-center justify-center w-5 h-5 rounded-full bg-yellow-950/20 hover:bg-yellow-950/40 transition-colors"
         title="Sair do modo preview"
       >
-        <X className="w-3 h-3" />
+        <FontAwesomeIcon icon={iconX} className="w-3 h-3" />
       </button>
     </div>
   );

@@ -1,8 +1,8 @@
 import { useApp } from "@/context/app-context";
 import { ActiveTripCard } from "@/components/ActiveTripCard";
 import { useNavigate } from "react-router-dom";
-import { Plus, Truck, Route, Clock3 } from "lucide-react";
 import { formatCurrency, getTripGrossRevenue } from "@/lib/calculations";
+import { FontAwesomeIcon, iconPlus, iconTruck, iconRoute, iconClock3 } from "@/lib/icons";
 
 const OperationPage = () => {
   const { data, loading } = useApp();
@@ -44,14 +44,14 @@ const OperationPage = () => {
         <div className="grid grid-cols-2 gap-3">
           <div className="bg-card border border-border rounded-2xl p-4 space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Route className="w-4 h-4" />
+              <FontAwesomeIcon icon={iconRoute} className="w-4 h-4" />
               <span className="text-[10px] uppercase tracking-widest font-semibold">Ativas Agora</span>
             </div>
             <p className="text-2xl font-black text-foreground">{activeTrips.length}</p>
           </div>
           <div className="bg-card border border-border rounded-2xl p-4 space-y-1">
             <div className="flex items-center gap-2 text-muted-foreground">
-              <Clock3 className="w-4 h-4" />
+              <FontAwesomeIcon icon={iconClock3} className="w-4 h-4" />
               <span className="text-[10px] uppercase tracking-widest font-semibold">Hoje</span>
             </div>
             <p className="text-lg font-bold text-profit font-mono">{formatCurrency(todayRevenue)}</p>
@@ -63,14 +63,14 @@ const OperationPage = () => {
           onClick={handleNewTrip}
           className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity"
         >
-          <Plus className="w-5 h-5" /> Nova Viagem
+          <FontAwesomeIcon icon={iconPlus} className="w-5 h-5" /> Nova Viagem
         </button>
 
         {/* Active trips or empty state */}
         {activeTrips.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-14 gap-4">
             <div className="w-16 h-16 rounded-2xl bg-muted/60 flex items-center justify-center">
-              <Truck className="w-8 h-8 text-muted-foreground/60" />
+              <FontAwesomeIcon icon={iconTruck} className="w-8 h-8 text-muted-foreground/60" />
             </div>
             <div className="text-center">
               <p className="text-sm font-semibold text-muted-foreground">Nenhuma viagem ativa</p>

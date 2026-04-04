@@ -1,7 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Pencil, Plus, Trash2, Truck, User, Wrench } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { DriverBond, Vehicle, VehicleOperationProfile } from "@/types";
@@ -15,6 +14,7 @@ import {
 } from "@/lib/vehicleOperation";
 import { useToast } from "@/components/ui/use-toast";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { FontAwesomeIcon, iconArrowLeft, iconPencil, iconPlus, iconTrash2, iconTruck, iconUser, iconWrench } from "@/lib/icons";
 
 const TRUCK_BRANDS = ["Mercedes-Benz", "Scania", "Volvo", "Volkswagen", "Ford", "Iveco", "DAF"] as const;
 
@@ -230,7 +230,7 @@ const VehiclesPage = () => {
 
       <header className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-bold">Veículos</h1>
       </header>
@@ -242,14 +242,14 @@ const VehiclesPage = () => {
           return (
             <div key={v.id} className="gradient-card rounded-lg p-4 flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Truck className="w-5 h-5 text-muted-foreground" />
+                <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-muted-foreground" />
                 <div>
                   <p className="text-sm font-medium">{v.brand} {v.model} {v.year}</p>
                   <p className="text-xs text-muted-foreground font-mono">{v.plate} • {v.currentKm.toLocaleString("pt-BR")} km</p>
                   <p className="text-xs text-muted-foreground mt-0.5">{VEHICLE_OPERATION_PROFILE_LABELS[v.operationProfile]}</p>
                   {v.driverBond && <p className="text-xs text-muted-foreground/90">Vínculo: {DRIVER_BOND_LABELS[v.driverBond]}</p>}
                   <p className="text-xs text-muted-foreground flex items-center gap-1 mt-0.5">
-                    <User className="w-3 h-3" /> {getVehicleOperatorDisplayName(v)}
+                    <FontAwesomeIcon icon={iconUser} className="w-3 h-3" /> {getVehicleOperatorDisplayName(v)}
                   </p>
                   {canEditDefaultCommission && (
                     <p className="text-xs text-muted-foreground/90 mt-0.5">Comissão padrão: {formatPercentLabel(v.defaultCommissionPercent ?? 0)}</p>
@@ -263,16 +263,16 @@ const VehiclesPage = () => {
                     className="p-2 rounded-lg hover:bg-accent transition-colors"
                     title="Editar percentual padrão"
                   >
-                    <Pencil className="w-4 h-4 text-primary" />
+                    <FontAwesomeIcon icon={iconPencil} className="w-4 h-4 text-primary" />
                   </button>
                 )}
                 <button onClick={() => navigate(`/maintenance?vehicleId=${v.id}`)}
                   className="p-2 rounded-lg hover:bg-accent transition-colors" title="Ver Manutenções">
-                  <Wrench className="w-4 h-4 text-muted-foreground" />
+                  <FontAwesomeIcon icon={iconWrench} className="w-4 h-4 text-muted-foreground" />
                 </button>
                 <button onClick={() => handleDeleteVehicle(v.id)} disabled={isDeletingVehicleId === v.id}
                   className="p-2 rounded-lg hover:bg-expense/10 transition-colors">
-                  <Trash2 className="w-4 h-4 text-expense" />
+                  <FontAwesomeIcon icon={iconTrash2} className="w-4 h-4 text-expense" />
                 </button>
               </div>
             </div>
@@ -356,7 +356,7 @@ const VehiclesPage = () => {
         ) : (
           <button onClick={() => setShowForm(true)}
             className="w-full border border-dashed border-border rounded-xl p-4 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium">
-            <Plus className="w-4 h-4" /> Adicionar Veículo
+            <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Adicionar Veículo
           </button>
         )}
       </div>

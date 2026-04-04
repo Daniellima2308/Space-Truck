@@ -4,25 +4,8 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import {
-  User,
-  Lock,
-  Bell,
-  MessageCircle,
-  Lightbulb,
-  LogOut,
-  Sun,
-  Moon,
-  Monitor,
-  ChevronRight,
-  Shield,
-  HelpCircle,
-  FileText,
-  Info,
-  Bug,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FontAwesomeIcon, IconDefinition, iconUser, iconLock, iconBell, iconMessageCircle, iconLightbulb, iconLogOut, iconSun, iconMoon, iconMonitor, iconChevronRight, iconShield, iconHelpCircle, iconFileText, iconInfo, iconBug } from "@/lib/icons";
 
 export default function MorePage() {
   const navigate = useNavigate();
@@ -138,7 +121,7 @@ export default function MorePage() {
             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
             <p className="text-xs text-primary mt-0.5 font-medium">Ver perfil completo</p>
           </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+          <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground shrink-0" />
         </button>
 
         {/* Conta e Segurança */}
@@ -173,7 +156,7 @@ export default function MorePage() {
                       : "border-border text-muted-foreground hover:bg-accent/40"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <FontAwesomeIcon icon={icon} className="w-4 h-4" />
                   {label}
                 </button>
               ))}
@@ -221,7 +204,7 @@ export default function MorePage() {
           }}
           className="w-full bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 rounded-2xl p-4 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
         >
-          <LogOut className="w-4 h-4" /> Sair da Conta
+          <FontAwesomeIcon icon={iconLogOut} className="w-4 h-4" /> Sair da Conta
         </button>
       </div>
 
@@ -319,13 +302,13 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
 }
 
 function MenuItem({
-  icon: Icon,
+  icon,
   label,
   subtitle,
   onClick,
   disabled,
 }: {
-  icon: LucideIcon;
+  icon: IconDefinition;
   label: string;
   subtitle?: string;
   onClick?: () => void;
@@ -339,12 +322,12 @@ function MenuItem({
         disabled ? "opacity-50 cursor-default" : "hover:bg-accent/40",
       )}
     >
-      <Icon className="w-5 h-5 text-muted-foreground shrink-0" />
+      <FontAwesomeIcon icon={icon} className="w-5 h-5 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium">{label}</span>
         {subtitle && <p className="text-[10px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
       </div>
-      {!disabled && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+      {!disabled && <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground" />}
     </button>
   );
 }

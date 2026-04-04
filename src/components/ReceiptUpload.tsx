@@ -1,10 +1,10 @@
 import { useState, useRef } from "react";
-import { Camera, Loader2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
 import { compressImage } from "@/lib/imageCompression";
 import { toast } from "@/hooks/use-toast";
 import { isOnline } from "@/lib/offlineQueue";
+import { FontAwesomeIcon, iconCamera, iconLoader2, iconX } from "@/lib/icons";
 
 interface ReceiptUploadProps {
   value?: string;
@@ -65,13 +65,13 @@ export function ReceiptUpload({ value, onChange }: ReceiptUploadProps) {
           <img src={value} alt="Recibo" className="w-20 h-20 rounded-lg object-cover border border-border" />
           <button type="button" onClick={() => onChange(undefined)}
             className="absolute -top-2 -right-2 w-5 h-5 rounded-full bg-expense flex items-center justify-center">
-            <X className="w-3 h-3 text-expense-foreground" />
+            <FontAwesomeIcon icon={iconX} className="w-3 h-3 text-expense-foreground" />
           </button>
         </div>
       ) : (
         <button type="button" onClick={() => fileRef.current?.click()} disabled={uploading}
           className="flex items-center gap-2 px-3 py-2 rounded-lg border border-dashed border-border text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-xs">
-          {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Camera className="w-4 h-4" />}
+          {uploading ? <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> : <FontAwesomeIcon icon={iconCamera} className="w-4 h-4" />}
           {uploading ? "Enviando..." : "📷 Anexar Recibo (Opcional)"}
         </button>
       )}

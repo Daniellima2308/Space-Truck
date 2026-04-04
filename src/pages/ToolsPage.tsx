@@ -1,11 +1,10 @@
 import { useNavigate } from "react-router-dom";
-import { Calculator, Wrench, Wallet, Radio, FileText, Map, BarChart2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
 import { VehiclesIcon } from "@/components/icons";
+import { FontAwesomeIcon, IconDefinition, iconCalculator, iconWrench, iconWallet, iconRadio, iconFileText, iconMap, iconBarChart2, iconChevronRight } from "@/lib/icons";
 
 interface ToolItem {
-  icon: LucideIcon | typeof VehiclesIcon;
+  icon: IconDefinition | typeof VehiclesIcon;
   label: string;
   description: string;
   path: string;
@@ -145,7 +144,7 @@ const ToolsPage = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                   </div>
                   {item.available && (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
                 </button>
               ))}

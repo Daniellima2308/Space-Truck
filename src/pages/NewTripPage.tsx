@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useNavigate, useLocation } from "react-router-dom";
-import { ArrowLeft, Truck } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
+import { FontAwesomeIcon, iconArrowLeft, iconTruck } from "@/lib/icons";
 
 const NewTripPage = () => {
   const { data, addTrip } = useApp();
@@ -30,7 +30,7 @@ const NewTripPage = () => {
     <div className="min-h-screen bg-background">
       <header className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-bold">Nova Viagem</h1>
       </header>
@@ -54,7 +54,7 @@ const NewTripPage = () => {
                       : "gradient-card hover:bg-accent/50"
                 }`}
               >
-                <Truck className="w-5 h-5 text-muted-foreground" />
+                <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-muted-foreground" />
                 <div className="text-left flex-1">
                   <p className="text-sm font-medium">{v.brand} {v.model} {v.year}</p>
                   <p className="text-xs text-muted-foreground font-mono">{v.plate}</p>

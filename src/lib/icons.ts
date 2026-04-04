@@ -13,6 +13,11 @@
 export { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 export type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
+/** Type-guard: true when the value is an FA IconDefinition (not a React component). */
+export function isIconDefinition(v: unknown): v is import("@fortawesome/fontawesome-svg-core").IconDefinition {
+  return typeof v === "object" && v !== null && "iconName" in v;
+}
+
 // ── Solid icons ─────────────────────────────────────────────────────────────
 import {
   faArrowLeft,

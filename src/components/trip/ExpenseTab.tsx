@@ -1,9 +1,9 @@
 import { useEffect, useState } from "react";
 import { Trip, Expense, ExpenseCategory, EXPENSE_CATEGORY_LABELS } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/calculations";
-import { Loader2, Pencil, Plus, Trash2 } from "lucide-react";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
+import { FontAwesomeIcon, iconLoader2, iconPencil, iconPlus, iconTrash2 } from "@/lib/icons";
 
 interface ExpenseTabProps {
   trip: Trip;
@@ -67,7 +67,7 @@ function ExpenseForm({
       </div>
       <ReceiptUpload value={receiptUrl} onChange={setReceiptUrl} />
       <div className="flex gap-2">
-        <button type="submit" disabled={isSubmitting} className="flex-1 gradient-profit text-primary-foreground rounded-lg py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">{isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {isEdit ? "Atualizando..." : "Salvando..."}</> : isEdit ? "Atualizar despesa" : "Salvar despesa"}</button>
+        <button type="submit" disabled={isSubmitting} className="flex-1 gradient-profit text-primary-foreground rounded-lg py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">{isSubmitting ? <><FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> {isEdit ? "Atualizando..." : "Salvando..."}</> : isEdit ? "Atualizar despesa" : "Salvar despesa"}</button>
         <button type="button" onClick={onCancel} disabled={isSubmitting} className="px-4 py-2.5 bg-secondary rounded-lg text-sm font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed">Cancelar</button>
       </div>
     </form>
@@ -135,8 +135,8 @@ export function ExpenseTab({ trip, isOpen, showForm, setShowForm, addExpense, up
               <span className="text-sm font-bold font-mono text-expense">{formatCurrency(e.value)}</span>
               {isOpen && (
                 <>
-                  <button onClick={() => setExpandedId(expandedId === e.id ? null : e.id)} className="p-1" aria-label="Editar despesa"><Pencil className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" /></button>
-                  <button onClick={() => setExpenseToDelete(e)} className="p-1" aria-label="Excluir despesa"><Trash2 className="w-3.5 h-3.5 text-expense" /></button>
+                  <button onClick={() => setExpandedId(expandedId === e.id ? null : e.id)} className="p-1" aria-label="Editar despesa"><FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5 text-muted-foreground hover:text-foreground" /></button>
+                  <button onClick={() => setExpenseToDelete(e)} className="p-1" aria-label="Excluir despesa"><FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5 text-expense" /></button>
                 </>
               )}
             </div>
@@ -159,7 +159,7 @@ export function ExpenseTab({ trip, isOpen, showForm, setShowForm, addExpense, up
       ) : (
         <button onClick={() => setShowForm(true)}
           className="w-full border border-dashed border-border rounded-lg p-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium min-h-[44px]">
-          <Plus className="w-4 h-4" /> Adicionar despesa
+          <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Adicionar despesa
         </button>
       ))}
     </div>

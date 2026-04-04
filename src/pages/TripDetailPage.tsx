@@ -22,26 +22,6 @@ import {
   formatCurrency,
   formatNumber,
 } from "@/lib/calculations";
-import {
-  ArrowLeft,
-  Fuel,
-  MapPin,
-  Receipt,
-  Gauge,
-  DollarSign,
-  TrendingUp,
-  TrendingDown,
-  Trash2,
-  CheckCircle,
-  CircleCheck,
-  Clock3,
-  FileDown,
-  Route,
-  Sparkles,
-  Wallet,
-  Loader2,
-  MoreVertical,
-} from "lucide-react";
 import { exportSingleTripPdf } from "@/lib/exportPdf";
 import { FinishTripModal } from "@/components/FinishTripModal";
 import { TripHeroCard } from "@/components/TripHeroCard";
@@ -77,6 +57,7 @@ import {
 import { Trip } from "@/types";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
+import { FontAwesomeIcon, iconArrowLeft, iconFuel, iconMapPin, iconReceipt, iconGauge, iconDollarSign, iconTrendingUp, iconTrendingDown, iconTrash2, iconCheckCircle, iconCircleCheck, iconClock3, iconFileDown, iconRoute, iconSparkles, iconWallet, iconLoader2, iconMoreVertical } from "@/lib/icons";
 
 type Tab = "freights" | "fuel" | "expenses";
 type InfoState = "LANÇADO" | "ATUAL" | "PREVISTO";
@@ -462,7 +443,7 @@ const TripDetailPage = () => {
                 onClick={() => navigate("/")}
                 className="mt-0.5 rounded-xl bg-secondary p-2 transition-colors hover:bg-accent min-h-[44px] min-w-[44px]"
               >
-                <ArrowLeft className="h-5 w-5" />
+                <FontAwesomeIcon icon={iconArrowLeft} className="h-5 w-5" />
               </button>
               <div className="min-w-0 space-y-1">
                 <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">
@@ -496,7 +477,7 @@ const TripDetailPage = () => {
                 onClick={() => exportSingleTripPdf(trip, data.vehicles)}
                 className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl border border-border/70 px-3 py-2 text-xs font-semibold text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground"
               >
-                <FileDown className="h-4 w-4" /> PDF
+                <FontAwesomeIcon icon={iconFileDown} className="h-4 w-4" /> PDF
               </button>
 
               {isOpen && (
@@ -507,9 +488,9 @@ const TripDetailPage = () => {
                     className="inline-flex min-h-[44px] items-center gap-1.5 rounded-xl bg-profit px-3.5 py-2 text-xs font-semibold text-primary-foreground transition-opacity hover:opacity-95 disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     {isFinishingTrip ? (
-                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <FontAwesomeIcon icon={iconLoader2} className="h-4 w-4 animate-spin" />
                     ) : (
-                      <CheckCircle className="h-4 w-4" />
+                      <FontAwesomeIcon icon={iconCheckCircle} className="h-4 w-4" />
                     )}
                     Finalizar viagem
                   </button>
@@ -522,7 +503,7 @@ const TripDetailPage = () => {
                         disabled={isFinishingTrip || isDeletingTrip}
                         className="inline-flex min-h-[44px] min-w-[44px] items-center justify-center rounded-xl border border-border/70 bg-background text-muted-foreground transition-colors hover:bg-secondary hover:text-foreground disabled:cursor-not-allowed disabled:opacity-60"
                       >
-                        <MoreVertical className="h-4 w-4" />
+                        <FontAwesomeIcon icon={iconMoreVertical} className="h-4 w-4" />
                       </button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent
@@ -533,7 +514,7 @@ const TripDetailPage = () => {
                         onClick={() => exportSingleTripPdf(trip, data.vehicles)}
                         className="gap-2"
                       >
-                        <FileDown className="h-4 w-4 text-muted-foreground" />
+                        <FontAwesomeIcon icon={iconFileDown} className="h-4 w-4 text-muted-foreground" />
                         Exportar PDF
                       </DropdownMenuItem>
                       <DropdownMenuSeparator />
@@ -542,9 +523,9 @@ const TripDetailPage = () => {
                         className="gap-2 text-expense focus:text-expense"
                       >
                         {isDeletingTrip ? (
-                          <Loader2 className="h-4 w-4 animate-spin" />
+                          <FontAwesomeIcon icon={iconLoader2} className="h-4 w-4 animate-spin" />
                         ) : (
-                          <Trash2 className="h-4 w-4" />
+                          <FontAwesomeIcon icon={iconTrash2} className="h-4 w-4" />
                         )}
                         Excluir viagem
                       </DropdownMenuItem>
@@ -604,7 +585,7 @@ const TripDetailPage = () => {
               label={isOpen ? "Bruto lançado" : "Bruto"}
               state="LANÇADO"
               value={formatCurrency(isOpen ? grossToDate : grossTotal)}
-              icon={<DollarSign className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconDollarSign} className="w-4 h-4" />}
               helperText={
                 isOpen
                   ? "Soma de fretes em andamento e concluídos."
@@ -644,7 +625,7 @@ const TripDetailPage = () => {
               value={formatCurrency(
                 isOpen ? commissionsToDate : commissionsTotal,
               )}
-              icon={<Wallet className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconWallet} className="w-4 h-4" />}
               helperText={
                 isOpen
                   ? "Comissão de fretes em andamento/concluídos."
@@ -686,7 +667,7 @@ const TripDetailPage = () => {
               label={isOpen ? "Líquido até agora" : "Líquido"}
               state={isOpen ? "ATUAL" : "LANÇADO"}
               value={formatCurrency(isOpen ? netToDate : netTotal)}
-              icon={<TrendingUp className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconTrendingUp} className="w-4 h-4" />}
               valueClass={
                 (isOpen ? netToDate : netTotal) >= 0
                   ? "text-profit"
@@ -740,7 +721,7 @@ const TripDetailPage = () => {
               label="Gastos da viagem"
               state="ATUAL"
               value={formatCurrency(totalOperationalCosts)}
-              icon={<Receipt className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconReceipt} className="w-4 h-4" />}
               valueClass="text-expense"
               helperText="Soma dos gastos já lançados."
               onClick={() =>
@@ -774,7 +755,7 @@ const TripDetailPage = () => {
               value={
                 currentKmBasis.km > 0 ? `${formatNumber(currentKmBasis.km)} km` : "—"
               }
-              icon={<Route className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconRoute} className="w-4 h-4" />}
               helperText={kmText}
               onClick={() =>
                 setActiveDetail({
@@ -804,7 +785,7 @@ const TripDetailPage = () => {
                   ? `${formatNumber(avgConsumption)} km/l`
                   : "Aguardando"
               }
-              icon={<Gauge className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconGauge} className="w-4 h-4" />}
               valueClass={
                 avgConsumption > 0 ? "text-profit" : "text-muted-foreground"
               }
@@ -838,7 +819,7 @@ const TripDetailPage = () => {
                   ? `R$ ${formatNumber(isOpen ? profitKmToDate : profitKmTotal)}`
                   : "—"
               }
-              icon={<TrendingUp className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconTrendingUp} className="w-4 h-4" />}
               valueClass={
                 (isOpen ? kmBasisToDate.km : kmBasisTotal.km) > 0 ? "text-profit" : "text-muted-foreground"
               }
@@ -903,7 +884,7 @@ const TripDetailPage = () => {
                   ? `R$ ${formatNumber(isOpen ? costKmToDate : costKmTotal)}`
                   : "—"
               }
-              icon={<TrendingDown className="w-4 h-4" />}
+              icon={<FontAwesomeIcon icon={iconTrendingDown} className="w-4 h-4" />}
               valueClass={
                 (isOpen ? kmBasisToDate.km : kmBasisTotal.km) > 0 ? "text-expense" : "text-muted-foreground"
               }

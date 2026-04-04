@@ -3,8 +3,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
 import { ConnectionIndicator } from "@/components/ConnectionIndicator";
 import { toast } from "@/hooks/use-toast";
-import { Send, Mic, MicOff, ArrowLeft, Search, Users, Volume2, Info } from "lucide-react";
 import AudioPlayer from "@/components/px/AudioPlayer";
+import { FontAwesomeIcon, iconSend, iconMic, iconMicOff, iconArrowLeft, iconSearch, iconUsers, iconVolume2, iconInfo } from "@/lib/icons";
 
 interface PxChannel {
   id: string;
@@ -224,7 +224,7 @@ const PXDigitalPage = () => {
         <div className="px-4 space-y-5">
           {/* Search bar — static visual */}
           <div className="relative">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
+            <FontAwesomeIcon icon={iconSearch} className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Buscar comunidade..."
@@ -240,7 +240,7 @@ const PXDigitalPage = () => {
             </h2>
             {channels.length === 0 ? (
               <div className="text-center py-12 text-muted-foreground">
-                <Users className="w-10 h-10 mx-auto mb-3 opacity-30" />
+                <FontAwesomeIcon icon={iconUsers} className="w-10 h-10 mx-auto mb-3 opacity-30" />
                 <p className="text-sm">Nenhuma comunidade disponível</p>
               </div>
             ) : (
@@ -255,7 +255,7 @@ const PXDigitalPage = () => {
                     className="w-full bg-card rounded-xl p-4 flex items-center gap-3 text-left hover:bg-card/80 transition-colors border border-border/50"
                   >
                     <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center flex-shrink-0">
-                      <Users className="w-5 h-5 text-primary" />
+                      <FontAwesomeIcon icon={iconUsers} className="w-5 h-5 text-primary" />
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2 mb-0.5">
@@ -290,7 +290,7 @@ const PXDigitalPage = () => {
             onClick={() => setSelectedChannel(null)}
             className="w-9 h-9 rounded-xl bg-secondary flex items-center justify-center flex-shrink-0"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <FontAwesomeIcon icon={iconArrowLeft} className="w-4 h-4" />
           </button>
           <div className="flex-1 min-w-0">
             <h1 className="font-bold text-base truncate">{selectedChannel.name}</h1>
@@ -379,7 +379,7 @@ const PXDigitalPage = () => {
                 onClick={sendTextMessage}
                 className="w-10 h-10 rounded-xl gradient-profit flex items-center justify-center flex-shrink-0"
               >
-                <Send className="w-4 h-4 text-primary-foreground" />
+                <FontAwesomeIcon icon={iconSend} className="w-4 h-4 text-primary-foreground" />
               </button>
             ) : (
               <button
@@ -390,7 +390,7 @@ const PXDigitalPage = () => {
                   recording ? "bg-red-500/20 text-red-500" : "bg-secondary text-foreground"
                 }`}
               >
-                {recording ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                {recording ? <FontAwesomeIcon icon={iconMicOff} className="w-4 h-4" /> : <FontAwesomeIcon icon={iconMic} className="w-4 h-4" />}
               </button>
             )}
           </div>
@@ -402,7 +402,7 @@ const PXDigitalPage = () => {
         <div className="flex-1 overflow-y-auto px-4 py-3 space-y-2 no-scrollbar">
           {audioMessages.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
-              <Volume2 className="w-10 h-10 mx-auto mb-3 opacity-30" />
+              <FontAwesomeIcon icon={iconVolume2} className="w-10 h-10 mx-auto mb-3 opacity-30" />
               <p className="text-sm">Nenhum áudio neste canal</p>
             </div>
           ) : (
@@ -442,7 +442,7 @@ const PXDigitalPage = () => {
       {activeTab === "sobre" && (
         <div className="flex-1 overflow-y-auto px-4 py-6 space-y-4 no-scrollbar">
           <div className="w-16 h-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
-            <Users className="w-8 h-8 text-primary" />
+            <FontAwesomeIcon icon={iconUsers} className="w-8 h-8 text-primary" />
           </div>
           <div className="text-center">
             <h2 className="text-lg font-bold mb-1">{selectedChannel.name}</h2>
@@ -459,7 +459,7 @@ const PXDigitalPage = () => {
             </div>
           )}
           <div className="bg-card rounded-xl p-4 border border-border/50 flex items-center gap-3">
-            <Info className="w-5 h-5 text-muted-foreground flex-shrink-0" />
+            <FontAwesomeIcon icon={iconInfo} className="w-5 h-5 text-muted-foreground flex-shrink-0" />
             <p className="text-sm text-muted-foreground">
               Mensagens ficam disponíveis por 2 horas.
             </p>

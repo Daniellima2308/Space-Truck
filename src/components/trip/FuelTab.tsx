@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { Trip, Fueling } from "@/types";
 import { formatCurrency, formatNumber } from "@/lib/calculations";
-import { Fuel, Droplets, Loader2, Pencil, Trash2, Plus } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
+import { FontAwesomeIcon, iconFuel, iconDroplets, iconLoader2, iconPencil, iconTrash2, iconPlus } from "@/lib/icons";
 
 interface FuelTabProps {
   trip: Trip;
@@ -68,7 +68,7 @@ function FuelForm({
       </div>
       {calcPricePerLiter() && (
         <div className="flex items-center gap-2 px-1 py-1.5 rounded-md bg-profit/10">
-          <Fuel className="w-3.5 h-3.5 text-profit" />
+          <FontAwesomeIcon icon={iconFuel} className="w-3.5 h-3.5 text-profit" />
           <span className="text-xs font-semibold text-profit">Preço/L: R$ {calcPricePerLiter()}</span>
         </div>
       )}
@@ -78,7 +78,7 @@ function FuelForm({
       </div>
       <ReceiptUpload value={receiptUrl} onChange={setReceiptUrl} />
       <div className="flex gap-2">
-        <button type="submit" disabled={isSubmitting} className="flex-1 gradient-profit text-primary-foreground rounded-lg py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">{isSubmitting ? <><Loader2 className="w-4 h-4 animate-spin" /> {isEdit ? 'Atualizando...' : 'Salvando...'}</> : isEdit ? "Atualizar abastecimento" : "Salvar abastecimento"}</button>
+        <button type="submit" disabled={isSubmitting} className="flex-1 gradient-profit text-primary-foreground rounded-lg py-2.5 text-sm font-bold min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed inline-flex items-center justify-center gap-2">{isSubmitting ? <><FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> {isEdit ? 'Atualizando...' : 'Salvando...'}</> : isEdit ? "Atualizar abastecimento" : "Salvar abastecimento"}</button>
         <button type="button" onClick={onCancel} disabled={isSubmitting} className="px-4 py-2.5 bg-secondary rounded-lg text-sm font-medium min-h-[44px] disabled:opacity-60 disabled:cursor-not-allowed">Cancelar</button>
       </div>
     </form>
@@ -148,7 +148,7 @@ export function FuelTab({ trip, isOpen, addFueling, updateFueling, deleteFueling
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2.5">
                   <div className={`p-1.5 rounded-md ${isFullTank ? "bg-profit/15" : "bg-warning/15"}`}>
-                    {isFullTank ? <Fuel className="w-4 h-4 text-profit" /> : <Droplets className="w-4 h-4 text-warning" />}
+                    {isFullTank ? <FontAwesomeIcon icon={iconFuel} className="w-4 h-4 text-profit" /> : <FontAwesomeIcon icon={iconDroplets} className="w-4 h-4 text-warning" />}
                   </div>
                   <div>
                     <p className="text-sm font-medium">{f.stationName}</p>
@@ -196,9 +196,9 @@ export function FuelTab({ trip, isOpen, addFueling, updateFueling, deleteFueling
                   {isOpen && (
                     <>
                       <button onClick={() => setExpandedId(isExpanded ? null : f.id)} className="p-1">
-                        <Pencil className={`w-3.5 h-3.5 transition-colors ${isExpanded ? "text-primary" : "text-muted-foreground hover:text-foreground"}`} />
+                        <FontAwesomeIcon icon={iconPencil} className={`w-3.5 h-3.5 transition-colors ${isExpanded ? "text-primary" : "text-muted-foreground hover:text-foreground"}`} />
                       </button>
-                      <button onClick={() => setFuelingToDelete(f)} className="p-1" aria-label="Excluir abastecimento"><Trash2 className="w-3.5 h-3.5 text-expense" /></button>
+                      <button onClick={() => setFuelingToDelete(f)} className="p-1" aria-label="Excluir abastecimento"><FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5 text-expense" /></button>
                     </>
                   )}
                 </div>
@@ -230,7 +230,7 @@ export function FuelTab({ trip, isOpen, addFueling, updateFueling, deleteFueling
       ) : (
         <button onClick={() => setShowNewForm(true)}
           className="w-full border border-dashed border-border rounded-lg p-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium min-h-[44px]">
-          <Plus className="w-4 h-4" /> Adicionar abastecimento
+          <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Adicionar abastecimento
         </button>
       ))}
     </div>

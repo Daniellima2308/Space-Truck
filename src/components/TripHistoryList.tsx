@@ -1,8 +1,8 @@
 import { Trip } from "@/types";
 import { useApp } from "@/context/app-context";
 import { getTripGrossRevenue, getTripNetRevenue, getLastDestination, formatCurrency, formatDate } from "@/lib/calculations";
-import { CheckCircle, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { FontAwesomeIcon, iconCheckCircle, iconChevronRight } from "@/lib/icons";
 
 interface TripHistoryListProps {
   trips: Trip[];
@@ -32,7 +32,7 @@ export function TripHistoryList({ trips }: TripHistoryListProps) {
             className="gradient-card rounded-lg p-4 flex items-center justify-between cursor-pointer hover:bg-accent/50 transition-colors"
           >
             <div className="flex items-center gap-3">
-              <CheckCircle className="w-4 h-4 text-muted-foreground" />
+              <FontAwesomeIcon icon={iconCheckCircle} className="w-4 h-4 text-muted-foreground" />
               <div>
                 <p className="text-sm font-medium">
                   {vehicle ? `${vehicle.plate} • ${vehicle.brand} ${vehicle.model}` : "—"} → {getLastDestination(trip)}
@@ -44,7 +44,7 @@ export function TripHistoryList({ trips }: TripHistoryListProps) {
               <span className={`text-sm font-bold font-mono ${net >= 0 ? "text-profit" : "text-expense"}`}>
                 {formatCurrency(net)}
               </span>
-              <ChevronRight className="w-4 h-4 text-muted-foreground" />
+              <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground" />
             </div>
           </div>
         );

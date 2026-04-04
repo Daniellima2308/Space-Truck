@@ -1,6 +1,6 @@
 import { cn } from "@/lib/utils";
-import { Mic, Loader2 } from "lucide-react";
 import { useState } from "react";
+import { FontAwesomeIcon, iconMic, iconLoader2 } from "@/lib/icons";
 
 interface RadioPTTProps {
   isRecording: boolean;
@@ -102,18 +102,14 @@ const RadioPTT = ({ isRecording, isBlocked, onPressStart, onPressEnd }: RadioPTT
             }}
           />
           {sending ? (
-            <Loader2
-              className="w-7 h-7 relative z-10 animate-spin"
-              style={{ color: "hsl(30 100% 55%)" }}
-            />
+            <FontAwesomeIcon icon={iconLoader2} className="w-7 h-7 relative z-10 animate-spin"
+              style={{ color: "hsl(30 100% 55%)" }} />
           ) : (
-            <Mic
-              className="w-8 h-8 relative z-10"
+            <FontAwesomeIcon icon={iconMic} className="w-8 h-8 relative z-10"
               style={{
                 color: isRecording ? "hsl(0 0% 100%)" : "hsl(30 100% 55%)",
                 filter: isRecording ? "drop-shadow(0 0 6px hsl(0 0% 100% / 0.4))" : "none",
-              }}
-            />
+              }} />
           )}
         </button>
       </div>

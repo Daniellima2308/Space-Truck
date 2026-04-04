@@ -1,9 +1,9 @@
 import { Trip, Vehicle } from "@/types";
 import { formatDate, formatNumber, getTripLatestCheckpointKm } from "@/lib/calculations";
-import { Clock3, Gauge, MapPin, Route } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { calculateEta } from "@/lib/freightAnalysis";
+import { FontAwesomeIcon, iconClock3, iconGauge, iconMapPin, iconRoute } from "@/lib/icons";
 
 interface TripHeroCardProps {
   trip: Trip;
@@ -48,7 +48,7 @@ export function TripHeroCard({ trip, vehicle }: TripHeroCardProps) {
         </div>
         <div className="text-right">
           <div className="flex items-center gap-1.5 justify-end text-muted-foreground mb-0.5">
-            <Gauge className="w-3.5 h-3.5" />
+            <FontAwesomeIcon icon={iconGauge} className="w-3.5 h-3.5" />
             <span className="text-[10px] uppercase tracking-wider font-semibold">Odômetro</span>
           </div>
           <p className="text-lg font-black font-mono text-foreground">
@@ -65,7 +65,7 @@ export function TripHeroCard({ trip, vehicle }: TripHeroCardProps) {
           <div className="space-y-1">
             <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Frete atual</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1.5 leading-tight">
-              <MapPin className="w-3.5 h-3.5 text-primary" /> {currentFreight.origin} → {currentFreight.destination}
+              <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5 text-primary" /> {currentFreight.origin} → {currentFreight.destination}
             </p>
           </div>
 
@@ -76,17 +76,17 @@ export function TripHeroCard({ trip, vehicle }: TripHeroCardProps) {
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-primary">Previsão de chegada</p>
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-foreground">
                   <span className="inline-flex items-center gap-1 font-semibold font-mono">
-                    <Route className="w-3 h-3 text-muted-foreground" />
+                    <FontAwesomeIcon icon={iconRoute} className="w-3 h-3 text-muted-foreground" />
                     {formatNumber(cappedProgressKm)} / {formatNumber(freightEstimated)} km
                   </span>
                   <span className="text-muted-foreground">•</span>
                   <span className="inline-flex items-center gap-1">
-                    <Clock3 className="w-3 h-3 text-muted-foreground" />
+                    <FontAwesomeIcon icon={iconClock3} className="w-3 h-3 text-muted-foreground" />
                     {arrivalEstimate?.durationLabel ?? "Chegando"}
                   </span>
                   <span className="text-muted-foreground">•</span>
                   <span className="inline-flex items-center gap-1">
-                    <MapPin className="w-3 h-3 text-muted-foreground" />
+                    <FontAwesomeIcon icon={iconMapPin} className="w-3 h-3 text-muted-foreground" />
                     {arrivalEstimate?.arrivalLabel ?? "Agora"}
                   </span>
                 </div>

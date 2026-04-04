@@ -1,5 +1,5 @@
 import { MaintenanceAlert } from "@/types";
-import { AlertTriangle, Wrench } from "lucide-react";
+import { FontAwesomeIcon, iconAlertTriangle, iconWrench } from "@/lib/icons";
 
 interface Props {
   alerts: MaintenanceAlert[];
@@ -23,9 +23,9 @@ export function MaintenanceAlerts({ alerts }: Props) {
           >
             <div className={`p-2 rounded-lg ${isOverdue ? "bg-expense/20" : "bg-warning/20"}`}>
               {isOverdue ? (
-                <AlertTriangle className="w-5 h-5 text-expense" />
+                <FontAwesomeIcon icon={iconAlertTriangle} className="w-5 h-5 text-expense" />
               ) : (
-                <Wrench className="w-5 h-5 text-warning" />
+                <FontAwesomeIcon icon={iconWrench} className="w-5 h-5 text-warning" />
               )}
             </div>
             <div className="flex-1 min-w-0">

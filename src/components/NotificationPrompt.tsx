@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Bell } from "lucide-react";
+import { FontAwesomeIcon, iconBell } from "@/lib/icons";
 
 export function NotificationPrompt() {
   const [show, setShow] = useState(false);
@@ -30,7 +30,7 @@ export function NotificationPrompt() {
   return (
     <div className="rounded-xl p-4 bg-primary/10 border border-primary/20 flex items-center gap-3">
       <div className="p-2 rounded-lg bg-primary/20">
-        <Bell className="w-5 h-5 text-primary" />
+        <FontAwesomeIcon icon={iconBell} className="w-5 h-5 text-primary" />
       </div>
       <div className="flex-1">
         <p className="text-sm font-semibold">Alertas de manutenção</p>

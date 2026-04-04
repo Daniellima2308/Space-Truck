@@ -4,11 +4,8 @@ import { useApp } from "@/context/app-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
-import {
-  Camera, Loader2, Pencil, Phone, Wallet, LogOut, Truck, MapPin, TrendingUp, ChevronLeft,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
+import { FontAwesomeIcon, IconDefinition, iconCamera, iconLoader2, iconPencil, iconPhone, iconWallet, iconLogOut, iconTruck, iconMapPin, iconTrendingUp, iconChevronLeft } from "@/lib/icons";
 
 const ProfilePage = () => {
   const { user, signOut } = useAuth();
@@ -119,7 +116,7 @@ const ProfilePage = () => {
       {/* Header */}
       <header className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate(-1)} className="p-2 rounded-lg hover:bg-accent/50 transition-colors" style={{ minHeight: 52, minWidth: 52 }}>
-          <ChevronLeft className="w-5 h-5" />
+          <FontAwesomeIcon icon={iconChevronLeft} className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-bold">Meu Perfil</h1>
       </header>
@@ -136,7 +133,7 @@ const ProfilePage = () => {
           >
             {uploadingAvatar ? (
               <div className="w-full h-full rounded-full bg-primary/20 flex items-center justify-center">
-                <Loader2 className="w-8 h-8 text-primary animate-spin" />
+                <FontAwesomeIcon icon={iconLoader2} className="w-8 h-8 text-primary animate-spin" />
               </div>
             ) : profile.avatar_url ? (
               <img src={profile.avatar_url} alt="Avatar" className="w-full h-full rounded-full object-cover" />
@@ -146,7 +143,7 @@ const ProfilePage = () => {
               </div>
             )}
             <span className="absolute bottom-0 right-0 w-8 h-8 rounded-full bg-primary flex items-center justify-center border-2 border-card">
-              <Camera className="w-4 h-4 text-primary-foreground" />
+              <FontAwesomeIcon icon={iconCamera} className="w-4 h-4 text-primary-foreground" />
             </span>
           </button>
           <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handleAvatarUpload} />
@@ -170,7 +167,7 @@ const ProfilePage = () => {
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Veículo Principal</h2>
             <div className="gradient-card rounded-xl p-4 flex items-center gap-4">
               <div className="w-12 h-12 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                <Truck className="w-6 h-6 text-primary" />
+                <FontAwesomeIcon icon={iconTruck} className="w-6 h-6 text-primary" />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold truncate">{mainVehicle.brand} {mainVehicle.model}</p>
@@ -197,7 +194,7 @@ const ProfilePage = () => {
           <div className="gradient-card rounded-xl p-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3 flex-1 min-w-0">
-                <Wallet className="w-5 h-5 text-warning shrink-0" />
+                <FontAwesomeIcon icon={iconWallet} className="w-5 h-5 text-warning shrink-0" />
                 <div className="min-w-0">
                   <p className="text-sm font-medium">Controle de Gastos Pessoais</p>
                   <p className="text-[10px] text-muted-foreground/60 leading-tight">Anote gastos com alimentação, banho e pernoite separados do frete.</p>
@@ -214,7 +211,7 @@ const ProfilePage = () => {
           className="w-full bg-expense/10 hover:bg-expense/20 text-expense rounded-xl flex items-center justify-center gap-2 text-base font-bold transition-colors"
           style={{ minHeight: 52 }}
         >
-          <LogOut className="w-5 h-5" /> SAIR DA CONTA
+          <FontAwesomeIcon icon={iconLogOut} className="w-5 h-5" /> SAIR DA CONTA
         </button>
       </div>
 
@@ -253,19 +250,19 @@ const ProfilePage = () => {
   );
 };
 
-function ProfileButton({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+function ProfileButton({ icon, label, onClick }: { icon: IconDefinition; label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full gradient-card rounded-xl flex items-center gap-3 hover:bg-accent/50 transition-colors px-4" style={{ minHeight: 52 }}>
-      <Icon className="w-5 h-5 text-muted-foreground" />
+      <FontAwesomeIcon icon={icon} className="w-5 h-5 text-muted-foreground" />
       <span className="text-sm font-medium">{label}</span>
     </button>
   );
 }
 
-function StatCard({ icon: Icon, label, value }: { icon: LucideIcon; label: string; value: string }) {
+function StatCard({ icon, label, value }: { icon: IconDefinition; label: string; value: string }) {
   return (
     <div className="gradient-card rounded-xl p-3 text-center">
-      <Icon className="w-4 h-4 text-primary mx-auto mb-1" />
+      <FontAwesomeIcon icon={icon} className="w-4 h-4 text-primary mx-auto mb-1" />
       <p className="text-lg font-bold leading-tight">{value}</p>
       <p className="text-[10px] text-muted-foreground">{label}</p>
     </div>
