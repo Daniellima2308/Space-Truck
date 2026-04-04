@@ -13,11 +13,6 @@
 export { FontAwesomeIcon } from "@fortawesome/react-fontawesome";
 export type { IconDefinition } from "@fortawesome/fontawesome-svg-core";
 
-/** Type-guard: true when the value is an FA IconDefinition (not a React component). */
-export function isIconDefinition(v: unknown): v is import("@fortawesome/fontawesome-svg-core").IconDefinition {
-  return typeof v === "object" && v !== null && "iconName" in v;
-}
-
 // ── Solid icons ─────────────────────────────────────────────────────────────
 import {
   faArrowLeft,
@@ -25,6 +20,7 @@ import {
   faArrowTrendDown,
   faArrowTrendUp,
   faBars,
+  faBarsProgress,
   faBell,
   faBug,
   faCalculator,
@@ -55,9 +51,9 @@ import {
   faGasPump,
   faGauge,
   faGear,
+  faGrip,
   faGripVertical,
   faHeart,
-  faHouse,
   faImage,
   faLightbulb,
   faLocationDot,
@@ -89,6 +85,7 @@ import {
   faTrash,
   faTriangleExclamation,
   faTruck,
+  faTruckMoving,
   faUser,
   faUsers,
   faVolumeHigh,
@@ -133,7 +130,7 @@ export const iconGripVertical = faGripVertical;
 export const iconHeart = faHeart;
 export const iconHelpCircle = faCircleQuestion;
 export const iconHistory = faClockRotateLeft;
-export const iconHome = faHouse;
+export const iconHome = faGrip;
 export const iconImage = faImage;
 export const iconInfo = faCircleInfo;
 export const iconLightbulb = faLightbulb;
@@ -175,6 +172,9 @@ export const iconTrash2 = faTrash;
 export const iconTrendingDown = faArrowTrendDown;
 export const iconTrendingUp = faArrowTrendUp;
 export const iconTruck = faTruck;
+export const iconTruckMoving = faTruckMoving;
+export const iconOperacao = faBarsProgress;
+export const iconVeiculos = faTruckMoving;
 export const iconUser = faUser;
 export const iconUsers = faUsers;
 export const iconVolume2 = faVolumeHigh;

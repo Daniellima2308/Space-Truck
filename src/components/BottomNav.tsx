@@ -1,12 +1,11 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { OperationIcon } from "@/components/icons";
 import type { IconDefinition } from "@/lib/icons";
-import { FontAwesomeIcon, iconHome, iconWrench, iconHistory, iconMoreHorizontal, isIconDefinition } from "@/lib/icons";
+import { FontAwesomeIcon, iconHome, iconOperacao, iconWrench, iconHistory, iconMoreHorizontal } from "@/lib/icons";
 
-const NAV_ITEMS: { path: string; label: string; icon: IconDefinition | typeof OperationIcon; id: string }[] = [
+const NAV_ITEMS: { path: string; label: string; icon: IconDefinition; id: string }[] = [
   { path: "/", label: "Início", icon: iconHome, id: "nav-home" },
-  { path: "/operation", label: "Operação", icon: OperationIcon, id: "nav-operation" },
+  { path: "/operation", label: "Operação", icon: iconOperacao, id: "nav-operation" },
   { path: "/tools", label: "Ferramentas", icon: iconWrench, id: "nav-tools" },
   { path: "/history", label: "Histórico", icon: iconHistory, id: "nav-history" },
   { path: "/more", label: "Mais", icon: iconMoreHorizontal, id: "nav-more" },
@@ -44,22 +43,13 @@ export function BottomNav() {
               {isActive && (
                 <span className="absolute top-0 left-1/2 -translate-x-1/2 w-8 h-0.5 rounded-full bg-primary" />
               )}
-              {isIconDefinition(item.icon) ? (
-                <FontAwesomeIcon
-                  icon={item.icon}
-                  className={cn(
-                    "w-[22px] h-[22px]",
-                    isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
-                  )}
-                />
-              ) : (
-                <item.icon
-                  className={cn(
-                    "w-[22px] h-[22px]",
-                    isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
-                  )}
-                />
-              )}
+              <FontAwesomeIcon
+                icon={item.icon}
+                className={cn(
+                  "w-[22px] h-[22px]",
+                  isActive && "drop-shadow-[0_0_6px_hsl(var(--primary)/0.45)]"
+                )}
+              />
               <span
                 className={cn(
                   "text-[10px] font-semibold leading-tight",

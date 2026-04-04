@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { VehiclesIcon } from "@/components/icons";
-import { FontAwesomeIcon, IconDefinition, isIconDefinition, iconCalculator, iconWrench, iconWallet, iconRadio, iconFileText, iconMap, iconBarChart2, iconChevronRight } from "@/lib/icons";
+import { FontAwesomeIcon, IconDefinition, iconCalculator, iconVeiculos, iconWrench, iconWallet, iconRadio, iconFileText, iconMap, iconBarChart2, iconChevronRight } from "@/lib/icons";
 
 interface ToolItem {
-  icon: IconDefinition | typeof VehiclesIcon;
+  icon: IconDefinition;
   label: string;
   description: string;
   path: string;
@@ -28,7 +27,7 @@ const TOOL_GROUPS: ToolGroup[] = [
         available: true,
       },
       {
-        icon: VehiclesIcon,
+        icon: iconVeiculos,
         label: "Veículos",
         description: "Meus caminhões e configurações",
         path: "/vehicles",
@@ -125,22 +124,13 @@ const ToolsPage = () => {
                       item.available ? "bg-primary/10" : "bg-muted"
                     )}
                   >
-                    {isIconDefinition(item.icon) ? (
-                      <FontAwesomeIcon
-                        icon={item.icon}
-                        className={cn(
-                          "w-5 h-5",
-                          item.available ? "text-primary" : "text-muted-foreground"
-                        )}
-                      />
-                    ) : (
-                      <item.icon
-                        className={cn(
-                          "w-5 h-5",
-                          item.available ? "text-primary" : "text-muted-foreground"
-                        )}
-                      />
-                    )}
+                    <FontAwesomeIcon
+                      icon={item.icon}
+                      className={cn(
+                        "w-5 h-5",
+                        item.available ? "text-primary" : "text-muted-foreground"
+                      )}
+                    />
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
