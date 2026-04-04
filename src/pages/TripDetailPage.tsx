@@ -58,6 +58,7 @@ import { Trip } from "@/types";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FontAwesomeIcon, iconArrowLeft, iconFuel, iconMapPin, iconReceipt, iconGauge, iconDollarSign, iconTrendingUp, iconTrendingDown, iconTrash2, iconCheckCircle, iconCircleCheck, iconClock3, iconFileDown, iconRoute, iconSparkles, iconWallet, iconLoader2, iconMoreVertical } from "@/lib/icons";
+import type { IconDefinition } from "@/lib/icons";
 
 type Tab = "freights" | "fuel" | "expenses";
 type InfoState = "LANÇADO" | "ATUAL" | "PREVISTO";
@@ -77,22 +78,22 @@ const STATUS_STYLES: Record<InfoState, string> = {
 
 const STATUS_META: Record<
   InfoState,
-  { label: string; hint: string; icon: typeof CircleCheck }
+  { label: string; hint: string; icon: IconDefinition }
 > = {
   LANÇADO: {
     label: "Lançado",
     hint: "Conta feita com dados já registrados na viagem.",
-    icon: CircleCheck,
+    icon: iconCircleCheck,
   },
   ATUAL: {
     label: "Atual",
     hint: "Valor correto neste momento, mas ainda pode mudar.",
-    icon: Clock3,
+    icon: iconClock3,
   },
   PREVISTO: {
     label: "Previsto",
     hint: "Conta feita com base na rota estimada.",
-    icon: Sparkles,
+    icon: iconSparkles,
   },
 };
 
@@ -1003,11 +1004,11 @@ const TripDetailPage = () => {
           <div className="flex gap-1 rounded-lg bg-secondary p-1">
           {(
             [
-              ["freights", "Fretes", MapPin],
-              ["fuel", "Abastecimentos", Fuel],
-              ["expenses", "Despesas", Receipt],
-            ] as const
-          ).map(([key, label, Icon]) => (
+              ["freights", "Fretes", iconMapPin],
+              ["fuel", "Abastecimentos", iconFuel],
+              ["expenses", "Despesas", iconReceipt],
+            ] as [Tab, string, IconDefinition][]
+          ).map(([key, label, icon]) => (
             <button
               key={key}
               onClick={() => {
@@ -1020,7 +1021,7 @@ const TripDetailPage = () => {
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
-              <Icon className="w-3.5 h-3.5" /> {label}
+              <FontAwesomeIcon icon={icon} className="w-3.5 h-3.5" /> {label}
             </button>
           ))}
           </div>
@@ -1111,7 +1112,6 @@ const TripDetailPage = () => {
 
 function StatusInfoPill({ state }: { state: InfoState }) {
   const meta = STATUS_META[state];
-  const Icon = meta.icon;
 
   return (
     <Popover>
@@ -1120,7 +1120,7 @@ function StatusInfoPill({ state }: { state: InfoState }) {
           type="button"
           className={`inline-flex min-h-[36px] items-center gap-1.5 rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${STATUS_STYLES[state]} hover:opacity-90`}
         >
-          <Icon className="w-3.5 h-3.5" />
+          <FontAwesomeIcon icon={meta.icon} className="w-3.5 h-3.5" />
           {meta.label}
         </button>
       </PopoverTrigger>
@@ -1132,7 +1132,7 @@ function StatusInfoPill({ state }: { state: InfoState }) {
           <span
             className={`mt-0.5 inline-flex h-6 w-6 items-center justify-center rounded-full border ${STATUS_STYLES[state]}`}
           >
-            <Icon className="w-3.5 h-3.5" />
+            <FontAwesomeIcon icon={meta.icon} className="w-3.5 h-3.5" />
           </span>
           <div className="space-y-1">
             <p className="text-sm font-semibold text-foreground">
@@ -1188,15 +1188,13 @@ function MetricCard({
 }
 
 function MetricStateDot({ state }: { state: InfoState }) {
-  const Icon = STATUS_META[state].icon;
-
   return (
     <span
       className={`inline-flex h-6 w-6 items-center justify-center rounded-full border ${STATUS_STYLES[state]}`}
       aria-label={`Status ${STATUS_META[state].label}`}
       title={STATUS_META[state].label}
     >
-      <Icon className="w-3.5 h-3.5" />
+      <FontAwesomeIcon icon={STATUS_META[state].icon} className="w-3.5 h-3.5" />
     </span>
   );
 }
