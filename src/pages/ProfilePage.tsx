@@ -96,6 +96,18 @@ const ProfilePage = () => {
     navigate("/login");
   };
 
+  const handlePersonalExpensesToggle = async (val: boolean) => {
+    try {
+      await setPersonalExpensesEnabled(val);
+    } catch (error) {
+      toast({
+        title: "Não foi possível alterar a configuração",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
   const initials = (profile.display_name || user?.email || "U").slice(0, 2).toUpperCase();
 
   // Stats
@@ -200,7 +212,7 @@ const ProfilePage = () => {
                   <p className="text-[10px] text-muted-foreground/60 leading-tight">Anote gastos com alimentação, banho e pernoite separados do frete.</p>
                 </div>
               </div>
-              <Switch checked={personalExpensesEnabled} onCheckedChange={setPersonalExpensesEnabled} />
+              <Switch checked={personalExpensesEnabled} onCheckedChange={handlePersonalExpensesToggle} />
             </div>
           </div>
         </section>

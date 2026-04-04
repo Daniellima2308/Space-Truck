@@ -5,6 +5,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MaintenanceService } from "@/types";
 import { formatNumber } from "@/lib/calculations";
 import { FontAwesomeIcon, iconArrowLeft, iconPlus, iconTrash2, iconWrench, iconGauge, iconTruck } from "@/lib/icons";
+import { toast } from "@/hooks/use-toast";
 
 const COMMON_SERVICES = [
   "Óleo de Motor",
@@ -35,17 +36,25 @@ const MaintenancePage = () => {
     e.preventDefault();
     const finalName = serviceName === "Outro" ? customName : serviceName;
     if (!vehicleId || !finalName || !lastKm || !intervalKm) return;
-    await addMaintenanceService({
-      vehicleId,
-      serviceName: finalName,
-      lastChangeKm: parseFloat(lastKm),
-      intervalKm: parseFloat(intervalKm),
-    });
-    setServiceName("");
-    setCustomName("");
-    setLastKm("");
-    setIntervalKm("10000");
-    setShowForm(false);
+    try {
+      await addMaintenanceService({
+        vehicleId,
+        serviceName: finalName,
+        lastChangeKm: parseFloat(lastKm),
+        intervalKm: parseFloat(intervalKm),
+      });
+      setServiceName("");
+      setCustomName("");
+      setLastKm("");
+      setIntervalKm("10000");
+      setShowForm(false);
+    } catch (error) {
+      toast({
+        title: "Não foi possível salvar a manutenção",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   // Empty state: no vehicles

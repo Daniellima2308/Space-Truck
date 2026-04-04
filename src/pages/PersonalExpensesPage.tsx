@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { PERSONAL_EXPENSE_LABELS, PersonalExpenseCategory } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/calculations";
 import { FontAwesomeIcon, iconArrowLeft, iconPlus, iconTrash2, iconWallet } from "@/lib/icons";
+import { toast } from "@/hooks/use-toast";
 
 const PersonalExpensesPage = () => {
   const { data, getActiveTrips, addPersonalExpense, deletePersonalExpense } = useApp();
@@ -34,12 +35,20 @@ const PersonalExpensesPage = () => {
   const personalExpenses = activeTrip.personalExpenses || [];
   const total = personalExpenses.reduce((s, e) => s + e.value, 0);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!value) return;
     const finalDesc = desc.trim() || PERSONAL_EXPENSE_LABELS[cat];
-    addPersonalExpense(activeTrip.id, { category: cat, description: finalDesc, value: parseFloat(value), date });
-    setDesc(""); setValue(""); setShowForm(false);
+    try {
+      await addPersonalExpense(activeTrip.id, { category: cat, description: finalDesc, value: parseFloat(value), date });
+      setDesc(""); setValue(""); setShowForm(false);
+    } catch (error) {
+      toast({
+        title: "Não foi possível salvar o gasto",
+        description: error instanceof Error ? error.message : "Tente novamente.",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
