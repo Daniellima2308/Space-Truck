@@ -2,11 +2,12 @@ import { useState, useMemo } from "react";
 import { useApp } from "@/context/app-context";
 import { SummaryCards } from "@/components/SummaryCards";
 import { ActiveTripCard } from "@/components/ActiveTripCard";
-import { TripHistoryList } from "@/components/TripHistoryList";
 import { PeriodFilter } from "@/components/PeriodFilter";
 import { MaintenanceAlerts } from "@/components/MaintenanceAlerts";
 import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { ConnectionIndicator } from "@/components/ConnectionIndicator";
+import { HomeHero, type HomeHeroScenario } from "@/components/dashboard/HomeHero";
+import { DashboardHistoryPreview } from "@/components/dashboard/DashboardHistoryPreview";
 import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, getTripNetRevenue } from "@/lib/calculations";
 import { getMaintenanceAlerts } from "@/lib/maintenance";
 import { Trip } from "@/types";
@@ -14,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
-import { FontAwesomeIcon, iconPlus, iconFileDown, iconArrowRight, iconTruckMoving, iconOperacao, iconHistory } from "@/lib/icons";
+import { FontAwesomeIcon, iconFileDown, iconTruckMoving, iconOperacao, iconPlus } from "@/lib/icons";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -61,8 +62,14 @@ const Dashboard = () => {
   }, [data.trips, selectedVehicleId]);
 
   // Period-filtered trips feed the executive summary cards
-  const filteredTrips = useMemo(() => filterTripsByPeriod(vehicleFilteredTrips, period), [vehicleFilteredTrips, period]);
-  const maintenanceAlerts = useMemo(() => getMaintenanceAlerts(data.vehicles, data.maintenanceServices), [data.vehicles, data.maintenanceServices]);
+  const filteredTrips = useMemo(
+    () => filterTripsByPeriod(vehicleFilteredTrips, period),
+    [vehicleFilteredTrips, period]
+  );
+  const maintenanceAlerts = useMemo(
+    () => getMaintenanceAlerts(data.vehicles, data.maintenanceServices),
+    [data.vehicles, data.maintenanceServices]
+  );
 
   const grossRevenue = filteredTrips.reduce((s, t) => s + getTripGrossRevenue(t), 0);
   const totalCommissions = filteredTrips.reduce((s, t) => s + getTripTotalCommissions(t), 0);
@@ -70,7 +77,10 @@ const Dashboard = () => {
   const netRevenue = filteredTrips.reduce((s, t) => s + getTripNetRevenue(t), 0);
 
   // Active trips are shown regardless of period filter
-  const activeTrips = useMemo(() => vehicleFilteredTrips.filter(t => t.status === "open"), [vehicleFilteredTrips]);
+  const activeTrips = useMemo(
+    () => vehicleFilteredTrips.filter(t => t.status === "open"),
+    [vehicleFilteredTrips]
+  );
 
   // History preview: last N finished trips sorted by most recent (not period-filtered)
   const historyPreview = useMemo(() => {
@@ -86,13 +96,28 @@ const Dashboard = () => {
   const hasHistory = historyPreview.length > 0;
   const hasPeriodResults = filteredTrips.length > 0;
 
+  // Hero scenario
+  const heroScenario: HomeHeroScenario = !hasVehicles
+    ? "onboarding"
+    : hasActiveTrip
+    ? "active"
+    : hasHistory
+    ? "ready-return"
+    : "ready-first";
+
   // Contextual CTA
-  const ctaLabel = !hasVehicles ? "Cadastrar Veículo" : hasActiveTrip ? "Continuar Operação" : "Nova Viagem";
+  const ctaLabel = !hasVehicles
+    ? "Cadastrar Veículo"
+    : hasActiveTrip
+    ? "Continuar Operação"
+    : "Nova Viagem";
   const ctaIcon = !hasVehicles ? iconTruckMoving : hasActiveTrip ? iconOperacao : iconPlus;
   const handleCta = () => {
     if (!hasVehicles) { navigate("/vehicles"); return; }
     if (hasActiveTrip) { navigate("/operation"); return; }
-    navigate("/new-trip", { state: { preSelectedVehicleId: selectedVehicleId !== "all" ? selectedVehicleId : undefined } });
+    navigate("/new-trip", {
+      state: { preSelectedVehicleId: selectedVehicleId !== "all" ? selectedVehicleId : undefined },
+    });
   };
 
   if (loading) {
@@ -108,11 +133,7 @@ const Dashboard = () => {
       {/* Institutional header */}
       <header className="px-4 pt-6 pb-2">
         <div className="flex items-center justify-between">
-          <img
-            src={wordmarkSrc}
-            alt="Space Truck"
-            className="h-7 w-auto"
-          />
+          <img src={wordmarkSrc} alt="Space Truck" className="h-7 w-auto" />
           <ConnectionIndicator />
         </div>
       </header>
@@ -125,55 +146,42 @@ const Dashboard = () => {
           <MaintenanceAlerts alerts={maintenanceAlerts} />
         </div>
 
-        {/* ── SCENARIO A: No vehicles → onboarding empty state ── */}
-        {!hasVehicles && (
-          <div className="gradient-card rounded-2xl p-6 text-center space-y-4">
-            <div className="flex justify-center">
-              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
-                <FontAwesomeIcon icon={iconTruckMoving} className="w-8 h-8 text-muted-foreground" />
-              </div>
+        {/* ── Hero: contextual main block ── */}
+        <HomeHero
+          scenario={heroScenario}
+          activeTripsCount={activeTrips.length}
+          onCta={handleCta}
+          ctaLabel={ctaLabel}
+          ctaIcon={ctaIcon}
+        />
+
+        {/* ── Active trips detail (Scenario B) ── */}
+        {hasVehicles && hasActiveTrip && (
+          <section className="space-y-3">
+            <div className="flex items-center gap-2">
+              <div className="w-2 h-2 rounded-full bg-profit animate-pulse-glow" />
+              <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
+                Operação em andamento
+              </h2>
             </div>
-            <div>
-              <h2 className="text-base font-bold mb-1">Bem-vindo ao Space Truck</h2>
-              <p className="text-sm text-muted-foreground">
-                Cadastre seu veículo para começar a registrar viagens e acompanhar seu desempenho financeiro.
-              </p>
-            </div>
-            <button
-              onClick={handleCta}
-              className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity"
-            >
-              <FontAwesomeIcon icon={iconTruckMoving} className="w-5 h-5" /> Cadastrar Veículo
-            </button>
-          </div>
+            {activeTrips.map(trip => (
+              <ActiveTripCard key={trip.id} trip={trip} />
+            ))}
+          </section>
         )}
 
-        {/* ── SCENARIOS B / C / D: User has vehicles ── */}
+        {/* ── Analysis section: filters + summary ── */}
         {hasVehicles && (
-          <>
-            {/* ── SCENARIO B: Active trip → prioritize it at top ── */}
-            {hasActiveTrip && (
-              <section className="space-y-3">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full bg-profit animate-pulse-glow" />
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                    Operação em andamento
-                  </h2>
-                </div>
-                {activeTrips.map(trip => (
-                  <ActiveTripCard key={trip.id} trip={trip} />
-                ))}
-                {/* CTA continues operation when active trip exists */}
-                <button
-                  onClick={handleCta}
-                  className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity"
-                >
-                  <FontAwesomeIcon icon={ctaIcon} className="w-5 h-5" /> {ctaLabel}
-                </button>
-              </section>
-            )}
+          <section className="space-y-4">
+            <div className="flex items-center gap-2 pt-1">
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest px-2">
+                Resumo
+              </span>
+              <div className="flex-1 h-px bg-border/50" />
+            </div>
 
-            {/* Filters (vehicle selector + period + PDF) */}
+            {/* Filters: vehicle selector + period + PDF */}
             <div className="space-y-2">
               {data.vehicles.length >= 2 && (
                 <Select value={selectedVehicleId} onValueChange={setSelectedVehicleId}>
@@ -183,7 +191,9 @@ const Dashboard = () => {
                   <SelectContent>
                     <SelectItem value="all">Todos os Veículos</SelectItem>
                     {data.vehicles.map(v => (
-                      <SelectItem key={v.id} value={v.id}>{v.plate} • {v.brand} {v.model}</SelectItem>
+                      <SelectItem key={v.id} value={v.id}>
+                        {v.plate} • {v.brand} {v.model}
+                      </SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -194,9 +204,13 @@ const Dashboard = () => {
                 </div>
                 {hasPeriodResults && (
                   <button
-                    onClick={() => {
-                      exportMultipleTripsPdf(filteredTrips, data.vehicles, PERIOD_DISPLAY[period] || period);
-                    }}
+                    onClick={() =>
+                      exportMultipleTripsPdf(
+                        filteredTrips,
+                        data.vehicles,
+                        PERIOD_DISPLAY[period] || period
+                      )
+                    }
                     className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
                     title={`Exportar relatório — ${PERIOD_DISPLAY[period] || period}`}
                   >
@@ -217,63 +231,28 @@ const Dashboard = () => {
             {/* Period empty state: vehicles exist but no trips in selected period */}
             {!hasPeriodResults && (
               <div className="gradient-card rounded-xl p-5 text-center space-y-2">
-                <p className="text-sm font-medium">Nenhuma viagem {PERIOD_LABELS[period] || "neste período"}</p>
+                <p className="text-sm font-medium">
+                  Nenhuma viagem {PERIOD_LABELS[period] || "neste período"}
+                </p>
                 <p className="text-xs text-muted-foreground">
                   Tente outro período ou inicie uma nova viagem.
                 </p>
               </div>
             )}
+          </section>
+        )}
 
-            {/* ── SCENARIOS C / D: No active trip → CTA is the next action ── */}
-            {!hasActiveTrip && (
-              <button
-                onClick={handleCta}
-                className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity"
-              >
-                <FontAwesomeIcon icon={ctaIcon} className="w-5 h-5" /> {ctaLabel}
-              </button>
-            )}
-
-            {/* History preview — always shows most recent finished trips, independent of period filter */}
-            <section>
-              <div className="flex items-center justify-between mb-1">
-                <div className="flex items-center gap-2">
-                  <FontAwesomeIcon icon={iconHistory} className="w-3.5 h-3.5 text-muted-foreground" />
-                  <h2 className="text-sm font-semibold text-muted-foreground uppercase tracking-widest">
-                    Últimas viagens finalizadas
-                  </h2>
-                </div>
-                {hasHistory && (
-                  <button
-                    onClick={() => navigate("/history")}
-                    className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors"
-                  >
-                    Ver tudo <FontAwesomeIcon icon={iconArrowRight} className="w-3 h-3" />
-                  </button>
-                )}
-              </div>
-              {hasHistory ? (
-                <>
-                  <p className="text-xs text-muted-foreground mb-3">
-                    Independente do filtro de período acima
-                  </p>
-                  <TripHistoryList trips={historyPreview} />
-                </>
-              ) : (
-                <div className="gradient-card rounded-xl p-5 text-center space-y-3">
-                  <p className="text-sm font-medium">Nenhuma viagem finalizada ainda</p>
-                  <p className="text-xs text-muted-foreground">
-                    Ao finalizar sua primeira viagem ela aparecerá aqui.
-                  </p>
-                  <button
-                    onClick={() => navigate("/new-trip")}
-                    className="mx-auto flex items-center gap-1.5 px-4 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold"
-                  >
-                    <FontAwesomeIcon icon={iconPlus} className="w-3.5 h-3.5" /> Iniciar primeira viagem
-                  </button>
-                </div>
-              )}
-            </section>
+        {/* ── History preview ── */}
+        {hasVehicles && (
+          <>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 h-px bg-border/50" />
+              <span className="text-xs text-muted-foreground font-medium uppercase tracking-widest px-2">
+                Histórico
+              </span>
+              <div className="flex-1 h-px bg-border/50" />
+            </div>
+            <DashboardHistoryPreview trips={historyPreview} hasHistory={hasHistory} />
           </>
         )}
 
