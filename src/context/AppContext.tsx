@@ -1193,7 +1193,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const setPersonalExpensesEnabled = useCallback(
     async (val: boolean) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
       setPersonalExpensesEnabledState(val);
       await supabase
         .from("profiles")
@@ -1205,7 +1205,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addVehicle = useCallback(
     async (v: Omit<Vehicle, "id">) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const normalizedProfile = normalizeVehicleProfileForPersistence({
         operationProfile: v.operationProfile,
@@ -2037,7 +2037,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       tripId: string,
       f: Omit<Fueling, "id" | "tripId" | "pricePerLiter" | "average">,
     ) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const totalValidation = validatePositiveNumber(
         f.totalValue,
@@ -2152,7 +2152,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
       fuelingId: string,
       f: Omit<Fueling, "id" | "tripId" | "pricePerLiter" | "average">,
     ) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const totalValidation = validatePositiveNumber(
         f.totalValue,
@@ -2260,7 +2260,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const deleteFueling = useCallback(
     async (tripId: string, fuelingId: string) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
       if (!isOnline()) {
         addToOfflineQueue({
           type: "deleteFueling",
@@ -2293,7 +2293,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addExpense = useCallback(
     async (tripId: string, e: Omit<Expense, "id" | "tripId">) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const valueValidation = validatePositiveNumber(
         e.value,
@@ -2392,7 +2392,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addPersonalExpense = useCallback(
     async (tripId: string, e: Omit<PersonalExpense, "id" | "tripId">) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const valueValidation = validatePositiveNumber(
         e.value,
@@ -2491,7 +2491,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
   const addMaintenanceService = useCallback(
     async (s: Omit<MaintenanceService, "id" | "createdAt">) => {
-      if (!user) return;
+      if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const lastKmValidation = validatePositiveNumber(
         s.lastChangeKm,
