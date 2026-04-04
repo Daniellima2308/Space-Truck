@@ -8,6 +8,7 @@ import { NotificationPrompt } from "@/components/NotificationPrompt";
 import { ConnectionIndicator } from "@/components/ConnectionIndicator";
 import { HomeHero, type HomeHeroScenario } from "@/components/dashboard/HomeHero";
 import { DashboardHistoryPreview } from "@/components/dashboard/DashboardHistoryPreview";
+import { resolveHeroScenario } from "@/lib/heroScenario";
 import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, getTripNetRevenue } from "@/lib/calculations";
 import { getMaintenanceAlerts } from "@/lib/maintenance";
 import { Trip } from "@/types";
@@ -97,13 +98,7 @@ const Dashboard = () => {
   const hasPeriodResults = filteredTrips.length > 0;
 
   // Hero scenario
-  const heroScenario: HomeHeroScenario = !hasVehicles
-    ? "onboarding"
-    : hasActiveTrip
-    ? "active"
-    : hasHistory
-    ? "ready-return"
-    : "ready-first";
+  const heroScenario: HomeHeroScenario = resolveHeroScenario({ hasVehicles, hasActiveTrip, hasHistory });
 
   // Contextual CTA handler — label/icon are owned by HERO_CONTENT per scenario
   const handleCta = () => {
