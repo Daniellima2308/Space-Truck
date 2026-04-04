@@ -87,12 +87,12 @@ export function HamburgerMenu() {
             <h2 className="text-lg font-bold">Menu</h2>
           </div>
           <nav className="px-3 py-4 space-y-1">
-            <MenuItem icon={User} label="Meu Perfil" onClick={() => go("/perfil")} />
-            <MenuItem icon={Lock} label="Alterar Senha" onClick={() => { setOpen(false); setShowPassword(true); }} />
-            <MenuItem icon={Wrench} label="Manutenção" onClick={() => go("/maintenance")} />
-            <MenuItem icon={Wallet} label="Gastos Pessoais" onClick={() => go("/personal-expenses")} />
-            <MenuItem icon={MessageCircle} label="Suporte" onClick={() => { setOpen(false); setShowSupport(true); }} />
-            <MenuItem icon={Lightbulb} label="Sugestões" onClick={() => { setOpen(false); setShowSuggestion(true); }} />
+            <MenuItem icon={iconUser} label="Meu Perfil" onClick={() => go("/perfil")} />
+            <MenuItem icon={iconLock} label="Alterar Senha" onClick={() => { setOpen(false); setShowPassword(true); }} />
+            <MenuItem icon={iconWrench} label="Manutenção" onClick={() => go("/maintenance")} />
+            <MenuItem icon={iconWallet} label="Gastos Pessoais" onClick={() => go("/personal-expenses")} />
+            <MenuItem icon={iconMessageCircle} label="Suporte" onClick={() => { setOpen(false); setShowSupport(true); }} />
+            <MenuItem icon={iconLightbulb} label="Sugestões" onClick={() => { setOpen(false); setShowSuggestion(true); }} />
           </nav>
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
             <button
