@@ -15,7 +15,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
-import { FontAwesomeIcon, iconFileDown, iconTruckMoving, iconOperacao, iconPlus } from "@/lib/icons";
+import { FontAwesomeIcon, iconFileDown } from "@/lib/icons";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -105,13 +105,7 @@ const Dashboard = () => {
     ? "ready-return"
     : "ready-first";
 
-  // Contextual CTA
-  const ctaLabel = !hasVehicles
-    ? "Cadastrar Veículo"
-    : hasActiveTrip
-    ? "Continuar Operação"
-    : "Nova Viagem";
-  const ctaIcon = !hasVehicles ? iconTruckMoving : hasActiveTrip ? iconOperacao : iconPlus;
+  // Contextual CTA handler — label/icon are owned by HERO_CONTENT per scenario
   const handleCta = () => {
     if (!hasVehicles) { navigate("/vehicles"); return; }
     if (hasActiveTrip) { navigate("/operation"); return; }
@@ -151,8 +145,6 @@ const Dashboard = () => {
           scenario={heroScenario}
           activeTripsCount={activeTrips.length}
           onCta={handleCta}
-          ctaLabel={ctaLabel}
-          ctaIcon={ctaIcon}
         />
 
         {/* ── Active trips detail (Scenario B) ── */}
@@ -252,7 +244,7 @@ const Dashboard = () => {
               </span>
               <div className="flex-1 h-px bg-border/50" />
             </div>
-            <DashboardHistoryPreview trips={historyPreview} hasHistory={hasHistory} />
+            <DashboardHistoryPreview trips={historyPreview} />
           </>
         )}
 

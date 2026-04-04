@@ -1,4 +1,4 @@
-import { FontAwesomeIcon, iconTruckMoving, iconRoute, iconOperacao, type IconDefinition } from "@/lib/icons";
+import { FontAwesomeIcon, iconTruckMoving, iconRoute, iconOperacao, iconPlus, type IconDefinition } from "@/lib/icons";
 
 export type HomeHeroScenario = "onboarding" | "active" | "ready-first" | "ready-return";
 
@@ -6,14 +6,14 @@ interface HomeHeroProps {
   scenario: HomeHeroScenario;
   activeTripsCount?: number;
   onCta: () => void;
-  ctaLabel: string;
-  ctaIcon: IconDefinition;
 }
 
 interface HeroContent {
   icon: IconDefinition;
   title: string;
   subtitle: string;
+  ctaLabel: string;
+  ctaIcon: IconDefinition;
   variant: "default" | "active";
 }
 
@@ -23,6 +23,8 @@ const HERO_CONTENT: Record<HomeHeroScenario, HeroContent> = {
     title: "Bem-vindo ao Space Truck",
     subtitle:
       "Cadastre seu veículo para começar a registrar viagens e controlar seus resultados financeiros.",
+    ctaLabel: "Cadastrar Veículo",
+    ctaIcon: iconTruckMoving,
     variant: "default",
   },
   active: {
@@ -30,6 +32,8 @@ const HERO_CONTENT: Record<HomeHeroScenario, HeroContent> = {
     title: "Você está na estrada",
     subtitle:
       "Viagem em andamento. Acompanhe os detalhes abaixo e finalize quando chegar ao destino.",
+    ctaLabel: "Continuar Operação",
+    ctaIcon: iconOperacao,
     variant: "active",
   },
   "ready-first": {
@@ -37,12 +41,16 @@ const HERO_CONTENT: Record<HomeHeroScenario, HeroContent> = {
     title: "Tudo pronto para começar",
     subtitle:
       "Seu veículo está cadastrado. Inicie sua primeira viagem e comece a controlar seus resultados.",
+    ctaLabel: "Nova Viagem",
+    ctaIcon: iconPlus,
     variant: "default",
   },
   "ready-return": {
     icon: iconTruckMoving,
     title: "Pronto para nova viagem",
     subtitle: "Quando quiser, inicie uma nova operação e acompanhe seu desempenho em tempo real.",
+    ctaLabel: "Nova Viagem",
+    ctaIcon: iconPlus,
     variant: "default",
   },
 };
@@ -51,8 +59,6 @@ export function HomeHero({
   scenario,
   activeTripsCount = 0,
   onCta,
-  ctaLabel,
-  ctaIcon,
 }: HomeHeroProps) {
   const content = HERO_CONTENT[scenario];
   const isActive = content.variant === "active";
@@ -96,8 +102,8 @@ export function HomeHero({
         onClick={onCta}
         className="w-full gradient-profit text-primary-foreground rounded-xl p-3.5 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 active:scale-[0.98] transition-all"
       >
-        <FontAwesomeIcon icon={ctaIcon} className="w-4 h-4" />
-        {ctaLabel}
+        <FontAwesomeIcon icon={content.ctaIcon} className="w-4 h-4" />
+        {content.ctaLabel}
       </button>
     </div>
   );

@@ -5,11 +5,11 @@ import { FontAwesomeIcon, iconHistory, iconArrowRight, iconPlus } from "@/lib/ic
 
 interface DashboardHistoryPreviewProps {
   trips: Trip[];
-  hasHistory: boolean;
 }
 
-export function DashboardHistoryPreview({ trips, hasHistory }: DashboardHistoryPreviewProps) {
+export function DashboardHistoryPreview({ trips }: DashboardHistoryPreviewProps) {
   const navigate = useNavigate();
+  const hasHistory = trips.length > 0;
 
   return (
     <section>
