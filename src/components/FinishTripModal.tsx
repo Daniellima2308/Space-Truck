@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { AlertTriangle, Loader2 } from "lucide-react";
+import { FontAwesomeIcon, iconAlertTriangle, iconLoader2 } from "@/lib/icons";
 import {
   Dialog,
   DialogContent,
@@ -93,7 +93,7 @@ export function FinishTripModal({
         {activeFreight && (
           <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-warning" />
+              <FontAwesomeIcon icon={iconAlertTriangle} className="mt-0.5 h-4 w-4 text-warning" />
               <div className="space-y-1">
                 <p className="text-sm font-semibold text-foreground">O frete em andamento será encerrado junto</p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
@@ -107,7 +107,7 @@ export function FinishTripModal({
         {hasPendingPlanned && (
           <div className="rounded-lg border border-expense/30 bg-expense/10 p-3">
             <div className="flex items-start gap-2">
-              <AlertTriangle className="mt-0.5 h-4 w-4 text-expense" />
+              <FontAwesomeIcon icon={iconAlertTriangle} className="mt-0.5 h-4 w-4 text-expense" />
               <div className="space-y-2">
                 <div className="space-y-1">
                   <p className="text-sm font-semibold text-foreground">Existem trechos ainda não iniciados</p>
@@ -174,7 +174,7 @@ export function FinishTripModal({
             >
               {isSubmitting ? (
                 <>
-                  <Loader2 className="h-4 w-4 animate-spin" /> Finalizando...
+                  <FontAwesomeIcon icon={iconLoader2} className="h-4 w-4 animate-spin" /> Finalizando...
                 </>
               ) : (
                 "Finalizar viagem"

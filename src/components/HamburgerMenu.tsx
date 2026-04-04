@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Menu, User, Lock, Wrench, MessageCircle, Lightbulb, LogOut, Wallet } from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { FontAwesomeIcon, IconDefinition, iconMenu, iconUser, iconLock, iconWrench, iconMessageCircle, iconLightbulb, iconLogOut, iconWallet } from "@/lib/icons";
 
 const SUBJECT_OPTIONS = ["Dúvida", "Problema", "Sugestão", "Outros"] as const;
 
@@ -80,7 +79,7 @@ export function HamburgerMenu() {
       <Sheet open={open} onOpenChange={setOpen}>
         <SheetTrigger asChild>
           <button className="p-2 rounded-lg hover:bg-accent transition-colors" aria-label="Menu">
-            <Menu className="w-6 h-6" />
+            <FontAwesomeIcon icon={iconMenu} className="w-6 h-6" />
           </button>
         </SheetTrigger>
         <SheetContent side="right" className="w-72 bg-card border-border p-0">
@@ -88,19 +87,19 @@ export function HamburgerMenu() {
             <h2 className="text-lg font-bold">Menu</h2>
           </div>
           <nav className="px-3 py-4 space-y-1">
-            <MenuItem icon={User} label="Meu Perfil" onClick={() => go("/perfil")} />
-            <MenuItem icon={Lock} label="Alterar Senha" onClick={() => { setOpen(false); setShowPassword(true); }} />
-            <MenuItem icon={Wrench} label="Manutenção" onClick={() => go("/maintenance")} />
-            <MenuItem icon={Wallet} label="Gastos Pessoais" onClick={() => go("/personal-expenses")} />
-            <MenuItem icon={MessageCircle} label="Suporte" onClick={() => { setOpen(false); setShowSupport(true); }} />
-            <MenuItem icon={Lightbulb} label="Sugestões" onClick={() => { setOpen(false); setShowSuggestion(true); }} />
+            <MenuItem icon={iconUser} label="Meu Perfil" onClick={() => go("/perfil")} />
+            <MenuItem icon={iconLock} label="Alterar Senha" onClick={() => { setOpen(false); setShowPassword(true); }} />
+            <MenuItem icon={iconWrench} label="Manutenção" onClick={() => go("/maintenance")} />
+            <MenuItem icon={iconWallet} label="Gastos Pessoais" onClick={() => go("/personal-expenses")} />
+            <MenuItem icon={iconMessageCircle} label="Suporte" onClick={() => { setOpen(false); setShowSupport(true); }} />
+            <MenuItem icon={iconLightbulb} label="Sugestões" onClick={() => { setOpen(false); setShowSuggestion(true); }} />
           </nav>
           <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
             <button
               onClick={async () => { setOpen(false); await signOut(); navigate("/login"); }}
               className="w-full bg-expense/10 hover:bg-expense/20 text-expense rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
             >
-              <LogOut className="w-4 h-4" /> Sair da Conta
+              <FontAwesomeIcon icon={iconLogOut} className="w-4 h-4" /> Sair da Conta
             </button>
           </div>
         </SheetContent>
@@ -168,10 +167,10 @@ export function HamburgerMenu() {
   );
 }
 
-function MenuItem({ icon: Icon, label, onClick }: { icon: LucideIcon; label: string; onClick: () => void }) {
+function MenuItem({ icon, label, onClick }: { icon: IconDefinition; label: string; onClick: () => void }) {
   return (
     <button onClick={onClick} className="w-full rounded-lg p-3 flex items-center gap-3 hover:bg-accent/50 transition-colors">
-      <Icon className="w-5 h-5 text-muted-foreground" />
+      <FontAwesomeIcon icon={icon} className="w-5 h-5 text-muted-foreground" />
       <span className="text-sm font-medium">{label}</span>
     </button>
   );

@@ -1,9 +1,9 @@
 import { useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Wallet } from "lucide-react";
 import { PERSONAL_EXPENSE_LABELS, PersonalExpenseCategory } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/calculations";
+import { FontAwesomeIcon, iconArrowLeft, iconPlus, iconTrash2, iconWallet } from "@/lib/icons";
 
 const PersonalExpensesPage = () => {
   const { data, getActiveTrips, addPersonalExpense, deletePersonalExpense } = useApp();
@@ -19,7 +19,7 @@ const PersonalExpensesPage = () => {
   if (!activeTrip) {
     return (
       <div className="min-h-screen bg-background pb-24 flex flex-col items-center justify-center px-6 text-center">
-        <Wallet className="w-16 h-16 text-muted-foreground mb-4" />
+        <FontAwesomeIcon icon={iconWallet} className="w-16 h-16 text-muted-foreground mb-4" />
         <h2 className="text-lg font-bold mb-2">Nenhuma viagem ativa</h2>
         <p className="text-sm text-muted-foreground mb-6">
           Inicie uma viagem para registrar seus gastos pessoais como alimentação, banho e pernoite.
@@ -46,7 +46,7 @@ const PersonalExpensesPage = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5" />
         </button>
         <div>
           <h1 className="text-xl font-bold">Diário de Gastos</h1>
@@ -74,7 +74,7 @@ const PersonalExpensesPage = () => {
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold font-mono text-warning">{formatCurrency(pe.value)}</span>
                 <button onClick={() => deletePersonalExpense(activeTrip.id, pe.id)} className="p-1">
-                  <Trash2 className="w-3.5 h-3.5 text-expense" />
+                  <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5 text-expense" />
                 </button>
               </div>
             </div>
@@ -100,7 +100,7 @@ const PersonalExpensesPage = () => {
         ) : (
           <button onClick={() => setShowForm(true)}
             className="w-full border border-dashed border-border rounded-lg p-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium">
-            <Plus className="w-4 h-4" /> Novo Gasto Pessoal
+            <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Novo Gasto Pessoal
           </button>
         )}
       </div>

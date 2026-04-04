@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useApp } from "@/context/app-context";
 import { useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, Plus, Trash2, Wrench, Gauge, Truck } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { MaintenanceService } from "@/types";
 import { formatNumber } from "@/lib/calculations";
+import { FontAwesomeIcon, iconArrowLeft, iconPlus, iconTrash2, iconWrench, iconGauge, iconTruck } from "@/lib/icons";
 
 const COMMON_SERVICES = [
   "Óleo de Motor",
@@ -54,12 +54,12 @@ const MaintenancePage = () => {
       <div className="min-h-screen bg-background pb-24">
         <header className="px-4 pt-6 pb-4 flex items-center gap-3">
           <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-            <ArrowLeft className="w-5 h-5" />
+            <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5" />
           </button>
           <h1 className="text-xl font-bold">Manutenção</h1>
         </header>
         <div className="px-4 flex flex-col items-center justify-center text-center mt-16 space-y-4">
-          <Truck className="w-16 h-16 text-muted-foreground/40" />
+          <FontAwesomeIcon icon={iconTruck} className="w-16 h-16 text-muted-foreground/40" />
           <h2 className="text-lg font-bold">Acompanhe a saúde do seu bruto! 🚛</h2>
           <p className="text-sm text-muted-foreground max-w-xs">
             Aqui o Space Truck te avisa a hora certa de trocar óleo, filtros e lonas de freio, evitando que você fique na mão no trecho e gaste com imprevistos. Para ativar os alertas, você precisa cadastrar o seu primeiro veículo.
@@ -82,7 +82,7 @@ const MaintenancePage = () => {
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-4 flex items-center gap-3">
         <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-          <ArrowLeft className="w-5 h-5" />
+          <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5" />
         </button>
         <h1 className="text-xl font-bold">Manutenção</h1>
       </header>
@@ -104,7 +104,7 @@ const MaintenancePage = () => {
 
         {selectedVehicle && (
           <div className="gradient-card rounded-xl p-4 flex items-center gap-3">
-            <Gauge className="w-5 h-5 text-profit" />
+            <FontAwesomeIcon icon={iconGauge} className="w-5 h-5 text-profit" />
             <div>
               <p className="text-xs text-muted-foreground">
                 {selectedVehicle.brand} {selectedVehicle.model} • Odômetro Atual
@@ -117,7 +117,7 @@ const MaintenancePage = () => {
         {/* Services list */}
         {vehicleServices.length === 0 && (
           <div className="text-center py-8 text-muted-foreground text-sm">
-            <Wrench className="w-8 h-8 mx-auto mb-2 opacity-40" />
+            <FontAwesomeIcon icon={iconWrench} className="w-8 h-8 mx-auto mb-2 opacity-40" />
             <p>Nenhum serviço cadastrado para este veículo.</p>
           </div>
         )}
@@ -134,12 +134,12 @@ const MaintenancePage = () => {
             <div key={s.id} className="gradient-card rounded-lg p-4 space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-2">
-                  <Wrench className={`w-4 h-4 ${isOverdue ? "text-expense" : isWarning ? "text-warning" : "text-muted-foreground"}`} />
+                  <FontAwesomeIcon icon={iconWrench} className={`w-4 h-4 ${isOverdue ? "text-expense" : isWarning ? "text-warning" : "text-muted-foreground"}`} />
                   <span className="text-sm font-semibold">{s.serviceName}</span>
                 </div>
                 <button onClick={async () => { if (confirm("Excluir serviço?")) await deleteMaintenanceService(s.id); }}
                   className="p-1.5 rounded-lg hover:bg-expense/10">
-                  <Trash2 className="w-3.5 h-3.5 text-expense" />
+                  <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5 text-expense" />
                 </button>
               </div>
               <div className="text-xs text-muted-foreground space-y-0.5">
@@ -201,7 +201,7 @@ const MaintenancePage = () => {
         ) : (
           <button onClick={() => setShowForm(true)}
             className="w-full border border-dashed border-border rounded-xl p-4 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium">
-            <Plus className="w-4 h-4" /> Adicionar Serviço de Manutenção
+            <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Adicionar Serviço de Manutenção
           </button>
         )}
       </div>

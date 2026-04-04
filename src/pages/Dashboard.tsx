@@ -10,11 +10,11 @@ import { ConnectionIndicator } from "@/components/ConnectionIndicator";
 import { getTripGrossRevenue, getTripTotalCommissions, getTripTotalExpenses, getTripNetRevenue } from "@/lib/calculations";
 import { getMaintenanceAlerts } from "@/lib/maintenance";
 import { Trip } from "@/types";
-import { Plus, Trash2, FileDown } from "lucide-react";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useNavigate } from "react-router-dom";
 import { exportMultipleTripsPdf } from "@/lib/exportPdf";
 import { useBrandAsset } from "@/hooks/use-brand-asset";
+import { FontAwesomeIcon, iconPlus, iconTrash2, iconFileDown } from "@/lib/icons";
 
 function filterTripsByPeriod(trips: Trip[], period: string): Trip[] {
   if (period === "all") return trips;
@@ -135,7 +135,7 @@ const Dashboard = () => {
               }}
               className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-profit/10 text-profit hover:bg-profit/20 transition-colors text-xs font-bold whitespace-nowrap"
             >
-              <FileDown className="w-4 h-4" /> PDF
+              <FontAwesomeIcon icon={iconFileDown} className="w-4 h-4" /> PDF
             </button>
           )}
         </div>
@@ -145,7 +145,7 @@ const Dashboard = () => {
         {/* Nova Viagem button - always visible */}
         <button onClick={handleNewTrip}
           className="w-full gradient-profit text-primary-foreground rounded-2xl p-4 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity">
-          <Plus className="w-5 h-5" /> Nova Viagem
+          <FontAwesomeIcon icon={iconPlus} className="w-5 h-5" /> Nova Viagem
         </button>
 
         {/* Active trips */}
@@ -166,7 +166,7 @@ const Dashboard = () => {
                 {finishedTripsInView.length > 0 && (
                   <button onClick={() => { if (confirm("Limpar todo o histórico de viagens finalizadas?")) clearHistory(); }}
                     className="flex items-center gap-1 text-xs text-expense hover:text-expense/80 transition-colors">
-                    <Trash2 className="w-3.5 h-3.5" /> Limpar
+                    <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5" /> Limpar
                   </button>
                 )}
               </div>

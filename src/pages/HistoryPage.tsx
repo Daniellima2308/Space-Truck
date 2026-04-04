@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useApp } from "@/context/app-context";
 import { TripHistoryList } from "@/components/TripHistoryList";
-import { Trash2 } from "lucide-react";
+import { FontAwesomeIcon, iconTrash2 } from "@/lib/icons";
 
 const HistoryPage = () => {
   const { data, clearHistory } = useApp();
@@ -17,7 +17,7 @@ const HistoryPage = () => {
               onClick={() => { if (confirm("Limpar todo o histórico de viagens finalizadas?")) clearHistory(); }}
               className="flex items-center gap-1 text-xs text-expense hover:text-expense/80 transition-colors"
             >
-              <Trash2 className="w-3.5 h-3.5" /> Limpar
+              <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5" /> Limpar
             </button>
           )}
         </div>

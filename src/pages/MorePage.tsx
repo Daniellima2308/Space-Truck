@@ -4,25 +4,8 @@ import { useTheme } from "next-themes";
 import { useAuth } from "@/context/auth-context";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import {
-  User,
-  Lock,
-  Bell,
-  MessageCircle,
-  Lightbulb,
-  LogOut,
-  Sun,
-  Moon,
-  Monitor,
-  ChevronRight,
-  Shield,
-  HelpCircle,
-  FileText,
-  Info,
-  Bug,
-} from "lucide-react";
-import type { LucideIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FontAwesomeIcon, IconDefinition, iconUser, iconLock, iconBell, iconMessageCircle, iconLightbulb, iconLogOut, iconSun, iconMoon, iconMonitor, iconChevronRight, iconShield, iconHelpCircle, iconFileText, iconInfo, iconBug } from "@/lib/icons";
 
 export default function MorePage() {
   const navigate = useNavigate();
@@ -138,14 +121,14 @@ export default function MorePage() {
             <p className="text-sm text-muted-foreground truncate">{user?.email}</p>
             <p className="text-xs text-primary mt-0.5 font-medium">Ver perfil completo</p>
           </div>
-          <ChevronRight className="w-5 h-5 text-muted-foreground shrink-0" />
+          <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground shrink-0" />
         </button>
 
         {/* Conta e Segurança */}
         <SectionBlock title="Conta e Segurança">
-          <MenuItem icon={User} label="Dados do Perfil" onClick={() => navigate("/perfil")} />
-          <MenuItem icon={Lock} label="Alterar Senha" onClick={() => setShowPassword(true)} />
-          <MenuItem icon={Shield} label="Privacidade" subtitle="Seus dados estão protegidos" disabled />
+          <MenuItem icon={iconUser} label="Dados do Perfil" onClick={() => navigate("/perfil")} />
+          <MenuItem icon={iconLock} label="Alterar Senha" onClick={() => setShowPassword(true)} />
+          <MenuItem icon={iconShield} label="Privacidade" subtitle="Seus dados estão protegidos" disabled />
         </SectionBlock>
 
         {/* Aparência */}
@@ -158,11 +141,11 @@ export default function MorePage() {
             <div className="flex gap-2">
               {(
                 [
-                  { value: "light", label: "Claro", Icon: Sun },
-                  { value: "dark", label: "Escuro", Icon: Moon },
-                  { value: "system", label: "Auto", Icon: Monitor },
+                  { value: "light", label: "Claro", icon: iconSun },
+                  { value: "dark", label: "Escuro", icon: iconMoon },
+                  { value: "system", label: "Auto", icon: iconMonitor },
                 ] as const
-              ).map(({ value, label, Icon }) => (
+              ).map(({ value, label, icon }) => (
                 <button
                   key={value}
                   onClick={() => setTheme(value)}
@@ -173,7 +156,7 @@ export default function MorePage() {
                       : "border-border text-muted-foreground hover:bg-accent/40"
                   )}
                 >
-                  <Icon className="w-4 h-4" />
+                  <FontAwesomeIcon icon={icon} className="w-4 h-4" />
                   {label}
                 </button>
               ))}
@@ -183,30 +166,30 @@ export default function MorePage() {
 
         {/* Preferências */}
         <SectionBlock title="Preferências">
-          <MenuItem icon={Bell} label="Notificações" subtitle="Gerencie seus alertas" disabled />
+          <MenuItem icon={iconBell} label="Notificações" subtitle="Gerencie seus alertas" disabled />
         </SectionBlock>
 
         {/* Suporte e Ajuda */}
         <SectionBlock title="Suporte e Ajuda">
           <MenuItem
-            icon={MessageCircle}
+            icon={iconMessageCircle}
             label="Falar com Suporte"
             onClick={() => setShowSupport(true)}
           />
           <MenuItem
-            icon={Lightbulb}
+            icon={iconLightbulb}
             label="Enviar Sugestão"
             onClick={() => setShowSuggestion(true)}
           />
-          <MenuItem icon={Bug} label="Reportar Problema" subtitle="Em breve" disabled />
-          <MenuItem icon={HelpCircle} label="Central de Ajuda" subtitle="Em breve" disabled />
+          <MenuItem icon={iconBug} label="Reportar Problema" subtitle="Em breve" disabled />
+          <MenuItem icon={iconHelpCircle} label="Central de Ajuda" subtitle="Em breve" disabled />
         </SectionBlock>
 
         {/* Sobre */}
         <SectionBlock title="Sobre">
-          <MenuItem icon={Info} label="Sobre o Space Truck" subtitle="Gestão inteligente de frota" disabled />
-          <MenuItem icon={FileText} label="Termos de Uso" subtitle="Em breve" disabled />
-          <MenuItem icon={Shield} label="Política de Privacidade" subtitle="Em breve" disabled />
+          <MenuItem icon={iconInfo} label="Sobre o Space Truck" subtitle="Gestão inteligente de frota" disabled />
+          <MenuItem icon={iconFileText} label="Termos de Uso" subtitle="Em breve" disabled />
+          <MenuItem icon={iconShield} label="Política de Privacidade" subtitle="Em breve" disabled />
           <div className="px-4 py-3 flex items-center gap-3">
             <div className="w-5 h-5 shrink-0" />
             <span className="text-xs text-muted-foreground/60 font-mono">v1.0.0</span>
@@ -221,7 +204,7 @@ export default function MorePage() {
           }}
           className="w-full bg-destructive/10 hover:bg-destructive/20 text-destructive border border-destructive/20 rounded-2xl p-4 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
         >
-          <LogOut className="w-4 h-4" /> Sair da Conta
+          <FontAwesomeIcon icon={iconLogOut} className="w-4 h-4" /> Sair da Conta
         </button>
       </div>
 
@@ -319,13 +302,13 @@ function SectionBlock({ title, children }: { title: string; children: React.Reac
 }
 
 function MenuItem({
-  icon: Icon,
+  icon,
   label,
   subtitle,
   onClick,
   disabled,
 }: {
-  icon: LucideIcon;
+  icon: IconDefinition;
   label: string;
   subtitle?: string;
   onClick?: () => void;
@@ -339,12 +322,12 @@ function MenuItem({
         disabled ? "opacity-50 cursor-default" : "hover:bg-accent/40",
       )}
     >
-      <Icon className="w-5 h-5 text-muted-foreground shrink-0" />
+      <FontAwesomeIcon icon={icon} className="w-5 h-5 text-muted-foreground shrink-0" />
       <div className="flex-1 min-w-0">
         <span className="text-sm font-medium">{label}</span>
         {subtitle && <p className="text-[10px] text-muted-foreground/70 mt-0.5">{subtitle}</p>}
       </div>
-      {!disabled && <ChevronRight className="w-4 h-4 text-muted-foreground" />}
+      {!disabled && <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground" />}
     </button>
   );
 }

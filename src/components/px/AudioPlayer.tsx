@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useCallback } from "react";
-import { Play, Pause } from "lucide-react";
+import { FontAwesomeIcon, iconPlay, iconPause } from "@/lib/icons";
 
 interface AudioPlayerProps {
   src: string;
@@ -81,7 +81,7 @@ const AudioPlayer = ({ src, isMe }: AudioPlayerProps) => {
           color: isMe ? "hsl(30 100% 60%)" : "hsl(210 15% 70%)",
         }}
       >
-        {playing ? <Pause className="w-3.5 h-3.5" /> : <Play className="w-3.5 h-3.5 ml-0.5" />}
+        {playing ? <FontAwesomeIcon icon={iconPause} className="w-3.5 h-3.5" /> : <FontAwesomeIcon icon={iconPlay} className="w-3.5 h-3.5 ml-0.5" />}
       </button>
 
       {/* Waveform + duration */}

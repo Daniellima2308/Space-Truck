@@ -2,7 +2,6 @@ import { useState, useMemo, useEffect, useCallback, useRef } from "react";
 import { getRouteInfo } from "@/lib/routeApi";
 import { calculateToll } from "@/lib/tollApi";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Copy, MapPin, DollarSign, Gauge, Truck, AlertTriangle, TrendingUp, Calculator, Route, Scale, Share2, MessageCircle } from "lucide-react";
 import { Switch } from "@/components/ui/switch";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import { Card, CardContent } from "@/components/ui/card";
@@ -10,6 +9,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { toast } from "@/hooks/use-toast";
 import { buildCompleteFreightSummary, buildShortFreightSummary, calculateEta, getWhatsAppLink, type FreightQualityLabel } from "@/lib/freightAnalysis";
+import { FontAwesomeIcon, iconArrowLeft, iconCopy, iconMapPin, iconDollarSign, iconGauge, iconTruck, iconAlertTriangle, iconTrendingUp, iconCalculator, iconRoute, iconScale, iconShare2, iconMessageCircle } from "@/lib/icons";
+import type { IconDefinition } from "@/lib/icons";
 
 // Tabela ANTT - Resolução Nº 6.076/2026
 const tabelaANTT2026: Record<string, Record<number, { ccd: number; cc: number }>> = {
@@ -112,25 +113,25 @@ function getFreightQuality(offeredValue: number, anttFloor: number, netProfit: n
   return "medium";
 }
 
-const QUALITY_CONFIG: Record<FreightQuality, { bg: string; border: string; icon: typeof AlertTriangle; label: string; desc: string }> = {
+const QUALITY_CONFIG: Record<FreightQuality, { bg: string; border: string; icon: IconDefinition; label: string; desc: string }> = {
   bad: {
     bg: "bg-destructive/15",
     border: "border-destructive/30",
-    icon: AlertTriangle,
+    icon: iconAlertTriangle,
     label: "FRETE RUIM",
     desc: "Margem Baixa ou Prejuízo",
   },
   medium: {
     bg: "bg-warning/15",
     border: "border-warning/30",
-    icon: Scale,
+    icon: iconScale,
     label: "FRETE MAIS OU MENOS",
     desc: "Cobre Custos / Retorno",
   },
   great: {
     bg: "bg-profit/15",
     border: "border-profit/30",
-    icon: TrendingUp,
+    icon: iconTrendingUp,
     label: "FRETE QUALIFICADO",
     desc: "Excelente Rentabilidade",
   },
@@ -299,11 +300,11 @@ const FreightAnalysisPage = () => {
       <header className="px-4 pt-6 pb-4">
         <div className="flex items-center gap-3 mb-1">
           <button onClick={() => navigate("/")} className="p-2 rounded-lg bg-secondary hover:bg-accent transition-colors">
-            <ArrowLeft className="w-5 h-5 text-secondary-foreground" />
+            <FontAwesomeIcon icon={iconArrowLeft} className="w-5 h-5 text-secondary-foreground" />
           </button>
           <div>
             <h1 className="text-xl font-black tracking-tight flex items-center gap-2">
-              <Calculator className="w-5 h-5 text-primary" />
+              <FontAwesomeIcon icon={iconCalculator} className="w-5 h-5 text-primary" />
               Análise de Frete
             </h1>
             <p className="text-xs text-muted-foreground">Calculadora ANTT</p>
@@ -316,7 +317,7 @@ const FreightAnalysisPage = () => {
         <Card className="gradient-card border-border">
           <CardContent className="p-4 space-y-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <MapPin className="w-3.5 h-3.5" /> Rota
+              <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5" /> Rota
             </h2>
             <div className="space-y-2">
               <CityAutocomplete value={origin} onChange={setOrigin} placeholder="Origem" className="input-field" />
@@ -335,7 +336,7 @@ const FreightAnalysisPage = () => {
                   placeholder="Automático ou manual"
                   className="input-field"
                 />
-                <Route className={`w-4 h-4 shrink-0 ${loadingRoute ? "text-primary animate-spin" : "text-muted-foreground"}`} />
+                <FontAwesomeIcon icon={iconRoute} className={`w-4 h-4 shrink-0 ${loadingRoute ? "text-primary animate-spin" : "text-muted-foreground"}`} />
               </div>
 
               {shouldShowEtaHint && (
@@ -363,7 +364,7 @@ const FreightAnalysisPage = () => {
         <Card className="gradient-card border-border">
           <CardContent className="p-4 space-y-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <DollarSign className="w-3.5 h-3.5" /> Valores
+              <FontAwesomeIcon icon={iconDollarSign} className="w-3.5 h-3.5" /> Valores
             </h2>
               <div className="grid grid-cols-2 gap-3">
               <div>
@@ -439,7 +440,7 @@ const FreightAnalysisPage = () => {
         <Card className="gradient-card border-border">
           <CardContent className="p-4 space-y-3">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-              <Truck className="w-3.5 h-3.5" /> Caminhão
+              <FontAwesomeIcon icon={iconTruck} className="w-3.5 h-3.5" /> Caminhão
             </h2>
             <div className="grid grid-cols-2 gap-3">
               <div>
@@ -511,10 +512,9 @@ const FreightAnalysisPage = () => {
             {/* Quality Badge */}
             {(() => {
               const cfg = QUALITY_CONFIG[results.quality];
-              const Icon = cfg.icon;
               return (
                 <div className={`rounded-xl p-4 ${cfg.bg} border ${cfg.border} flex items-center gap-3`}>
-                  <Icon className="w-8 h-8 shrink-0" />
+                  <FontAwesomeIcon icon={cfg.icon} className="w-8 h-8 shrink-0" />
                   <div>
                     <p className="font-black text-lg tracking-tight">{cfg.label}</p>
                     <p className="text-xs text-muted-foreground">{cfg.desc}</p>
@@ -587,15 +587,15 @@ const FreightAnalysisPage = () => {
             <Card className="gradient-card border-border">
               <CardContent className="p-4 space-y-3">
                 <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest flex items-center gap-1.5">
-                  <Share2 className="w-3.5 h-3.5" /> Compartilhar análise
+                  <FontAwesomeIcon icon={iconShare2} className="w-3.5 h-3.5" /> Compartilhar análise
                 </h2>
                 <p className="text-xs text-muted-foreground">Envie um resumo profissional da viagem no WhatsApp ou copie para compartilhar onde quiser.</p>
                 <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                   <button type="button" onClick={() => setShareModalOpen(true)} className="min-h-11 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-                    <MessageCircle className="w-4 h-4" /> Enviar no WhatsApp
+                    <FontAwesomeIcon icon={iconMessageCircle} className="w-4 h-4" /> Enviar no WhatsApp
                   </button>
                   <button type="button" onClick={handleCopySummary} className="min-h-11 rounded-lg border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary transition-colors">
-                    <Copy className="w-4 h-4" /> Copiar resumo
+                    <FontAwesomeIcon icon={iconCopy} className="w-4 h-4" /> Copiar resumo
                   </button>
                 </div>
               </CardContent>
@@ -605,7 +605,7 @@ const FreightAnalysisPage = () => {
 
         {!results && (
           <div className="text-center py-12">
-            <Gauge className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+            <FontAwesomeIcon icon={iconGauge} className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
             <p className="text-sm text-muted-foreground">Preencha a distância e o valor do frete para ver a análise</p>
           </div>
         )}
@@ -643,10 +643,10 @@ const FreightAnalysisPage = () => {
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
             <button type="button" onClick={handleCopySummary} className="min-h-11 rounded-lg border border-border text-sm font-semibold flex items-center justify-center gap-2 hover:bg-secondary transition-colors">
-              <Copy className="w-4 h-4" /> Copiar resumo
+              <FontAwesomeIcon icon={iconCopy} className="w-4 h-4" /> Copiar resumo
             </button>
             <button type="button" onClick={handleOpenWhatsApp} className="min-h-11 rounded-lg bg-primary text-primary-foreground text-sm font-semibold flex items-center justify-center gap-2 hover:opacity-90 transition-opacity">
-              <MessageCircle className="w-4 h-4" /> Abrir WhatsApp
+              <FontAwesomeIcon icon={iconMessageCircle} className="w-4 h-4" /> Abrir WhatsApp
             </button>
           </div>
         </DialogContent>

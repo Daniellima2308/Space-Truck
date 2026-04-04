@@ -1,11 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { Calculator, Wrench, Wallet, Radio, FileText, Map, BarChart2, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { LucideIcon } from "lucide-react";
-import { VehiclesIcon } from "@/components/icons";
+import { FontAwesomeIcon, IconDefinition, iconCalculator, iconVeiculos, iconWrench, iconWallet, iconRadio, iconFileText, iconMap, iconBarChart2, iconChevronRight } from "@/lib/icons";
 
 interface ToolItem {
-  icon: LucideIcon | typeof VehiclesIcon;
+  icon: IconDefinition;
   label: string;
   description: string;
   path: string;
@@ -22,21 +20,21 @@ const TOOL_GROUPS: ToolGroup[] = [
     label: "Operacional",
     items: [
       {
-        icon: Calculator,
+        icon: iconCalculator,
         label: "Análise de Frete",
         description: "Calcule se o frete vale a pena",
         path: "/freight-analysis",
         available: true,
       },
       {
-        icon: VehiclesIcon,
+        icon: iconVeiculos,
         label: "Veículos",
         description: "Meus caminhões e configurações",
         path: "/vehicles",
         available: true,
       },
       {
-        icon: Wrench,
+        icon: iconWrench,
         label: "Manutenção",
         description: "Histórico e alertas de manutenção",
         path: "/maintenance",
@@ -48,21 +46,21 @@ const TOOL_GROUPS: ToolGroup[] = [
     label: "Financeiro",
     items: [
       {
-        icon: Wallet,
+        icon: iconWallet,
         label: "Gastos Pessoais",
         description: "Alimentação, banho e pernoite",
         path: "/personal-expenses",
         available: true,
       },
       {
-        icon: BarChart2,
+        icon: iconBarChart2,
         label: "Relatórios",
         description: "Em breve",
         path: "",
         available: false,
       },
       {
-        icon: FileText,
+        icon: iconFileText,
         label: "Documentos",
         description: "Em breve",
         path: "",
@@ -74,14 +72,14 @@ const TOOL_GROUPS: ToolGroup[] = [
     label: "Comunicação",
     items: [
       {
-        icon: Radio,
+        icon: iconRadio,
         label: "PX Digital",
         description: "Comunidades do Trecho",
         path: "/px",
         available: true,
       },
       {
-        icon: Map,
+        icon: iconMap,
         label: "Pedágios",
         description: "Em breve",
         path: "",
@@ -126,7 +124,8 @@ const ToolsPage = () => {
                       item.available ? "bg-primary/10" : "bg-muted"
                     )}
                   >
-                    <item.icon
+                    <FontAwesomeIcon
+                      icon={item.icon}
                       className={cn(
                         "w-5 h-5",
                         item.available ? "text-primary" : "text-muted-foreground"
@@ -145,7 +144,7 @@ const ToolsPage = () => {
                     <p className="text-xs text-muted-foreground mt-0.5">{item.description}</p>
                   </div>
                   {item.available && (
-                    <ChevronRight className="w-4 h-4 text-muted-foreground shrink-0" />
+                    <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />
                   )}
                 </button>
               ))}

@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "@/hooks/use-toast";
-import { Heart, Truck, Plus, Send, X, Loader2, Image } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { FontAwesomeIcon, iconHeart, iconTruck, iconPlus, iconSend, iconX, iconLoader2, iconImage } from "@/lib/icons";
 
 interface MuralPost {
   id: string;
@@ -101,7 +101,7 @@ const FeedDoTrecho = ({
 
       {posts.length === 0 && (
         <div className="text-center py-16 space-y-3">
-          <Truck className="w-16 h-16 mx-auto" style={{ color: "hsl(220 10% 20%)" }} />
+          <FontAwesomeIcon icon={iconTruck} className="w-16 h-16 mx-auto" style={{ color: "hsl(220 10% 20%)" }} />
           <p className="text-sm font-mono" style={{ color: "hsl(220 10% 35%)" }}>
             Nenhuma foto no trecho.
           </p>
@@ -138,7 +138,7 @@ const FeedDoTrecho = ({
                 likedPosts.has(post.id) ? "text-expense" : "text-muted-foreground hover:text-foreground"
               )}
             >
-              <Heart className={cn("w-5 h-5", likedPosts.has(post.id) && "fill-current")} />
+              <FontAwesomeIcon icon={iconHeart} className={cn("w-5 h-5", likedPosts.has(post.id) && "fill-current")} />
               <span className="text-sm font-bold">{post.likes}</span>
             </button>
             {post.caption && (
@@ -159,7 +159,7 @@ const FeedDoTrecho = ({
           boxShadow: "0 4px 15px hsl(24 100% 50% / 0.3)",
         }}
       >
-        <Plus className="w-7 h-7 text-white" />
+        <FontAwesomeIcon icon={iconPlus} className="w-7 h-7 text-white" />
       </button>
 
       {/* New Post Modal */}
@@ -168,10 +168,10 @@ const FeedDoTrecho = ({
           <div className="bg-card rounded-xl p-6 w-full max-w-sm space-y-4" onClick={(e) => e.stopPropagation()}>
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold">📸 Nova Foto</h3>
-              <button onClick={() => setShowNew(false)}><X className="w-5 h-5" /></button>
+              <button onClick={() => setShowNew(false)}><FontAwesomeIcon icon={iconX} className="w-5 h-5" /></button>
             </div>
             <label className="block w-full border-2 border-dashed border-border rounded-xl p-8 text-center cursor-pointer hover:border-px-orange/50 transition-colors">
-              <Image className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
+              <FontAwesomeIcon icon={iconImage} className="w-10 h-10 mx-auto text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">{file ? file.name : "Toque para escolher"}</p>
               <input type="file" accept="image/*" className="hidden" onChange={(e) => setFile(e.target.files?.[0] || null)} />
             </label>
@@ -181,7 +181,7 @@ const FeedDoTrecho = ({
               disabled={!file || uploading}
               className="w-full bg-px-orange text-px-orange-foreground rounded-xl py-3 font-bold disabled:opacity-50 flex items-center justify-center gap-2"
             >
-              {uploading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+              {uploading ? <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> : <FontAwesomeIcon icon={iconSend} className="w-4 h-4" />}
               {uploading ? "Publicando..." : "Publicar"}
             </button>
           </div>

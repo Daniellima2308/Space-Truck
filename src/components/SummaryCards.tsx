@@ -1,5 +1,5 @@
-import { DollarSign, TrendingDown, TrendingUp, Percent } from "lucide-react";
 import { formatCurrency } from "@/lib/calculations";
+import { FontAwesomeIcon, iconDollarSign, iconTrendingDown, iconTrendingUp, iconPercent, type IconDefinition } from "@/lib/icons";
 
 interface SummaryCardsProps {
   grossRevenue: number;
@@ -13,28 +13,28 @@ export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCom
     {
       label: "Faturamento Bruto",
       value: formatCurrency(grossRevenue),
-      icon: DollarSign,
+      icon: iconDollarSign,
       className: "gradient-card",
       valueClass: "text-foreground",
     },
     {
       label: "Valor Líquido",
       value: formatCurrency(netRevenue),
-      icon: TrendingUp,
+      icon: iconTrendingUp,
       className: netRevenue >= 0 ? "gradient-active-trip glow-profit" : "gradient-card glow-expense",
       valueClass: netRevenue >= 0 ? "text-profit" : "text-expense",
     },
     {
       label: "Total Despesas",
       value: formatCurrency(totalExpenses),
-      icon: TrendingDown,
+      icon: iconTrendingDown,
       className: "gradient-card",
       valueClass: "text-expense",
     },
     {
       label: "Total Comissões",
       value: formatCurrency(totalCommissions),
-      icon: Percent,
+      icon: iconPercent,
       className: "gradient-card",
       valueClass: "text-warning",
     },
@@ -45,7 +45,7 @@ export function SummaryCards({ grossRevenue, netRevenue, totalExpenses, totalCom
       {cards.map((card) => (
         <div key={card.label} className={`${card.className} rounded-lg p-4`}>
           <div className="flex items-center gap-2 mb-2">
-            <card.icon className="w-4 h-4 text-muted-foreground" />
+            <FontAwesomeIcon icon={card.icon} className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground font-medium uppercase tracking-wide">
               {card.label}
             </span>

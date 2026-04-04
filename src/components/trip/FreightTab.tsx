@@ -3,17 +3,6 @@ import { useToast } from "@/components/ui/use-toast";
 import { Trip, Freight, Vehicle, FREIGHT_STATUS_LABELS } from "@/types";
 import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { sortFreightsByOperationalPriority } from "@/lib/freightStatus";
-import {
-  CheckCircle2,
-  Loader2,
-  MapPin,
-  PlayCircle,
-  Plus,
-  Trash2,
-  Ruler,
-  Wallet,
-  Pencil,
-} from "lucide-react";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import {
   Dialog,
@@ -32,6 +21,7 @@ import {
 } from "@/lib/vehicleOperation";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
+import { FontAwesomeIcon, iconCheckCircle2, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface FreightTabProps {
   trip: Trip;
@@ -493,7 +483,7 @@ export function FreightTab({
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
               <p className="text-sm font-semibold leading-tight flex items-center gap-1.5">
-                <MapPin className="w-3.5 h-3.5 text-muted-foreground" />
+                <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5 text-muted-foreground" />
                 <span>
                   {f.origin} → {f.destination}
                 </span>
@@ -515,7 +505,7 @@ export function FreightTab({
                 className="p-1"
                 aria-label="Excluir frete"
               >
-                <Trash2 className="w-3.5 h-3.5 text-expense" />
+                <FontAwesomeIcon icon={iconTrash2} className="w-3.5 h-3.5 text-expense" />
               </button>
             )}
           </div>
@@ -531,7 +521,7 @@ export function FreightTab({
             </div>
             <div className="rounded-md bg-secondary/60 p-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                <Wallet className="w-3 h-3" />
+                <FontAwesomeIcon icon={iconWallet} className="w-3 h-3" />
                 {isDriverOwnerProfile ? "Retirada" : "Comissão"}
               </p>
               <p className="text-sm font-mono font-bold">
@@ -540,7 +530,7 @@ export function FreightTab({
             </div>
             <div className="rounded-md bg-secondary/60 p-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide flex items-center gap-1">
-                <Ruler className="w-3 h-3" />
+                <FontAwesomeIcon icon={iconRuler} className="w-3 h-3" />
                 KM inicial
               </p>
               <div className="flex items-center justify-between gap-2">
@@ -553,7 +543,7 @@ export function FreightTab({
                     className="p-1 text-muted-foreground hover:text-foreground"
                     aria-label="Editar KM inicial"
                   >
-                    <Pencil className="w-3.5 h-3.5" />
+                    <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" />
                   </button>
                 )}
                 {isOpen && f.status === "completed" && (
@@ -600,9 +590,9 @@ export function FreightTab({
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary disabled:opacity-60 disabled:cursor-not-allowed"
                 >
                   {pendingStartId === f.id ? (
-                    <Loader2 className="w-3.5 h-3.5 animate-spin" />
+                    <FontAwesomeIcon icon={iconLoader2} className="w-3.5 h-3.5 animate-spin" />
                   ) : (
-                    <PlayCircle className="w-3.5 h-3.5" />
+                    <FontAwesomeIcon icon={iconPlayCircle} className="w-3.5 h-3.5" />
                   )}{" "}
                   Iniciar trecho
                 </button>
@@ -612,7 +602,7 @@ export function FreightTab({
                   onClick={() => setFinishingFreight(f)}
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
                 >
-                  <CheckCircle2 className="w-3.5 h-3.5" /> Concluir
+                  <FontAwesomeIcon icon={iconCheckCircle2} className="w-3.5 h-3.5" /> Concluir
                 </button>
               )}
             </div>
@@ -719,7 +709,7 @@ export function FreightTab({
               >
                 {isSubmitting ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                    <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> Salvando...
                   </>
                 ) : (
                   "Salvar frete"
@@ -740,7 +730,7 @@ export function FreightTab({
             onClick={() => setShowForm(true)}
             className="w-full border border-dashed border-border rounded-lg p-3 flex items-center justify-center gap-2 text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors text-sm font-medium min-h-[44px]"
           >
-            <Plus className="w-4 h-4" /> Adicionar próximo frete
+            <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" /> Adicionar próximo frete
           </button>
         ))}
 
@@ -772,7 +762,7 @@ export function FreightTab({
             >
               {isHandingOffFreight ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Processando...
+                  <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> Processando...
                 </>
               ) : (
                 "Concluir atual e iniciar este"
@@ -822,7 +812,7 @@ export function FreightTab({
             >
               {isFinishingFreight ? (
                 <>
-                  <Loader2 className="w-4 h-4 animate-spin" /> Concluindo...
+                  <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> Concluindo...
                 </>
               ) : (
                 "Concluir e iniciar próximo"
@@ -869,7 +859,7 @@ export function FreightTab({
               >
                 {isSavingKm ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                    <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> Salvando...
                   </>
                 ) : (
                   "Salvar ajuste"
@@ -930,7 +920,7 @@ export function FreightTab({
               >
                 {isSavingRouteReview ? (
                   <>
-                    <Loader2 className="w-4 h-4 animate-spin" /> Salvando...
+                    <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" /> Salvando...
                   </>
                 ) : (
                   "Salvar e tentar liberar previsão"
