@@ -10,6 +10,7 @@ import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { toast } from "@/hooks/use-toast";
 import { buildCompleteFreightSummary, buildShortFreightSummary, calculateEta, getWhatsAppLink, type FreightQualityLabel } from "@/lib/freightAnalysis";
 import { FontAwesomeIcon, iconArrowLeft, iconCopy, iconMapPin, iconDollarSign, iconGauge, iconTruck, iconAlertTriangle, iconTrendingUp, iconCalculator, iconRoute, iconScale, iconShare2, iconMessageCircle } from "@/lib/icons";
+import type { IconDefinition } from "@/lib/icons";
 
 // Tabela ANTT - Resolução Nº 6.076/2026
 const tabelaANTT2026: Record<string, Record<number, { ccd: number; cc: number }>> = {
@@ -112,25 +113,25 @@ function getFreightQuality(offeredValue: number, anttFloor: number, netProfit: n
   return "medium";
 }
 
-const QUALITY_CONFIG: Record<FreightQuality, { bg: string; border: string; icon: typeof AlertTriangle; label: string; desc: string }> = {
+const QUALITY_CONFIG: Record<FreightQuality, { bg: string; border: string; icon: IconDefinition; label: string; desc: string }> = {
   bad: {
     bg: "bg-destructive/15",
     border: "border-destructive/30",
-    icon: AlertTriangle,
+    icon: iconAlertTriangle,
     label: "FRETE RUIM",
     desc: "Margem Baixa ou Prejuízo",
   },
   medium: {
     bg: "bg-warning/15",
     border: "border-warning/30",
-    icon: Scale,
+    icon: iconScale,
     label: "FRETE MAIS OU MENOS",
     desc: "Cobre Custos / Retorno",
   },
   great: {
     bg: "bg-profit/15",
     border: "border-profit/30",
-    icon: TrendingUp,
+    icon: iconTrendingUp,
     label: "FRETE QUALIFICADO",
     desc: "Excelente Rentabilidade",
   },
@@ -511,10 +512,9 @@ const FreightAnalysisPage = () => {
             {/* Quality Badge */}
             {(() => {
               const cfg = QUALITY_CONFIG[results.quality];
-              const Icon = cfg.icon;
               return (
                 <div className={`rounded-xl p-4 ${cfg.bg} border ${cfg.border} flex items-center gap-3`}>
-                  <Icon className="w-8 h-8 shrink-0" />
+                  <FontAwesomeIcon icon={cfg.icon} className="w-8 h-8 shrink-0" />
                   <div>
                     <p className="font-black text-lg tracking-tight">{cfg.label}</p>
                     <p className="text-xs text-muted-foreground">{cfg.desc}</p>
