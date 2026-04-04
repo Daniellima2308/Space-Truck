@@ -32,7 +32,7 @@ export function DashboardHistoryPreview({ trips, hasHistory }: DashboardHistoryP
       {hasHistory ? (
         <>
           <p className="text-xs text-muted-foreground mb-3">
-            Independente do filtro de período acima
+            Independentemente do filtro de período acima
           </p>
           <TripHistoryList trips={trips} />
         </>
