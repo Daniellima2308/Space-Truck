@@ -157,8 +157,8 @@ const ProfilePage = () => {
 
         {/* Edit buttons */}
         <div className="space-y-2">
-          <ProfileButton icon={Pencil} label="Editar Nome" onClick={() => { setEditName(profile.display_name || ""); setShowEditName(true); }} />
-          <ProfileButton icon={Phone} label={profile.phone ? "Editar Telefone" : "Adicionar Telefone"} onClick={() => { setEditPhone(profile.phone || ""); setShowEditPhone(true); }} />
+          <ProfileButton icon={iconPencil} label="Editar Nome" onClick={() => { setEditName(profile.display_name || ""); setShowEditName(true); }} />
+          <ProfileButton icon={iconPhone} label={profile.phone ? "Editar Telefone" : "Adicionar Telefone"} onClick={() => { setEditPhone(profile.phone || ""); setShowEditPhone(true); }} />
         </div>
 
         {/* Main Vehicle */}
@@ -182,9 +182,9 @@ const ProfilePage = () => {
         <section>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-3">Estatísticas</h2>
           <div className="grid grid-cols-3 gap-3">
-            <StatCard icon={MapPin} label="Viagens" value={String(totalTrips)} />
-            <StatCard icon={Truck} label="KM Rodados" value={totalKm.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} />
-            <StatCard icon={TrendingUp} label="Faturamento/Mês" value={`R$ ${monthRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} />
+            <StatCard icon={iconMapPin} label="Viagens" value={String(totalTrips)} />
+            <StatCard icon={iconTruck} label="KM Rodados" value={totalKm.toLocaleString("pt-BR", { maximumFractionDigits: 0 })} />
+            <StatCard icon={iconTrendingUp} label="Faturamento/Mês" value={`R$ ${monthRevenue.toLocaleString("pt-BR", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} />
           </div>
         </section>
 
