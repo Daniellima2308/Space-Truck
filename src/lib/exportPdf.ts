@@ -179,11 +179,11 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
     }
     doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
 
-    // Slogan image — official brand asset, positioned below the wordmark
+    // Slogan image — official brand asset, positioned well below the wordmark
     if (assets!.slogan) {
-      const sloganH = 4;
-      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 47.6 mm
-      const sloganY = wmY + wmH + 2;
+      const sloganH = 5.5;
+      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 65.4 mm
+      const sloganY = wmY + wmH + 3.5;
       doc.addImage(assets!.slogan, "PNG", MARGIN + symW + 2.5, sloganY, sloganW, sloganH);
     }
   } else {
