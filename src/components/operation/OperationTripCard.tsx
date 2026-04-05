@@ -1,4 +1,4 @@
-import { Trip, Vehicle } from "@/types";
+import { Trip } from "@/types";
 import { useApp } from "@/context/app-context";
 import { getTripGrossRevenue, getLastDestination, formatCurrency } from "@/lib/calculations";
 import { getCurrentFreight } from "@/lib/freightStatus";
@@ -18,7 +18,6 @@ import {
 
 interface OperationTripCardProps {
   trip: Trip;
-  priority?: number;
 }
 
 type TripPriorityTag = "active_freight" | "ready_to_finish" | "pending_planned" | "no_entries";
@@ -201,11 +200,8 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
         onClose={() => setShowFinishModal(false)}
         minKm={operationalMaxKm}
         activeFreight={
-          trip.freights?.find((f) => f.status === "in_progress")
-            ? {
-                origin: trip.freights.find((f) => f.status === "in_progress")!.origin,
-                destination: trip.freights.find((f) => f.status === "in_progress")!.destination,
-              }
+          currentFreight
+            ? { origin: currentFreight.origin, destination: currentFreight.destination }
             : null
         }
         pendingFreights={trip.freights
