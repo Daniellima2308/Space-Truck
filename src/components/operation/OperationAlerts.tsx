@@ -29,22 +29,9 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
     const currentFreight = getCurrentFreight(trip);
     const hasFreights = trip.freights.length > 0;
     const hasPlanned = trip.freights.some((f) => f.status === "planned");
-    const canFinish = hasFreights && !currentFreight;
+    const allFreightsCompleted = hasFreights && trip.freights.every((f) => f.status === "completed");
 
-    // Trip ready to finish: has freights and no in-progress freight
-    if (canFinish) {
-      alerts.push({
-        id: `finish-${trip.id}`,
-        type: "ready_to_finish",
-        icon: iconCheckCircle,
-        iconClass: "text-profit",
-        title: "Pronta para finalizar",
-        description: `${vehicleLabel} — todos os fretes concluídos.`,
-        tripId: trip.id,
-      });
-    }
-
-    // Active freight in progress
+    // Emit only the single highest-priority alert per trip to avoid duplicates
     if (currentFreight) {
       alerts.push({
         id: `freight-${trip.id}`,
@@ -55,10 +42,7 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
         description: `${vehicleLabel}: ${currentFreight.origin} → ${currentFreight.destination}`,
         tripId: trip.id,
       });
-    }
-
-    // Pending planned freight
-    if (hasPlanned && !currentFreight) {
+    } else if (hasPlanned) {
       alerts.push({
         id: `planned-${trip.id}`,
         type: "pending_planned",
@@ -68,10 +52,17 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
         description: `${vehicleLabel} — inicie o próximo trecho.`,
         tripId: trip.id,
       });
-    }
-
-    // Needs first entry
-    if (!hasFreights) {
+    } else if (allFreightsCompleted) {
+      alerts.push({
+        id: `finish-${trip.id}`,
+        type: "ready_to_finish",
+        icon: iconCheckCircle,
+        iconClass: "text-profit",
+        title: "Pronta para finalizar",
+        description: `${vehicleLabel} — todos os fretes concluídos.`,
+        tripId: trip.id,
+      });
+    } else {
       alerts.push({
         id: `entry-${trip.id}`,
         type: "needs_entry",
@@ -86,8 +77,8 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
 
   if (alerts.length === 0) return null;
 
-  // Limit to most relevant (ready to finish first, then active freights, then others)
-  const priority = ["ready_to_finish", "active_freight", "pending_planned", "needs_entry"];
+  // One alert per trip; sort across trips so more urgent states surface first
+  const priority = ["active_freight", "ready_to_finish", "pending_planned", "needs_entry"];
   const sorted = [...alerts].sort(
     (a, b) => priority.indexOf(a.type) - priority.indexOf(b.type),
   );
