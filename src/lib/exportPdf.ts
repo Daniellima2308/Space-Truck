@@ -8,6 +8,11 @@ import {
   getLastDestination,
 } from "@/lib/calculations";
 
+// Branding constants — update here for future rebranding
+const PDF_BRAND_NAME = "Space Truck";
+const PDF_BRAND_SUBTITLE = "Gestão de Operações e Fretes";
+const PDF_FILE_PREFIX = "space-truck";
+
 type JsPdfWithTable = jsPDF & { lastAutoTable?: { finalY: number } };
 
 function getLastAutoTableY(doc: jsPDF, fallbackY: number): number {
@@ -22,11 +27,11 @@ function getVehicleLabel(vehicles: Vehicle[], vehicleId: string): string {
 function addHeader(doc: jsPDF, title: string, subtitle: string) {
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
-  doc.text("Estrada Real", 14, 20);
+  doc.text(PDF_BRAND_NAME, 14, 20);
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(120);
-  doc.text("Gestão de Fretes", 14, 26);
+  doc.text(PDF_BRAND_SUBTITLE, 14, 26);
   doc.setTextColor(0);
 
   doc.setFontSize(14);
@@ -150,11 +155,13 @@ function addTripSummary(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
 
 export function exportSingleTripPdf(trip: Trip, vehicles: Vehicle[]) {
   const doc = new jsPDF();
+  const vehicleObj = vehicles.find((v) => v.id === trip.vehicleId);
   const vehicle = getVehicleLabel(vehicles, trip.vehicleId);
   const status = trip.status === "open" ? "Em Aberto" : "Finalizada";
+  const platePart = vehicleObj ? `-${vehicleObj.plate.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
   addHeader(doc, `Relatório da Viagem`, `${vehicle} • ${status} • ${formatDate(trip.createdAt)}`);
   addTripSummary(doc, trip, vehicles, 54);
-  doc.save(`relatorio-viagem-${formatDate(trip.createdAt).replace(/\//g, "-")}.pdf`);
+  doc.save(`${PDF_FILE_PREFIX}-relatorio-viagem${platePart}-${formatDate(trip.createdAt).replace(/\//g, "-")}.pdf`);
 }
 
 export function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], periodLabel: string) {
@@ -193,5 +200,5 @@ export function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], perio
     y += 5;
   });
 
-  doc.save(`relatorio-viagens-${periodLabel.toLowerCase().replace(/\s/g, "-")}.pdf`);
+  doc.save(`${PDF_FILE_PREFIX}-relatorio-viagens-${periodLabel.toLowerCase().replace(/\s/g, "-")}.pdf`);
 }
