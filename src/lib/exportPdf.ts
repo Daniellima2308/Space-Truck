@@ -162,16 +162,16 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
 
   if (hasImages) {
     // ── Logo-based branding ────────────────────────────────────────────────
-    // Symbol: 765×579 px at height 13mm
-    const symH = 13;
-    const symW = symH * (SYMBOL_W_PX / SYMBOL_H_PX); // ≈ 17.2 mm
+    // Symbol: 765×579 px at height 16mm
+    const symH = 16;
+    const symW = symH * (SYMBOL_W_PX / SYMBOL_H_PX); // ≈ 21.1 mm
 
-    // Wordmark: 857×72 px at height 6mm
-    const wmH  = 6;
-    const wmW  = wmH * (WORDMARK_W_PX / WORDMARK_H_PX); // ≈ 71.4 mm
+    // Wordmark: 857×72 px at height 8mm
+    const wmH  = 8;
+    const wmW  = wmH * (WORDMARK_W_PX / WORDMARK_H_PX); // ≈ 95.2 mm
 
-    // Vertical start — symbol center aligns with wordmark center
-    const symY = 8;                        // symbol top
+    // Vertical start — symbol center aligns with wordmark+slogan stack center
+    const symY = 6;                        // symbol top
     const wmY  = symY + (symH - wmH) / 2; // center wordmark within symbol height
 
     if (assets!.symbol) {
@@ -179,11 +179,11 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
     }
     doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
 
-    // Slogan image — official brand asset, positioned well below the wordmark
+    // Slogan image — tight below wordmark (1 mm gap) so wordmark + slogan read as one unit
     if (assets!.slogan) {
-      const sloganH = 5.5;
-      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 65.4 mm
-      const sloganY = wmY + wmH + 3.5;
+      const sloganH = 6.5;
+      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 77.3 mm
+      const sloganY = wmY + wmH + 1;
       doc.addImage(assets!.slogan, "PNG", MARGIN + symW + 2.5, sloganY, sloganW, sloganH);
     }
   } else {
