@@ -1,0 +1,206 @@
+import { Trip, Vehicle } from "@/types";
+import { useNavigate } from "react-router-dom";
+import { getCurrentFreight } from "@/lib/freightStatus";
+import { formatCurrency, getTripGrossRevenue } from "@/lib/calculations";
+import { FontAwesomeIcon, iconTruck, iconPlus, iconChevronRight, iconMapPin, iconRoute } from "@/lib/icons";
+
+interface OperationHeroProps {
+  vehicles: Vehicle[];
+  activeTrips: Trip[];
+  onNewTrip: () => void;
+}
+
+export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHeroProps) {
+  const navigate = useNavigate();
+
+  // Scenario 1: no vehicles registered
+  if (vehicles.length === 0) {
+    return (
+      <div className="gradient-card rounded-2xl p-5 border border-border space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-muted flex items-center justify-center shrink-0">
+            <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-muted-foreground" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">
+              Frota
+            </p>
+            <h2 className="text-base font-bold text-foreground">Nenhum veículo cadastrado</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Para iniciar uma viagem, você precisa de pelo menos um veículo na frota.
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={() => navigate("/vehicles")}
+          className="w-full flex items-center justify-center gap-2 py-3 rounded-xl bg-primary/10 text-primary text-sm font-semibold hover:bg-primary/20 transition-colors"
+        >
+          <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" />
+          Cadastrar primeiro veículo
+        </button>
+      </div>
+    );
+  }
+
+  // Scenario 2: no active trips
+  if (activeTrips.length === 0) {
+    return (
+      <div className="rounded-2xl p-5 border border-border/60 bg-gradient-to-br from-card to-muted/20 space-y-4">
+        <div className="flex items-start gap-3">
+          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
+            <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-primary" />
+          </div>
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground mb-0.5">
+              Status
+            </p>
+            <h2 className="text-base font-bold text-foreground">Pronto para operar</h2>
+            <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+              Nenhuma viagem em andamento.{" "}
+              {vehicles.length === 1
+                ? `${vehicles[0].brand} ${vehicles[0].model} disponível.`
+                : `${vehicles.length} veículos disponíveis.`}
+            </p>
+          </div>
+        </div>
+        <button
+          onClick={onNewTrip}
+          className="w-full gradient-profit text-primary-foreground rounded-xl py-3 flex items-center justify-center gap-2 font-bold text-sm hover:opacity-90 transition-opacity"
+        >
+          <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" />
+          Nova Viagem
+        </button>
+      </div>
+    );
+  }
+
+  // Scenario 3: exactly 1 active trip
+  if (activeTrips.length === 1) {
+    const trip = activeTrips[0];
+    const vehicle = vehicles.find((v) => v.id === trip.vehicleId);
+    const currentFreight = getCurrentFreight(trip);
+    const gross = getTripGrossRevenue(trip);
+
+    return (
+      <div
+        className="gradient-active-trip rounded-2xl p-5 cursor-pointer space-y-4"
+        onClick={() => navigate(`/trip/${trip.id}`)}
+      >
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-start gap-3">
+            <div className="relative">
+              <div className="w-10 h-10 rounded-xl bg-profit/10 flex items-center justify-center">
+                <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-profit" />
+              </div>
+              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-profit animate-pulse-glow border-2 border-background" />
+            </div>
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-profit mb-0.5">
+                Em operação
+              </p>
+              <h2 className="text-base font-bold text-foreground">
+                {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Viagem ativa"}
+              </h2>
+              {vehicle && (
+                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-accent text-[10px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
+                  {vehicle.plate}
+                </span>
+              )}
+            </div>
+          </div>
+          <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground mt-1" />
+        </div>
+
+        {currentFreight ? (
+          <div className="rounded-xl bg-profit/5 border border-profit/20 px-3.5 py-3 space-y-1">
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-profit">
+              Frete atual
+            </p>
+            <div className="flex items-center gap-2 text-xs text-foreground font-medium">
+              <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5 text-profit shrink-0" />
+              {currentFreight.origin} → {currentFreight.destination}
+            </div>
+          </div>
+        ) : (
+          <div className="rounded-xl bg-secondary/50 px-3.5 py-3">
+            <p className="text-xs text-muted-foreground">
+              {trip.freights.some((f) => f.status === "planned")
+                ? "Frete planejado aguardando início."
+                : "Nenhum frete em andamento."}
+            </p>
+          </div>
+        )}
+
+        <div className="flex items-center justify-between pt-1 border-t border-border/40">
+          <div>
+            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+              Faturamento parcial
+            </p>
+            <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+          </div>
+          <button
+            onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+          >
+            Continuar <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // Scenario 4: multiple active trips
+  const totalRevenue = activeTrips.reduce((sum, t) => sum + getTripGrossRevenue(t), 0);
+  const tripsWithActiveFreight = activeTrips.filter((t) => getCurrentFreight(t) !== null);
+
+  return (
+    <div className="rounded-2xl p-5 border border-warning/30 bg-gradient-to-br from-card to-warning/5 space-y-4">
+      <div className="flex items-start gap-3">
+        <div className="relative">
+          <div className="w-10 h-10 rounded-xl bg-warning/10 flex items-center justify-center">
+            <FontAwesomeIcon icon={iconRoute} className="w-5 h-5 text-warning" />
+          </div>
+          <span className="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-warning flex items-center justify-center border-2 border-background">
+            <span className="text-[9px] font-black text-warning-foreground">{activeTrips.length}</span>
+          </span>
+        </div>
+        <div>
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-warning mb-0.5">
+            Múltiplas operações
+          </p>
+          <h2 className="text-base font-bold text-foreground">
+            {activeTrips.length} viagens em andamento
+          </h2>
+          <p className="text-xs text-muted-foreground mt-0.5">
+            {tripsWithActiveFreight.length > 0
+              ? `${tripsWithActiveFreight.length} com frete ativo`
+              : "Nenhuma com frete ativo no momento"}
+          </p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-2 gap-2">
+        <div className="rounded-xl bg-secondary/60 px-3.5 py-2.5">
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+            Receita total
+          </p>
+          <p className="text-lg font-black font-mono text-profit">{formatCurrency(totalRevenue)}</p>
+        </div>
+        <div className="rounded-xl bg-secondary/60 px-3.5 py-2.5">
+          <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+            Fretes ativos
+          </p>
+          <p className="text-lg font-black font-mono text-foreground">{tripsWithActiveFreight.length}</p>
+        </div>
+      </div>
+
+      <button
+        onClick={onNewTrip}
+        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-xl border border-border text-sm font-semibold text-foreground hover:bg-secondary transition-colors"
+      >
+        <FontAwesomeIcon icon={iconPlus} className="w-4 h-4" />
+        Nova Viagem
+      </button>
+    </div>
+  );
+}
