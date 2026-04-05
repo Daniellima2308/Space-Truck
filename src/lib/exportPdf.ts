@@ -177,14 +177,16 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
     if (assets!.symbol) {
       doc.addImage(assets!.symbol, "PNG", MARGIN, symY, symW, symH);
     }
-    doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
+    const wmX = MARGIN + symW + 2.5;
+    doc.addImage(assets!.wordmark, "PNG", wmX, wmY, wmW, wmH);
 
-    // Slogan image — tight below wordmark (1 mm gap) so wordmark + slogan read as one unit
+    // Slogan image — centered under wordmark, 0.5 mm gap so they read as one integrated unit
     if (assets!.slogan) {
       const sloganH = 6.5;
       const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 77.3 mm
-      const sloganY = wmY + wmH + 1;
-      doc.addImage(assets!.slogan, "PNG", MARGIN + symW + 2.5, sloganY, sloganW, sloganH);
+      const sloganX = wmX + (wmW - sloganW) / 2;             // centered under wordmark
+      const sloganY = wmY + wmH + 0.5;
+      doc.addImage(assets!.slogan, "PNG", sloganX, sloganY, sloganW, sloganH);
     }
   } else {
     // ── Text-only fallback ─────────────────────────────────────────────────
