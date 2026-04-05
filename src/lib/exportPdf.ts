@@ -14,7 +14,7 @@ const PDF_BRAND_SUBTITLE = "Gestão de Operações e Fretes";
 const PDF_FILE_PREFIX = "space-truck";
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
-// Primary brand green: HSL(142, 71%, 38%) ≈ RGB(28, 166, 79)
+// Primary brand green: HSL(142, 71%, 38%) ≈ RGB(28, 165, 79)
 const C = {
   brand:      [28,  166,  79] as [number, number, number],
   dark:       [20,   24,  35] as [number, number, number],
@@ -223,10 +223,10 @@ function addMetricsGrid(doc: jsPDF, trip: Trip, y: number): number {
   // Operational metrics — 4 columns with dark header
   autoTable(doc, {
     startY: y,
-    head: [["KM Rodado", "Média km/L", "Custo/KM", "Lucro/KM"]],
+    head: [["KM Rodado", "Média KM/L", "Custo/KM", "Lucro/KM"]],
     body: [[
       `${formatNumber(km)} km`,
-      `${formatNumber(avg)} km/L`,
+      `${formatNumber(avg)} KM/L`,
       `R$ ${formatNumber(cKm)}`,
       `R$ ${formatNumber(pKm)}`,
     ]],
@@ -272,7 +272,7 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
     y = addSectionTitle(doc, "Abastecimentos", y);
     autoTable(doc, {
       startY: y,
-      head: [["Posto", "Data", "Litros", "R$/L", "Total", "KM Atual", "Média km/L"]],
+      head: [["Posto", "Data", "Litros", "R$/L", "Total", "KM Atual", "Média KM/L"]],
       body: trip.fuelings.map(f => [
         f.stationName, formatDate(f.date), formatNumber(f.liters),
         `R$ ${formatNumber(f.pricePerLiter)}`, formatCurrency(f.totalValue),
