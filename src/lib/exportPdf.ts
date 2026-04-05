@@ -16,16 +16,20 @@ const PDF_FILE_PREFIX = "space-truck";
 // ─── Branding asset paths (from public/) ─────────────────────────────────────
 const ASSET_SYMBOL   = "/branding/space-truck/simbolo/space-truck-simbolo-isolado-branco.png";
 const ASSET_WORDMARK = "/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png";
+const ASSET_SLOGAN   = "/branding/space-truck/slogan/space-truck-slogan-branco.png";
 
 // Native pixel dimensions — used to preserve aspect ratio in the PDF
 const SYMBOL_W_PX   = 765;
 const SYMBOL_H_PX   = 579;
 const WORDMARK_W_PX = 857;
 const WORDMARK_H_PX = 72;
+const SLOGAN_W_PX   = 857;
+const SLOGAN_H_PX   = 72;
 
 interface PdfAssets {
   symbol:   string; // base64 data URL or empty string
   wordmark: string;
+  slogan:   string;
 }
 
 async function fetchAsBase64(path: string): Promise<string> {
@@ -45,11 +49,12 @@ async function fetchAsBase64(path: string): Promise<string> {
 }
 
 async function loadPdfAssets(): Promise<PdfAssets> {
-  const [symbol, wordmark] = await Promise.all([
+  const [symbol, wordmark, slogan] = await Promise.all([
     fetchAsBase64(ASSET_SYMBOL),
     fetchAsBase64(ASSET_WORDMARK),
+    fetchAsBase64(ASSET_SLOGAN),
   ]);
-  return { symbol, wordmark };
+  return { symbol, wordmark, slogan };
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
@@ -129,11 +134,13 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
     }
     doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
 
-    // Subtitle — left-aligned below wordmark
-    doc.setFont("helvetica", "normal");
-    doc.setFontSize(7);
-    doc.setTextColor(...C.light);
-    doc.text(PDF_BRAND_SUBTITLE.toUpperCase(), MARGIN + symW + 2.5, symY + symH + 3);
+    // Slogan image — official brand asset, positioned below the wordmark
+    if (assets!.slogan) {
+      const sloganH = 4;
+      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 47.6 mm
+      const sloganY = wmY + wmH + 2;
+      doc.addImage(assets!.slogan, "PNG", MARGIN + symW + 2.5, sloganY, sloganW, sloganH);
+    }
   } else {
     // ── Text-only fallback ─────────────────────────────────────────────────
     doc.setFont("helvetica", "bold");
