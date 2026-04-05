@@ -20,10 +20,12 @@ function sortTripsByPriority(trips: Trip[]): Trip[] {
   const priorityScore = (t: Trip): number => {
     const active = getCurrentFreight(t);
     if (active) return 0;
-    const hasFreights = t.freights.length > 0;
-    if (hasFreights) return 1;
+
     const hasPlanned = t.freights.some((f) => f.status === "planned");
     if (hasPlanned) return 2;
+
+    const hasFreights = t.freights.length > 0;
+    if (hasFreights) return 1;
     return 3;
   };
 
