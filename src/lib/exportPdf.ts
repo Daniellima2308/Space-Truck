@@ -156,7 +156,7 @@ function addTripSummary(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
 export function exportSingleTripPdf(trip: Trip, vehicles: Vehicle[]) {
   const doc = new jsPDF();
   const vehicleObj = vehicles.find((v) => v.id === trip.vehicleId);
-  const vehicle = vehicleObj ? `${vehicleObj.brand} ${vehicleObj.model} - ${vehicleObj.plate}` : "Veículo desconhecido";
+  const vehicle = getVehicleLabel(vehicles, trip.vehicleId);
   const status = trip.status === "open" ? "Em Aberto" : "Finalizada";
   const platePart = vehicleObj ? `-${vehicleObj.plate.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
   addHeader(doc, `Relatório da Viagem`, `${vehicle} • ${status} • ${formatDate(trip.createdAt)}`);
