@@ -2,6 +2,7 @@ import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { formatCurrency, getTripGrossRevenue, getTripNetRevenue } from "@/lib/calculations";
+import { getTripAgeDays, isTripReadyToFinish } from "@/lib/operationUtils";
 import { FontAwesomeIcon, iconTruck, iconPlus, iconChevronRight, iconMapPin, iconRoute, iconClock3, iconTrendingUp, iconCheckCircle } from "@/lib/icons";
 
 interface OperationHeroProps {
@@ -83,13 +84,10 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
     const net = getTripNetRevenue(trip);
 
     // Trip age in days
-    const tripAgeDays = Math.floor(
-      (Date.now() - new Date(trip.createdAt).getTime()) / (1000 * 60 * 60 * 24),
-    );
+    const tripAgeDays = getTripAgeDays(trip);
 
     // Check if trip is ready to finish
-    const hasFreights = trip.freights.length > 0;
-    const isReadyToFinish = hasFreights && trip.freights.every((f) => f.status === "completed");
+    const isReadyToFinish = isTripReadyToFinish(trip);
 
     return (
       <div
@@ -197,10 +195,7 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
   const totalRevenue = activeTrips.reduce((sum, t) => sum + getTripGrossRevenue(t), 0);
   const totalNet = activeTrips.reduce((sum, t) => sum + getTripNetRevenue(t), 0);
   const tripsWithActiveFreight = activeTrips.filter((t) => getCurrentFreight(t) !== null);
-  const tripsReadyToFinish = activeTrips.filter((t) => {
-    const hasFreights = t.freights.length > 0;
-    return hasFreights && t.freights.every((f) => f.status === "completed");
-  });
+  const tripsReadyToFinish = activeTrips.filter(isTripReadyToFinish);
 
   return (
     <div className="rounded-2xl p-5 border border-warning/30 bg-gradient-to-br from-card to-warning/5 space-y-4">

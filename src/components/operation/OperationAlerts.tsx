@@ -3,6 +3,7 @@ import { Trip, Vehicle } from "@/types";
 import { useApp } from "@/context/app-context";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
+import { isTripReadyToFinish } from "@/lib/operationUtils";
 import { FinishTripModal } from "@/components/FinishTripModal";
 import {
   FontAwesomeIcon,
@@ -41,9 +42,8 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
     const vehicle = vehicles.find((v) => v.id === trip.vehicleId);
     const vehicleLabel = vehicle ? `${vehicle.brand} ${vehicle.model}` : "Viagem";
     const currentFreight = getCurrentFreight(trip);
-    const hasFreights = trip.freights.length > 0;
     const hasPlanned = trip.freights.some((f) => f.status === "planned");
-    const allFreightsCompleted = hasFreights && trip.freights.every((f) => f.status === "completed");
+    const readyToFinish = isTripReadyToFinish(trip);
 
     // Emit only the single highest-priority alert per trip to avoid duplicates
     if (currentFreight) {
@@ -58,7 +58,7 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
         tripId: trip.id,
         actionLabel: "Continuar",
       });
-    } else if (allFreightsCompleted) {
+    } else if (readyToFinish) {
       alerts.push({
         id: `finish-${trip.id}`,
         type: "ready_to_finish",

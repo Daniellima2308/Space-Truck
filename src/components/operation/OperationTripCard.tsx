@@ -2,6 +2,7 @@ import { Trip } from "@/types";
 import { useApp } from "@/context/app-context";
 import { getTripGrossRevenue, getTripNetRevenue, getLastDestination, formatCurrency } from "@/lib/calculations";
 import { getCurrentFreight } from "@/lib/freightStatus";
+import { getTripAgeDays } from "@/lib/operationUtils";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { FinishTripModal } from "@/components/FinishTripModal";
@@ -77,9 +78,7 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
   const [showFinishModal, setShowFinishModal] = useState(false);
 
   // Trip age in days
-  const tripAgeDays = Math.floor(
-    (Date.now() - new Date(trip.createdAt).getTime()) / (1000 * 60 * 60 * 24),
-  );
+  const tripAgeDays = getTripAgeDays(trip);
 
   const operationalMaxKm = Math.max(
     vehicle?.currentKm || 0,

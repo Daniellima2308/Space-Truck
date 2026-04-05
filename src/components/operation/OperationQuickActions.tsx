@@ -1,6 +1,7 @@
 import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
+import { isTripReadyToFinish } from "@/lib/operationUtils";
 import { FontAwesomeIcon, iconPlus, iconTruck, iconHistory, iconChevronRight, iconWallet, iconCheckCircle } from "@/lib/icons";
 
 interface OperationQuickActionsProps {
@@ -16,10 +17,7 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
   const activeFreightTrip = activeTrips.find((t) => getCurrentFreight(t) !== null);
 
   // Trip ready to finish: has freights and all are completed
-  const readyToFinishTrip = activeTrips.find((t) => {
-    const hasFreights = t.freights.length > 0;
-    return hasFreights && t.freights.every((f) => f.status === "completed");
-  });
+  const readyToFinishTrip = activeTrips.find(isTripReadyToFinish);
 
   const actions: Array<{
     icon: typeof iconPlus;
