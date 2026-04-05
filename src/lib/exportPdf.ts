@@ -77,7 +77,10 @@ function sanitizeSegment(s: string): string {
 
 /** Truncate a string to maxLen, appending an ellipsis if needed. */
 function truncate(s: string, maxLen: number): string {
-  return s.length > maxLen ? s.slice(0, maxLen - 1) + "…" : s;
+  if (maxLen <= 0) return "";
+  if (s.length <= maxLen) return s;
+  if (maxLen === 1) return "…";
+  return s.slice(0, maxLen - 1) + "…";
 }
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
