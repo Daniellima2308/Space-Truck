@@ -26,10 +26,11 @@ function getTripPriority(trip: Trip): TripPriorityTag {
   const currentFreight = getCurrentFreight(trip);
   const hasFreights = trip.freights.length > 0;
   const hasPlanned = trip.freights.some((f) => f.status === "planned");
+  const allFreightsCompleted = hasFreights && trip.freights.every((f) => f.status === "completed");
 
   if (currentFreight) return "active_freight";
-  if (hasFreights && !currentFreight) return "ready_to_finish";
   if (hasPlanned) return "pending_planned";
+  if (allFreightsCompleted) return "ready_to_finish";
   return "no_entries";
 }
 
