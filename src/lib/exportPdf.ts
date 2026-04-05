@@ -13,6 +13,45 @@ const PDF_BRAND_NAME = "Space Truck";
 const PDF_BRAND_SUBTITLE = "Gestão de Operações e Fretes";
 const PDF_FILE_PREFIX = "space-truck";
 
+// ─── Branding asset paths (from public/) ─────────────────────────────────────
+const ASSET_SYMBOL   = "/branding/space-truck/simbolo/space-truck-simbolo-isolado-branco.png";
+const ASSET_WORDMARK = "/branding/space-truck/wordmark/space-truck-wordmark-horizontal-branco.png";
+
+// Native pixel dimensions — used to preserve aspect ratio in the PDF
+const SYMBOL_W_PX   = 765;
+const SYMBOL_H_PX   = 579;
+const WORDMARK_W_PX = 857;
+const WORDMARK_H_PX = 72;
+
+interface PdfAssets {
+  symbol:   string; // base64 data URL or empty string
+  wordmark: string;
+}
+
+async function fetchAsBase64(path: string): Promise<string> {
+  try {
+    const res = await fetch(path);
+    if (!res.ok) return "";
+    const blob = await res.blob();
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = () => resolve("");
+      reader.readAsDataURL(blob);
+    });
+  } catch {
+    return "";
+  }
+}
+
+async function loadPdfAssets(): Promise<PdfAssets> {
+  const [symbol, wordmark] = await Promise.all([
+    fetchAsBase64(ASSET_SYMBOL),
+    fetchAsBase64(ASSET_WORDMARK),
+  ]);
+  return { symbol, wordmark };
+}
+
 // ─── Design tokens ────────────────────────────────────────────────────────────
 // Primary brand green: HSL(142, 71%, 38%) ≈ RGB(28, 165, 79)
 const C = {
@@ -58,7 +97,7 @@ function formatTs(d: Date): string {
 }
 
 // ─── Page header ──────────────────────────────────────────────────────────────
-function addPageHeader(doc: jsPDF, title: string, contextLine: string): void {
+function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: PdfAssets): void {
   const w = doc.internal.pageSize.getWidth();
 
   // Dark background block
@@ -69,29 +108,56 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string): void {
   doc.setFillColor(...C.brand);
   doc.rect(0, 0, w, 3.5, "F");
 
-  // Brand name
-  doc.setFont("helvetica", "bold");
-  doc.setFontSize(20);
-  doc.setTextColor(...C.white);
-  doc.text(PDF_BRAND_NAME, MARGIN, 18);
+  const hasImages = !!(assets?.wordmark);
 
-  // Brand subtitle (small-caps style)
-  doc.setFont("helvetica", "normal");
-  doc.setFontSize(7);
-  doc.setTextColor(...C.light);
-  doc.text(PDF_BRAND_SUBTITLE.toUpperCase(), MARGIN, 24.5);
+  if (hasImages) {
+    // ── Logo-based branding ────────────────────────────────────────────────
+    // Symbol: 765×579 px at height 13mm
+    const symH = 13;
+    const symW = symH * (SYMBOL_W_PX / SYMBOL_H_PX); // ≈ 17.2 mm
+
+    // Wordmark: 857×72 px at height 6mm
+    const wmH  = 6;
+    const wmW  = wmH * (WORDMARK_W_PX / WORDMARK_H_PX); // ≈ 71.4 mm
+
+    // Vertical start — symbol center aligns with wordmark center
+    const symY = 8;                        // symbol top
+    const wmY  = symY + (symH - wmH) / 2; // center wordmark within symbol height
+
+    if (assets!.symbol) {
+      doc.addImage(assets!.symbol, "PNG", MARGIN, symY, symW, symH);
+    }
+    doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
+
+    // Subtitle — left-aligned below wordmark
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.light);
+    doc.text(PDF_BRAND_SUBTITLE.toUpperCase(), MARGIN + symW + 2.5, symY + symH + 3);
+  } else {
+    // ── Text-only fallback ─────────────────────────────────────────────────
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(...C.white);
+    doc.text(PDF_BRAND_NAME, MARGIN, 18);
+
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(7);
+    doc.setTextColor(...C.light);
+    doc.text(PDF_BRAND_SUBTITLE.toUpperCase(), MARGIN, 24.5);
+  }
 
   // Report title (left)
   doc.setFont("helvetica", "bold");
   doc.setFontSize(13);
   doc.setTextColor(...C.white);
-  doc.text(title, MARGIN, 36.5);
+  doc.text(title, MARGIN, 37);
 
   // Generation timestamp (right)
   doc.setFont("helvetica", "normal");
   doc.setFontSize(7);
   doc.setTextColor(...C.light);
-  doc.text(`Gerado em ${formatTs(new Date())}`, w - MARGIN, 36.5, { align: "right" });
+  doc.text(`Gerado em ${formatTs(new Date())}`, w - MARGIN, 37, { align: "right" });
 
   // Context line below header block
   doc.setFont("helvetica", "normal");
@@ -312,32 +378,35 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
 
 // ─── Public exports ───────────────────────────────────────────────────────────
 
-export function exportSingleTripPdf(trip: Trip, vehicles: Vehicle[]) {
+export async function exportSingleTripPdf(trip: Trip, vehicles: Vehicle[]) {
   const doc = new jsPDF();
   const vehicleObj = vehicles.find((v) => v.id === trip.vehicleId);
   const vehicle    = getVehicleLabel(vehicles, trip.vehicleId);
   const status     = trip.status === "open" ? "Em Aberto" : "Finalizada";
   const platePart  = vehicleObj ? `-${vehicleObj.plate.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
   const generatedAt = new Date();
+  const assets = await loadPdfAssets();
 
-  addPageHeader(doc, "Relatório da Viagem", `${vehicle}  •  ${status}  •  ${formatDate(trip.createdAt)}`);
+  addPageHeader(doc, "Relatório da Viagem", `${vehicle}  •  ${status}  •  ${formatDate(trip.createdAt)}`, assets);
   addTripContent(doc, trip, vehicles, CONTENT_Y);
   addFooters(doc, generatedAt);
 
   doc.save(`${PDF_FILE_PREFIX}-relatorio-viagem${platePart}-${formatDate(trip.createdAt).replace(/\//g, "-")}.pdf`);
 }
 
-export function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], periodLabel: string) {
+export async function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], periodLabel: string) {
   if (trips.length === 0) return;
 
   const doc         = new jsPDF();
   const generatedAt = new Date();
+  const assets = await loadPdfAssets();
 
   // ── Page 1: Executive summary ─────────────────────────────────────────────
   addPageHeader(
     doc,
     "Relatório Consolidado de Viagens",
     `Período: ${periodLabel}  •  ${trips.length} viagem(ns) exportada(s)`,
+    assets,
   );
 
   let y = CONTENT_Y;
@@ -412,6 +481,7 @@ export function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], perio
       doc,
       `Viagem ${i + 1} de ${trips.length}`,
       `${vehicle}  •  ${status}  •  ${formatDate(trip.createdAt)}`,
+      assets,
     );
     addTripContent(doc, trip, vehicles, CONTENT_Y);
   });
