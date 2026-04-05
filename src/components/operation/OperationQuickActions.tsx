@@ -65,7 +65,7 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
     icon: iconHistory,
     label: "Ver histórico",
     description: "Viagens concluídas",
-    onClick: () => navigate("/"),
+    onClick: () => navigate("/history"),
     variant: "secondary",
   });
 
