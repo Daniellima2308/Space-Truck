@@ -7,6 +7,7 @@ import {
   getTripProfitPerKm, getTripTotalKm, formatCurrency, formatNumber, formatDate,
   getLastDestination,
 } from "@/lib/calculations";
+import { sanitizeSegment, truncate } from "@/lib/pdfUtils";
 
 // ─── Brand constants — update here for future rebranding ─────────────────────
 const PDF_BRAND_NAME = "Space Truck";
@@ -77,13 +78,20 @@ const C = {
 
 // ─── Layout constants ─────────────────────────────────────────────────────────
 const HEADER_H = 44;        // Height of dark header block (mm)
-const CONTENT_Y = 60;       // Y where body content starts after header + separator
+const CONTENT_Y = 60;       // Y where body content starts after full header + separator
+const CONT_H    = 14;       // Height of continuation mini-header block (mm)
+const CONT_Y    = 20;       // Y where content starts after a continuation header
 const MARGIN = 14;          // Page left/right margin
 const PAGE_W = 210;         // A4 width (mm)
 const CONTENT_W = PAGE_W - MARGIN * 2; // 182 mm usable width
 const PAGE_H = 297;         // A4 height (mm)
 const FOOTER_Y = PAGE_H - 10; // Y position of footer text
-const NEW_PAGE_THRESHOLD = 230; // Add new page if y exceeds this before a new section
+const NEW_PAGE_THRESHOLD = 228; // Start new page if y exceeds this before a section
+const TRUNC_CONTEXT_LINE  = 90;  // Max chars for header context line before truncation
+const TRUNC_CONT_LABEL    = 75;  // Max chars for continuation mini-header label
+const TRUNC_VEHICLE_NAME  = 60;  // Max chars for vehicle name in info block
+const TRUNC_INFO_LINE     = 90;  // Max chars for status/destination lines in info block
+const TRUNC_TRIP_LABEL    = 50;  // Max chars for vehicle portion of per-trip context label
 
 // ─── Internal helpers ─────────────────────────────────────────────────────────
 type JsPdfWithTable = jsPDF & { lastAutoTable?: { finalY: number } };
@@ -99,6 +107,43 @@ function getVehicleLabel(vehicles: Vehicle[], vehicleId: string): string {
 
 function formatTs(d: Date): string {
   return `${d.toLocaleDateString("pt-BR")} às ${d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
+}
+
+// ─── Continuation mini-header (for pages that continue existing content) ─────
+function addContinuationHeader(doc: jsPDF, contextLabel: string): void {
+  const w = doc.internal.pageSize.getWidth();
+
+  // Compact dark strip
+  doc.setFillColor(...C.dark);
+  doc.rect(0, 0, w, CONT_H, "F");
+
+  // Brand-green accent strip
+  doc.setFillColor(...C.brand);
+  doc.rect(0, 0, w, 2.5, "F");
+
+  // Brand name (left)
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(7);
+  doc.setTextColor(...C.white);
+  doc.text(PDF_BRAND_NAME, MARGIN, 10);
+
+  // Context label (centered)
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(7);
+  doc.setTextColor(...C.light);
+  doc.text(truncate(contextLabel, TRUNC_CONT_LABEL), w / 2, 10, { align: "center" });
+
+  // Thin separator
+  doc.setDrawColor(...C.border);
+  doc.setLineWidth(0.25);
+  doc.line(MARGIN, CONT_H, w - MARGIN, CONT_H);
+}
+
+/** Add a new page, stamp the continuation mini-header, and return the new content Y. */
+function breakPage(doc: jsPDF, contextLabel: string): number {
+  doc.addPage();
+  addContinuationHeader(doc, contextLabel);
+  return CONT_Y;
 }
 
 // ─── Page header ──────────────────────────────────────────────────────────────
@@ -117,29 +162,31 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
 
   if (hasImages) {
     // ── Logo-based branding ────────────────────────────────────────────────
-    // Symbol: 765×579 px at height 13mm
-    const symH = 13;
-    const symW = symH * (SYMBOL_W_PX / SYMBOL_H_PX); // ≈ 17.2 mm
+    // Symbol: 765×579 px at height 16mm
+    const symH = 16;
+    const symW = symH * (SYMBOL_W_PX / SYMBOL_H_PX); // ≈ 21.1 mm
 
-    // Wordmark: 857×72 px at height 6mm
-    const wmH  = 6;
-    const wmW  = wmH * (WORDMARK_W_PX / WORDMARK_H_PX); // ≈ 71.4 mm
+    // Wordmark: 857×72 px at height 8mm
+    const wmH  = 8;
+    const wmW  = wmH * (WORDMARK_W_PX / WORDMARK_H_PX); // ≈ 95.2 mm
 
-    // Vertical start — symbol center aligns with wordmark center
-    const symY = 8;                        // symbol top
+    // Vertical start — symbol center aligns with wordmark+slogan stack center
+    const symY = 6;                        // symbol top
     const wmY  = symY + (symH - wmH) / 2; // center wordmark within symbol height
 
     if (assets!.symbol) {
       doc.addImage(assets!.symbol, "PNG", MARGIN, symY, symW, symH);
     }
-    doc.addImage(assets!.wordmark, "PNG", MARGIN + symW + 2.5, wmY, wmW, wmH);
+    const wmX = MARGIN + symW + 2.5;
+    doc.addImage(assets!.wordmark, "PNG", wmX, wmY, wmW, wmH);
 
-    // Slogan image — official brand asset, positioned below the wordmark
+    // Slogan image — centered under wordmark, 0.5 mm gap so they read as one integrated unit
     if (assets!.slogan) {
-      const sloganH = 4;
-      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 47.6 mm
-      const sloganY = wmY + wmH + 2;
-      doc.addImage(assets!.slogan, "PNG", MARGIN + symW + 2.5, sloganY, sloganW, sloganH);
+      const sloganH = 6.5;
+      const sloganW = sloganH * (SLOGAN_W_PX / SLOGAN_H_PX); // ≈ 77.3 mm
+      const sloganX = wmX + (wmW - sloganW) / 2;             // centered under wordmark
+      const sloganY = wmY + wmH + 0.5;
+      doc.addImage(assets!.slogan, "PNG", sloganX, sloganY, sloganW, sloganH);
     }
   } else {
     // ── Text-only fallback ─────────────────────────────────────────────────
@@ -166,11 +213,11 @@ function addPageHeader(doc: jsPDF, title: string, contextLine: string, assets?: 
   doc.setTextColor(...C.light);
   doc.text(`Gerado em ${formatTs(new Date())}`, w - MARGIN, 37, { align: "right" });
 
-  // Context line below header block
+  // Context line below header block — truncated to prevent overflow
   doc.setFont("helvetica", "normal");
   doc.setFontSize(9);
   doc.setTextColor(...C.muted);
-  doc.text(contextLine, MARGIN, 52);
+  doc.text(truncate(contextLine, TRUNC_CONTEXT_LINE), MARGIN, 52);
 
   // Thin separator
   doc.setDrawColor(...C.border);
@@ -240,11 +287,11 @@ function addTripInfoBlock(doc: jsPDF, trip: Trip, vehicles: Vehicle[], y: number
   doc.setFillColor(...C.brand);
   doc.rect(MARGIN, y, 3, boxH, "F");
 
-  // Vehicle name
+  // Vehicle name — truncated to prevent overflow
   doc.setFont("helvetica", "bold");
   doc.setFontSize(12);
   doc.setTextColor(...C.darkText);
-  doc.text(vehicle, MARGIN + 7, y + 9);
+  doc.text(truncate(vehicle, TRUNC_VEHICLE_NAME), MARGIN + 7, y + 9);
 
   // Status & dates
   doc.setFont("helvetica", "normal");
@@ -253,11 +300,11 @@ function addTripInfoBlock(doc: jsPDF, trip: Trip, vehicles: Vehicle[], y: number
   const datePart = trip.finishedAt
     ? `  •  Criada: ${formatDate(trip.createdAt)}  •  Finalizada: ${formatDate(trip.finishedAt)}`
     : `  •  Criada em: ${formatDate(trip.createdAt)}`;
-  doc.text(`Status: ${status}${datePart}`, MARGIN + 7, y + 16);
+  doc.text(truncate(`Status: ${status}${datePart}`, TRUNC_INFO_LINE), MARGIN + 7, y + 16);
 
-  // Last destination
+  // Last destination — truncated for long route names
   if (lastDest !== "—") {
-    doc.text(`Último destino: ${lastDest}`, MARGIN + 7, y + 23);
+    doc.text(truncate(`Último destino: ${lastDest}`, TRUNC_INFO_LINE), MARGIN + 7, y + 23);
   }
 
   return y + boxH + 6;
@@ -313,7 +360,7 @@ function addMetricsGrid(doc: jsPDF, trip: Trip, y: number): number {
 }
 
 // ─── Full trip sections (metrics + detail tables) ─────────────────────────────
-function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: number): number {
+function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: number, contextLabel: string): number {
   let y = startY;
 
   y = addTripInfoBlock(doc, trip, vehicles, y);
@@ -321,8 +368,9 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
 
   // Freights
   if (trip.freights.length > 0) {
-    if (y > NEW_PAGE_THRESHOLD) { doc.addPage(); y = CONTENT_Y; }
+    if (y > NEW_PAGE_THRESHOLD) { y = breakPage(doc, contextLabel); }
     y = addSectionTitle(doc, "Fretes", y);
+    let freightFirstPage = true;
     autoTable(doc, {
       startY: y,
       head: [["Origem", "Destino", "KM Inicial", "Bruto", "Comissão %", "Comissão R$"]],
@@ -331,18 +379,32 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
         formatCurrency(f.grossValue), `${f.commissionPercent}%`, formatCurrency(f.commissionValue),
       ]),
       theme: "striped",
-      styles: tblStyles,
+      styles: { ...tblStyles, overflow: "linebreak" },
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
-      margin: tblMargin,
+      columnStyles: {
+        0: { cellWidth: 38, overflow: "linebreak" },
+        1: { cellWidth: 38, overflow: "linebreak" },
+        2: { cellWidth: 22, halign: "right" as const },
+        3: { cellWidth: 27, halign: "right" as const },
+        4: { cellWidth: 20, halign: "right" as const },
+        5: { cellWidth: 27, halign: "right" as const },
+      },
+      showHead: "everyPage",
+      margin: { ...tblMargin, top: CONT_Y + 2 },
+      willDrawPage: () => {
+        if (freightFirstPage) { freightFirstPage = false; return; }
+        addContinuationHeader(doc, contextLabel);
+      },
     });
     y = getTableY(doc, y) + 7;
   }
 
   // Fuelings
   if (trip.fuelings.length > 0) {
-    if (y > NEW_PAGE_THRESHOLD) { doc.addPage(); y = CONTENT_Y; }
+    if (y > NEW_PAGE_THRESHOLD) { y = breakPage(doc, contextLabel); }
     y = addSectionTitle(doc, "Abastecimentos", y);
+    let fuelingFirstPage = true;
     autoTable(doc, {
       startY: y,
       head: [["Posto", "Data", "Litros", "R$/L", "Total", "KM Atual", "Média KM/L"]],
@@ -352,18 +414,33 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
         formatNumber(f.kmCurrent), formatNumber(f.average),
       ]),
       theme: "striped",
-      styles: tblStyles,
+      styles: { ...tblStyles, overflow: "linebreak" },
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
-      margin: tblMargin,
+      columnStyles: {
+        0: { cellWidth: 38, overflow: "linebreak" },
+        1: { cellWidth: 20, halign: "center" as const },
+        2: { cellWidth: 18, halign: "right" as const },
+        3: { cellWidth: 20, halign: "right" as const },
+        4: { cellWidth: 24, halign: "right" as const },
+        5: { cellWidth: 24, halign: "right" as const },
+        6: { cellWidth: 24, halign: "right" as const },
+      },
+      showHead: "everyPage",
+      margin: { ...tblMargin, top: CONT_Y + 2 },
+      willDrawPage: () => {
+        if (fuelingFirstPage) { fuelingFirstPage = false; return; }
+        addContinuationHeader(doc, contextLabel);
+      },
     });
     y = getTableY(doc, y) + 7;
   }
 
   // Expenses
   if (trip.expenses.length > 0) {
-    if (y > NEW_PAGE_THRESHOLD) { doc.addPage(); y = CONTENT_Y; }
+    if (y > NEW_PAGE_THRESHOLD) { y = breakPage(doc, contextLabel); }
     y = addSectionTitle(doc, "Despesas", y);
+    let expenseFirstPage = true;
     autoTable(doc, {
       startY: y,
       head: [["Categoria", "Descrição", "Data", "Valor"]],
@@ -372,10 +449,21 @@ function addTripContent(doc: jsPDF, trip: Trip, vehicles: Vehicle[], startY: num
         e.description, formatDate(e.date), formatCurrency(e.value),
       ]),
       theme: "striped",
-      styles: tblStyles,
+      styles: { ...tblStyles, overflow: "linebreak" },
       headStyles: tblHead,
       alternateRowStyles: tblAlt,
-      margin: tblMargin,
+      columnStyles: {
+        0: { cellWidth: 32, overflow: "linebreak" },
+        1: { overflow: "linebreak" },
+        2: { cellWidth: 22, halign: "center" as const },
+        3: { cellWidth: 28, halign: "right" as const },
+      },
+      showHead: "everyPage",
+      margin: { ...tblMargin, top: CONT_Y + 2 },
+      willDrawPage: () => {
+        if (expenseFirstPage) { expenseFirstPage = false; return; }
+        addContinuationHeader(doc, contextLabel);
+      },
     });
     y = getTableY(doc, y) + 7;
   }
@@ -390,15 +478,17 @@ export async function exportSingleTripPdf(trip: Trip, vehicles: Vehicle[]) {
   const vehicleObj = vehicles.find((v) => v.id === trip.vehicleId);
   const vehicle    = getVehicleLabel(vehicles, trip.vehicleId);
   const status     = trip.status === "open" ? "Em Aberto" : "Finalizada";
-  const platePart  = vehicleObj ? `-${vehicleObj.plate.toLowerCase().replace(/[^a-z0-9]/g, "")}` : "";
+  const platePart  = vehicleObj ? `-${sanitizeSegment(vehicleObj.plate)}` : "";
   const generatedAt = new Date();
   const assets = await loadPdfAssets();
 
-  addPageHeader(doc, "Relatório da Viagem", `${vehicle}  •  ${status}  •  ${formatDate(trip.createdAt)}`, assets);
-  addTripContent(doc, trip, vehicles, CONTENT_Y);
+  const contextLabel = `${vehicle}  •  ${status}`;
+  addPageHeader(doc, "Relatório da Viagem", `${contextLabel}  •  ${formatDate(trip.createdAt)}`, assets);
+  addTripContent(doc, trip, vehicles, CONTENT_Y, contextLabel);
   addFooters(doc, generatedAt);
 
-  doc.save(`${PDF_FILE_PREFIX}-relatorio-viagem${platePart}-${formatDate(trip.createdAt).replace(/\//g, "-")}.pdf`);
+  const dateStr = sanitizeSegment(formatDate(trip.createdAt));
+  doc.save(`${PDF_FILE_PREFIX}-relatorio-viagem${platePart}-${dateStr}.pdf`);
 }
 
 export async function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[], periodLabel: string) {
@@ -458,8 +548,10 @@ export async function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[],
   y = getTableY(doc, y) + 10;
 
   // ── Trip overview table ───────────────────────────────────────────────────
+  const overviewContextLabel = `Relatório Consolidado — Período: ${periodLabel}`;
   y = addSectionTitle(doc, "Visão Geral das Viagens", y);
 
+  let firstOverviewPage = true;
   autoTable(doc, {
     startY: y,
     head: [["Veículo", "Status", "Criada em", "Último Destino", "Bruto", "Líquido", "KM"]],
@@ -473,10 +565,24 @@ export async function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[],
       `${formatNumber(getTripTotalKm(t))} km`,
     ]),
     theme: "striped",
-    styles: { ...tblStyles, fontSize: 7.5 },
+    styles: { ...tblStyles, fontSize: 7.5, overflow: "linebreak" },
     headStyles: tblHead,
     alternateRowStyles: tblAlt,
-    margin: tblMargin,
+    columnStyles: {
+      0: { cellWidth: 42, overflow: "linebreak" },
+      1: { cellWidth: 20, halign: "center" as const },
+      2: { cellWidth: 20, halign: "center" as const },
+      3: { cellWidth: 38, overflow: "linebreak" },
+      4: { cellWidth: 22, halign: "right" as const },
+      5: { cellWidth: 22, halign: "right" as const },
+      6: { cellWidth: 18, halign: "right" as const },
+    },
+    showHead: "everyPage",
+    margin: { ...tblMargin, top: CONT_Y + 2 },
+    willDrawPage: () => {
+      if (firstOverviewPage) { firstOverviewPage = false; return; }
+      addContinuationHeader(doc, overviewContextLabel);
+    },
   });
 
   // ── Individual trip details (one page per trip) ───────────────────────────
@@ -484,18 +590,19 @@ export async function exportMultipleTripsPdf(trips: Trip[], vehicles: Vehicle[],
     doc.addPage();
     const vehicle = getVehicleLabel(vehicles, trip.vehicleId);
     const status  = trip.status === "open" ? "Em Aberto" : "Finalizada";
+    const tripContextLabel = `Viagem ${i + 1} de ${trips.length}  •  ${truncate(vehicle, TRUNC_TRIP_LABEL)}`;
     addPageHeader(
       doc,
       `Viagem ${i + 1} de ${trips.length}`,
       `${vehicle}  •  ${status}  •  ${formatDate(trip.createdAt)}`,
       assets,
     );
-    addTripContent(doc, trip, vehicles, CONTENT_Y);
+    addTripContent(doc, trip, vehicles, CONTENT_Y, tripContextLabel);
   });
 
   addFooters(doc, generatedAt);
 
   doc.save(
-    `${PDF_FILE_PREFIX}-relatorio-consolidado-${periodLabel.toLowerCase().replace(/[\s/]/g, "-")}.pdf`,
+    `${PDF_FILE_PREFIX}-relatorio-consolidado-${sanitizeSegment(periodLabel)}.pdf`,
   );
 }
