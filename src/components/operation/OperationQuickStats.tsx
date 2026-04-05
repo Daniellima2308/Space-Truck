@@ -1,7 +1,7 @@
 import { Trip } from "@/types";
-import { formatCurrency, getTripGrossRevenue } from "@/lib/calculations";
+import { formatCurrency, getTripGrossRevenue, getTripNetRevenue } from "@/lib/calculations";
 import { getCurrentFreight } from "@/lib/freightStatus";
-import { FontAwesomeIcon, iconRoute, iconClock3, iconWallet, iconReceipt } from "@/lib/icons";
+import { FontAwesomeIcon, iconRoute, iconClock3, iconWallet, iconTrendingUp } from "@/lib/icons";
 
 interface OperationQuickStatsProps {
   activeTrips: Trip[];
@@ -12,10 +12,8 @@ export function OperationQuickStats({ activeTrips, todayTrips }: OperationQuickS
   const todayRevenue = todayTrips.reduce((s, t) => s + getTripGrossRevenue(t), 0);
   const activeFreightsCount = activeTrips.filter((t) => getCurrentFreight(t) !== null).length;
 
-  const todayLaunches = todayTrips.reduce(
-    (sum, t) => sum + t.freights.length + t.fuelings.length + t.expenses.length,
-    0,
-  );
+  // Net revenue across all active trips (operational earnings so far)
+  const activeNetRevenue = activeTrips.reduce((sum, t) => sum + getTripNetRevenue(t), 0);
 
   const stats = [
     {
@@ -38,10 +36,16 @@ export function OperationQuickStats({ activeTrips, todayTrips }: OperationQuickS
       valueClass: activeFreightsCount > 0 ? "text-info" : "text-foreground",
     },
     {
-      icon: iconReceipt,
-      label: "Lançamentos hoje",
-      value: String(todayLaunches),
-      valueClass: "text-foreground",
+      icon: iconTrendingUp,
+      label: "Líquido ativo",
+      value: activeTrips.length > 0 ? formatCurrency(activeNetRevenue) : "—",
+      valueClass:
+        activeTrips.length === 0
+          ? "text-foreground"
+          : activeNetRevenue >= 0
+            ? "text-profit"
+            : "text-expense",
+      mono: true,
     },
   ];
 

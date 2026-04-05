@@ -1,7 +1,7 @@
 import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
-import { FontAwesomeIcon, iconPlus, iconTruck, iconHistory, iconChevronRight } from "@/lib/icons";
+import { FontAwesomeIcon, iconPlus, iconTruck, iconHistory, iconChevronRight, iconWallet, iconCheckCircle } from "@/lib/icons";
 
 interface OperationQuickActionsProps {
   vehicles: Vehicle[];
@@ -15,12 +15,18 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
   const singleActiveTrip = activeTrips.length === 1 ? activeTrips[0] : null;
   const activeFreightTrip = activeTrips.find((t) => getCurrentFreight(t) !== null);
 
+  // Trip ready to finish: has freights and all are completed
+  const readyToFinishTrip = activeTrips.find((t) => {
+    const hasFreights = t.freights.length > 0;
+    return hasFreights && t.freights.every((f) => f.status === "completed");
+  });
+
   const actions: Array<{
     icon: typeof iconPlus;
     label: string;
     description: string;
     onClick: () => void;
-    variant: "primary" | "secondary";
+    variant: "primary" | "secondary" | "success";
   }> = [];
 
   // Context-aware primary action
@@ -47,6 +53,28 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
       description: "Iniciar operação",
       onClick: onNewTrip,
       variant: "primary",
+    });
+  }
+
+  // Finalizar viagem shortcut when a trip is ready
+  if (readyToFinishTrip) {
+    actions.push({
+      icon: iconCheckCircle,
+      label: "Finalizar viagem",
+      description: "Todos os fretes concluídos",
+      onClick: () => navigate(`/trip/${readyToFinishTrip.id}`),
+      variant: "success",
+    });
+  }
+
+  // Registrar gasto pessoal when there's an active trip
+  if (activeTrips.length > 0) {
+    actions.push({
+      icon: iconWallet,
+      label: "Gasto pessoal",
+      description: "Alimentação, banho…",
+      onClick: () => navigate("/personal-expenses"),
+      variant: "secondary",
     });
   }
 
@@ -84,15 +112,31 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
             className={`flex flex-col items-start gap-1.5 rounded-xl p-3.5 text-left transition-colors ${
               action.variant === "primary"
                 ? "bg-primary/10 border border-primary/20 hover:bg-primary/20"
-                : "bg-card border border-border hover:bg-secondary"
+                : action.variant === "success"
+                  ? "bg-profit/10 border border-profit/20 hover:bg-profit/20"
+                  : "bg-card border border-border hover:bg-secondary"
             }`}
           >
             <FontAwesomeIcon
               icon={action.icon}
-              className={`w-4 h-4 ${action.variant === "primary" ? "text-primary" : "text-muted-foreground"}`}
+              className={`w-4 h-4 ${
+                action.variant === "primary"
+                  ? "text-primary"
+                  : action.variant === "success"
+                    ? "text-profit"
+                    : "text-muted-foreground"
+              }`}
             />
             <div>
-              <p className={`text-xs font-bold ${action.variant === "primary" ? "text-primary" : "text-foreground"}`}>
+              <p
+                className={`text-xs font-bold ${
+                  action.variant === "primary"
+                    ? "text-primary"
+                    : action.variant === "success"
+                      ? "text-profit"
+                      : "text-foreground"
+                }`}
+              >
                 {action.label}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{action.description}</p>
