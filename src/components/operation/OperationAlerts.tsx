@@ -30,6 +30,8 @@ interface Alert {
 interface OperationAlertsProps {
   activeTrips: Trip[];
   vehicles: Vehicle[];
+  /** When true (single active trip), suppress alerts already communicated by OperationHero */
+  singleTripMode?: boolean;
 }
 
 /**
@@ -39,7 +41,7 @@ interface OperationAlertsProps {
  *
  * @returns A section containing up to three trip alerts and, when applicable, a FinishTripModal; returns `null` if there are no alerts.
  */
-export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps) {
+export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false }: OperationAlertsProps) {
   const navigate = useNavigate();
   const { finishTrip } = useApp();
   const [finishTripId, setFinishTripId] = useState<string | null>(null);
@@ -107,14 +109,22 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
 
   if (alerts.length === 0) return null;
 
+  // In single-trip mode, filter out alert types the Hero already communicates clearly.
+  // Keep only "pending_planned" which has a unique "Iniciar trecho" CTA not present in Hero.
+  const visibleAlerts = singleTripMode
+    ? alerts.filter((a) => a.type === "pending_planned")
+    : alerts;
+
+  if (visibleAlerts.length === 0) return null;
+
   // Sort: ready_to_finish first (most actionable), then active_freight, then pending_planned, needs_entry
   const priority = ["ready_to_finish", "active_freight", "pending_planned", "needs_entry"];
-  const sorted = [...alerts].sort(
+  const sorted = [...visibleAlerts].sort(
     (a, b) => priority.indexOf(a.type) - priority.indexOf(b.type),
   );
   const visible = sorted.slice(0, 3);
 
-  const urgentCount = alerts.filter(
+  const urgentCount = visibleAlerts.filter(
     (a) => a.type === "ready_to_finish" || a.type === "active_freight",
   ).length;
 
@@ -206,9 +216,9 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
             </div>
           ))}
         </div>
-        {alerts.length > 3 && (
+        {visibleAlerts.length > 3 && (
           <p className="text-[10px] text-muted-foreground text-center pt-1">
-            +{alerts.length - 3} viagem{alerts.length - 3 > 1 ? "s" : ""} com situações pendentes
+            +{visibleAlerts.length - 3} viagem{visibleAlerts.length - 3 > 1 ? "s" : ""} com situações pendentes
           </p>
         )}
       </section>

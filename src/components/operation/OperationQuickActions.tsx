@@ -8,6 +8,8 @@ interface OperationQuickActionsProps {
   vehicles: Vehicle[];
   activeTrips: Trip[];
   onNewTrip: () => void;
+  /** When true (single active trip), skip primary navigation/finish actions already present in OperationHero */
+  singleTripMode?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ interface OperationQuickActionsProps {
  * @param onNewTrip - Callback invoked to start a new trip
  * @returns A section element containing the quick action buttons, or `null` when no actions are applicable
  */
-export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: OperationQuickActionsProps) {
+export function OperationQuickActions({ vehicles, activeTrips, onNewTrip, singleTripMode = false }: OperationQuickActionsProps) {
   const navigate = useNavigate();
 
   const singleActiveTrip = activeTrips.length === 1 ? activeTrips[0] : null;
@@ -39,42 +41,44 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
     variant: "primary" | "secondary" | "success";
   }> = [];
 
-  // Context-aware primary action
-  if (activeFreightTrip) {
-    actions.push({
-      icon: iconChevronRight,
-      label: "Continuar operação",
-      description: "Frete em andamento",
-      onClick: () => navigate(`/trip/${activeFreightTrip.id}`),
-      variant: "primary",
-    });
-  } else if (singleActiveTrip) {
-    actions.push({
-      icon: iconChevronRight,
-      label: "Ver viagem ativa",
-      description: "Abrir detalhes",
-      onClick: () => navigate(`/trip/${singleActiveTrip.id}`),
-      variant: "primary",
-    });
-  } else if (vehicles.length > 0) {
-    actions.push({
-      icon: iconPlus,
-      label: "Nova Viagem",
-      description: "Iniciar operação",
-      onClick: onNewTrip,
-      variant: "primary",
-    });
-  }
+  // Context-aware primary action — suppressed in single-trip mode (Hero already provides this CTA)
+  if (!singleTripMode) {
+    if (activeFreightTrip) {
+      actions.push({
+        icon: iconChevronRight,
+        label: "Continuar operação",
+        description: "Frete em andamento",
+        onClick: () => navigate(`/trip/${activeFreightTrip.id}`),
+        variant: "primary",
+      });
+    } else if (singleActiveTrip) {
+      actions.push({
+        icon: iconChevronRight,
+        label: "Ver viagem ativa",
+        description: "Abrir detalhes",
+        onClick: () => navigate(`/trip/${singleActiveTrip.id}`),
+        variant: "primary",
+      });
+    } else if (vehicles.length > 0) {
+      actions.push({
+        icon: iconPlus,
+        label: "Nova Viagem",
+        description: "Iniciar operação",
+        onClick: onNewTrip,
+        variant: "primary",
+      });
+    }
 
-  // Finalizar viagem shortcut when a trip is ready
-  if (readyToFinishTrip) {
-    actions.push({
-      icon: iconCheckCircle,
-      label: "Finalizar viagem",
-      description: "Todos os fretes concluídos",
-      onClick: () => navigate(`/trip/${readyToFinishTrip.id}`),
-      variant: "success",
-    });
+    // Finalizar viagem shortcut when a trip is ready — also suppressed in single-trip mode (Hero handles it)
+    if (readyToFinishTrip) {
+      actions.push({
+        icon: iconCheckCircle,
+        label: "Finalizar viagem",
+        description: "Todos os fretes concluídos",
+        onClick: () => navigate(`/trip/${readyToFinishTrip.id}`),
+        variant: "success",
+      });
+    }
   }
 
   // Registrar gasto pessoal when there's an active trip

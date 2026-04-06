@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
+import { useApp } from "@/context/app-context";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { formatCurrency, getTripGrossRevenue, getTripNetRevenue } from "@/lib/calculations";
 import { getTripAgeDays, isTripReadyToFinish } from "@/lib/operationUtils";
+import { FinishTripModal } from "@/components/FinishTripModal";
+import { toast } from "@/hooks/use-toast";
 import { FontAwesomeIcon, iconTruck, iconPlus, iconChevronRight, iconMapPin, iconRoute, iconClock3, iconTrendingUp, iconCheckCircle } from "@/lib/icons";
 
 interface OperationHeroProps {
@@ -26,6 +30,8 @@ interface OperationHeroProps {
  */
 export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHeroProps) {
   const navigate = useNavigate();
+  const { finishTrip } = useApp();
+  const [showFinishModal, setShowFinishModal] = useState(false);
 
   // Scenario 1: no vehicles registered
   if (vehicles.length === 0) {
@@ -102,105 +108,147 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
     // Check if trip is ready to finish
     const isReadyToFinish = isTripReadyToFinish(trip);
 
+    const finishMaxKm = Math.max(
+      vehicle?.currentKm || 0,
+      ...trip.fuelings.map((f) => f.kmCurrent || 0),
+      ...trip.freights
+        .filter((f) => f.status === "in_progress" || f.status === "completed")
+        .map((f) => f.kmInitial || 0),
+    );
+
+    const handleFinish = async ({
+      km,
+      allowPendingPlanned,
+    }: {
+      km: number;
+      allowPendingPlanned: boolean;
+    }) => {
+      try {
+        await finishTrip(trip.id, { arrivalKm: km, allowPendingPlanned });
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "Tente novamente.";
+        toast({ title: "Não deu para finalizar", description: message, variant: "destructive" });
+      } finally {
+        setShowFinishModal(false);
+      }
+    };
+
     return (
-      <div
-        className="gradient-active-trip rounded-2xl p-5 cursor-pointer space-y-4"
-        onClick={() => navigate(`/trip/${trip.id}`)}
-      >
-        <div className="flex items-start justify-between gap-3">
-          <div className="flex items-start gap-3">
-            <div className="relative">
-              <div className="w-10 h-10 rounded-xl bg-profit/10 flex items-center justify-center">
-                <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-profit" />
+      <>
+        <div
+          className="gradient-active-trip rounded-2xl p-5 cursor-pointer space-y-4"
+          onClick={() => navigate(`/trip/${trip.id}`)}
+        >
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-start gap-3">
+              <div className="relative">
+                <div className="w-10 h-10 rounded-xl bg-profit/10 flex items-center justify-center">
+                  <FontAwesomeIcon icon={iconTruck} className="w-5 h-5 text-profit" />
+                </div>
+                <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-profit animate-pulse-glow border-2 border-background" />
               </div>
-              <span className="absolute -top-1 -right-1 w-3 h-3 rounded-full bg-profit animate-pulse-glow border-2 border-background" />
-            </div>
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-profit mb-0.5">
-                Em operação
-              </p>
-              <h2 className="text-base font-bold text-foreground">
-                {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Viagem ativa"}
-              </h2>
-              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
-                {vehicle && (
-                  <span className="inline-block px-2 py-0.5 rounded bg-accent text-[10px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
-                    {vehicle.plate}
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-profit mb-0.5">
+                  Em operação
+                </p>
+                <h2 className="text-base font-bold text-foreground">
+                  {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Viagem ativa"}
+                </h2>
+                <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                  {vehicle && (
+                    <span className="inline-block px-2 py-0.5 rounded bg-accent text-[10px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
+                      {vehicle.plate}
+                    </span>
+                  )}
+                  <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                    <FontAwesomeIcon icon={iconClock3} className="w-2.5 h-2.5" />
+                    {tripAgeDays === 0 ? "iniciada hoje" : tripAgeDays === 1 ? "1 dia em estrada" : `${tripAgeDays} dias em estrada`}
                   </span>
-                )}
-                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
-                  <FontAwesomeIcon icon={iconClock3} className="w-2.5 h-2.5" />
-                  {tripAgeDays === 0 ? "iniciada hoje" : tripAgeDays === 1 ? "1 dia em estrada" : `${tripAgeDays} dias em estrada`}
-                </span>
+                </div>
               </div>
             </div>
+            <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground mt-1" />
           </div>
-          <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground mt-1" />
-        </div>
 
-        {currentFreight ? (
-          <div className="rounded-xl bg-profit/5 border border-profit/20 px-3.5 py-3 space-y-1">
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-profit">
-              Frete atual
-            </p>
-            <div className="flex items-center gap-2 text-xs text-foreground font-medium">
-              <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5 text-profit shrink-0" />
-              {currentFreight.origin} → {currentFreight.destination}
-            </div>
-          </div>
-        ) : isReadyToFinish ? (
-          <div className="rounded-xl bg-profit/8 border border-profit/30 px-3.5 py-3">
-            <p className="text-xs font-semibold text-profit">
-              ✓ Todos os fretes concluídos — viagem pronta para fechar.
-            </p>
-          </div>
-        ) : (
-          <div className="rounded-xl bg-secondary/50 px-3.5 py-3">
-            <p className="text-xs text-muted-foreground">
-              {trip.freights.some((f) => f.status === "planned")
-                ? "Frete planejado aguardando início."
-                : "Nenhum frete em andamento."}
-            </p>
-          </div>
-        )}
-
-        <div className="flex items-end justify-between pt-1 border-t border-border/40">
-          <div className="space-y-0.5">
-            <div>
-              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-                Bruto parcial
+          {currentFreight ? (
+            <div className="rounded-xl bg-profit/5 border border-profit/20 px-3.5 py-3 space-y-1">
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-profit">
+                Frete atual
               </p>
-              <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
-            </div>
-            {net !== 0 && (
-              <div className="flex items-center gap-1">
-                <FontAwesomeIcon icon={iconTrendingUp} className="w-3 h-3 text-muted-foreground" />
-                <span className="text-[10px] text-muted-foreground">
-                  Líq.{" "}
-                  <span className={net >= 0 ? "text-profit font-semibold" : "text-expense font-semibold"}>
-                    {formatCurrency(net)}
-                  </span>
-                </span>
+              <div className="flex items-center gap-2 text-xs text-foreground font-medium">
+                <FontAwesomeIcon icon={iconMapPin} className="w-3.5 h-3.5 text-profit shrink-0" />
+                {currentFreight.origin} → {currentFreight.destination}
               </div>
+            </div>
+          ) : isReadyToFinish ? (
+            <div className="rounded-xl bg-profit/8 border border-profit/30 px-3.5 py-3">
+              <p className="text-xs font-semibold text-profit">
+                ✓ Todos os fretes concluídos — pronta para fechar.
+              </p>
+            </div>
+          ) : (
+            <div className="rounded-xl bg-secondary/50 px-3.5 py-3">
+              <p className="text-xs text-muted-foreground">
+                {trip.freights.some((f) => f.status === "planned")
+                  ? "Frete planejado aguardando início."
+                  : "Nenhum frete em andamento."}
+              </p>
+            </div>
+          )}
+
+          <div className="flex items-end justify-between pt-1 border-t border-border/40">
+            <div className="space-y-0.5">
+              <div>
+                <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                  Bruto parcial
+                </p>
+                <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+              </div>
+              {net !== 0 && (
+                <div className="flex items-center gap-1">
+                  <FontAwesomeIcon icon={iconTrendingUp} className="w-3 h-3 text-muted-foreground" />
+                  <span className="text-[10px] text-muted-foreground">
+                    Líq.{" "}
+                    <span className={net >= 0 ? "text-profit font-semibold" : "text-expense font-semibold"}>
+                      {formatCurrency(net)}
+                    </span>
+                  </span>
+                </div>
+              )}
+            </div>
+            {isReadyToFinish ? (
+              <button
+                onClick={(e) => { e.stopPropagation(); setShowFinishModal(true); }}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-profit text-profit-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+              >
+                <FontAwesomeIcon icon={iconCheckCircle} className="w-3.5 h-3.5" /> Finalizar
+              </button>
+            ) : (
+              <button
+                onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
+                className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+              >
+                Continuar <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
+              </button>
             )}
           </div>
-          {isReadyToFinish ? (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-profit text-profit-foreground text-xs font-bold hover:opacity-90 transition-opacity"
-            >
-              <FontAwesomeIcon icon={iconCheckCircle} className="w-3.5 h-3.5" /> Finalizar
-            </button>
-          ) : (
-            <button
-              onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
-              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
-            >
-              Continuar <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
-            </button>
-          )}
         </div>
-      </div>
+
+        <FinishTripModal
+          open={showFinishModal}
+          onClose={() => setShowFinishModal(false)}
+          minKm={finishMaxKm}
+          activeFreight={
+            currentFreight
+              ? { origin: currentFreight.origin, destination: currentFreight.destination }
+              : null
+          }
+          pendingFreights={trip.freights
+            .filter((f) => f.status === "planned")
+            .map((f) => ({ id: f.id, origin: f.origin, destination: f.destination }))}
+          onConfirm={handleFinish}
+        />
+      </>
     );
   }
 
