@@ -5,8 +5,23 @@ import { Trip } from "@/types";
  * Uses UTC timestamps for consistency across timezones.
  */
 export function getTripAgeDays(trip: Trip): number {
-  return Math.floor(
-    (Date.now() - new Date(trip.createdAt).getTime()) / (1000 * 60 * 60 * 24),
+  const createdAt = new Date(trip.createdAt);
+  const now = new Date();
+
+  const createdAtUtcMidnight = Date.UTC(
+    createdAt.getUTCFullYear(),
+    createdAt.getUTCMonth(),
+    createdAt.getUTCDate(),
+  );
+  const nowUtcMidnight = Date.UTC(
+    now.getUTCFullYear(),
+    now.getUTCMonth(),
+    now.getUTCDate(),
+  );
+
+  return Math.max(
+    0,
+    Math.floor((nowUtcMidnight - createdAtUtcMidnight) / (1000 * 60 * 60 * 24)),
   );
 }
 
