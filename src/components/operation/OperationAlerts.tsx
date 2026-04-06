@@ -27,6 +27,11 @@ interface Alert {
   actionLabel: string;
 }
 
+interface PreparedAlert extends Alert {
+  buttonClass: string;
+  showChevron: boolean;
+}
+
 interface OperationAlertsProps {
   activeTrips: Trip[];
   vehicles: Vehicle[];
@@ -35,17 +40,10 @@ interface OperationAlertsProps {
 }
 
 /**
- * Render an "Atenção agora" alert list that shows up to three prioritized alerts for the given active trips and wires the finish-trip modal flow.
- *
- * The component derives one alert per trip (based on current freight, ready-to-finish, planned freights, or needs-entry), sorts them by priority, displays the top three, and exposes actions that either navigate to the trip or open the FinishTripModal. It also computes modal inputs (min KM, active and pending freights) and calls the app's finishTrip handler on confirmation.
- *
- * @returns A section containing up to three trip alerts and, when applicable, a FinishTripModal; returns `null` if there are no alerts.
+ * Derive one alert per trip based on current freight status, ready-to-finish state, planned freights, or needs-entry.
+ * Returns all derived alerts unsorted and unfiltered.
  */
-export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false }: OperationAlertsProps) {
-  const navigate = useNavigate();
-  const { finishTrip } = useApp();
-  const [finishTripId, setFinishTripId] = useState<string | null>(null);
-
+export function deriveAlerts(activeTrips: Trip[], vehicles: Vehicle[], singleTripMode: boolean): Alert[] {
   const alerts: Alert[] = [];
 
   for (const trip of activeTrips) {
@@ -107,13 +105,50 @@ export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false 
     }
   }
 
-  if (alerts.length === 0) return null;
-
   // In single-trip mode, filter out alert types the Hero already communicates clearly.
   // Keep only "pending_planned" which has a unique "Iniciar trecho" CTA not present in Hero.
-  const visibleAlerts = singleTripMode
-    ? alerts.filter((a) => a.type === "pending_planned")
-    : alerts;
+  if (singleTripMode) {
+    return alerts.filter((a) => a.type === "pending_planned");
+  }
+
+  return alerts;
+}
+
+/**
+ * Prepare an alert for rendering by adding button styling and chevron visibility.
+ */
+export function prepareAlertProps(alert: Alert): PreparedAlert {
+  let buttonClass: string;
+  if (alert.type === "ready_to_finish") {
+    buttonClass = "bg-profit text-profit-foreground hover:opacity-90";
+  } else if (alert.type === "active_freight") {
+    buttonClass = "bg-info/15 text-info hover:bg-info/25";
+  } else if (alert.type === "pending_planned") {
+    buttonClass = "bg-warning/15 text-warning hover:bg-warning/25";
+  } else {
+    buttonClass = "bg-secondary text-foreground hover:bg-accent";
+  }
+
+  return {
+    ...alert,
+    buttonClass,
+    showChevron: alert.type !== "ready_to_finish",
+  };
+}
+
+/**
+ * Render an "Atenção agora" alert list that shows up to three prioritized alerts for the given active trips and wires the finish-trip modal flow.
+ *
+ * The component derives one alert per trip (based on current freight, ready-to-finish, planned freights, or needs-entry), sorts them by priority, displays the top three, and exposes actions that either navigate to the trip or open the FinishTripModal. It also computes modal inputs (min KM, active and pending freights) and calls the app's finishTrip handler on confirmation.
+ *
+ * @returns A section containing up to three trip alerts and, when applicable, a FinishTripModal; returns `null` if there are no alerts.
+ */
+export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false }: OperationAlertsProps) {
+  const navigate = useNavigate();
+  const { finishTrip } = useApp();
+  const [finishTripId, setFinishTripId] = useState<string | null>(null);
+
+  const visibleAlerts = deriveAlerts(activeTrips, vehicles, singleTripMode);
 
   if (visibleAlerts.length === 0) return null;
 
@@ -122,7 +157,7 @@ export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false 
   const sorted = [...visibleAlerts].sort(
     (a, b) => priority.indexOf(a.type) - priority.indexOf(b.type),
   );
-  const visible = sorted.slice(0, 3);
+  const visible = sorted.slice(0, 3).map(prepareAlertProps);
 
   const urgentCount = visibleAlerts.filter(
     (a) => a.type === "ready_to_finish" || a.type === "active_freight",
@@ -198,18 +233,10 @@ export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false 
                     navigate(`/trip/${alert.tripId}`);
                   }
                 }}
-                className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors mt-0.5 ${
-                  alert.type === "ready_to_finish"
-                    ? "bg-profit text-profit-foreground hover:opacity-90"
-                    : alert.type === "active_freight"
-                      ? "bg-info/15 text-info hover:bg-info/25"
-                      : alert.type === "pending_planned"
-                        ? "bg-warning/15 text-warning hover:bg-warning/25"
-                        : "bg-secondary text-foreground hover:bg-accent"
-                }`}
+                className={`shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-[10px] font-bold transition-colors mt-0.5 ${alert.buttonClass}`}
               >
                 {alert.actionLabel}
-                {alert.type !== "ready_to_finish" && (
+                {alert.showChevron && (
                   <FontAwesomeIcon icon={iconChevronRight} className="w-2.5 h-2.5" />
                 )}
               </button>
