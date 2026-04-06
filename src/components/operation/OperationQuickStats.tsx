@@ -8,6 +8,17 @@ interface OperationQuickStatsProps {
   todayTrips: Trip[];
 }
 
+/**
+ * Render a 2-column grid of four quick-stat cards summarizing active trips and today's financials.
+ *
+ * The cards display: number of active trips, today's gross revenue (formatted), count of active freights,
+ * and the active net revenue (formatted or "—" when there are no active trips). Each value uses conditional
+ * styling classes to indicate profit/info/expense states and some values use a monospace font.
+ *
+ * @param activeTrips - Array of trips currently active; used to compute counts and aggregate net revenue
+ * @param todayTrips - Array of trips for today; used to compute today's gross revenue
+ * @returns A React element containing the styled grid of quick-stat cards
+ */
 export function OperationQuickStats({ activeTrips, todayTrips }: OperationQuickStatsProps) {
   const todayRevenue = todayTrips.reduce((s, t) => s + getTripGrossRevenue(t), 0);
   const activeFreightsCount = activeTrips.filter((t) => getCurrentFreight(t) !== null).length;

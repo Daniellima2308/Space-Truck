@@ -64,6 +64,15 @@ const PRIORITY_META: Record<
   },
 };
 
+/**
+ * Render a clickable operation card summarizing a trip, its status, revenue, and available actions.
+ *
+ * Displays vehicle info, trip age, current or last destination, freight counters, partial gross and net revenue,
+ * and action buttons to start a leg, finish the trip, or delete the trip. Also opens a finish-trip modal when needed.
+ *
+ * @param trip - The trip to display (includes freights, fuelings, vehicleId, and related metadata)
+ * @returns The trip card element with interactive controls and a finish-trip modal
+ */
 export function OperationTripCard({ trip }: OperationTripCardProps) {
   const { data, finishTrip, deleteTrip } = useApp();
   const navigate = useNavigate();

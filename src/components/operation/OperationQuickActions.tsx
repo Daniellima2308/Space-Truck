@@ -10,6 +10,18 @@ interface OperationQuickActionsProps {
   onNewTrip: () => void;
 }
 
+/**
+ * Render a set of context-aware quick action buttons for trip and fleet operations.
+ *
+ * The displayed actions depend on `activeTrips` and `vehicles` (for example: continue an ongoing freight,
+ * view a single active trip, start a new trip, finalize a trip ready to finish, record a personal expense,
+ * navigate to fleet or history). Returns `null` when no actions apply.
+ *
+ * @param vehicles - Available vehicles used to build fleet-related actions and counts
+ * @param activeTrips - Currently active trips used to derive contextual and completion actions
+ * @param onNewTrip - Callback invoked to start a new trip
+ * @returns A section element containing the quick action buttons, or `null` when no actions are applicable
+ */
 export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: OperationQuickActionsProps) {
   const navigate = useNavigate();
 

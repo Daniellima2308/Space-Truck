@@ -31,6 +31,13 @@ interface OperationAlertsProps {
   vehicles: Vehicle[];
 }
 
+/**
+ * Render an "Atenção agora" alert list that shows up to three prioritized alerts for the given active trips and wires the finish-trip modal flow.
+ *
+ * The component derives one alert per trip (based on current freight, ready-to-finish, planned freights, or needs-entry), sorts them by priority, displays the top three, and exposes actions that either navigate to the trip or open the FinishTripModal. It also computes modal inputs (min KM, active and pending freights) and calls the app's finishTrip handler on confirmation.
+ *
+ * @returns A section containing up to three trip alerts and, when applicable, a FinishTripModal; returns `null` if there are no alerts.
+ */
 export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps) {
   const navigate = useNavigate();
   const { finishTrip } = useApp();

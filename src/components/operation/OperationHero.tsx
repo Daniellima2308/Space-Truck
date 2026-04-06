@@ -11,6 +11,19 @@ interface OperationHeroProps {
   onNewTrip: () => void;
 }
 
+/**
+ * Render an operations status card that adapts its content and actions based on the fleet and active trips.
+ *
+ * The component shows one of four states: no vehicles registered, vehicles present but no active trips,
+ * exactly one active trip (detailed trip view with navigation and revenue/age/status indicators), or
+ * multiple active trips (aggregate metrics and summary). Action buttons navigate to vehicle/trip flows or
+ * invoke `onNewTrip` as appropriate.
+ *
+ * @param vehicles - The current fleet used to determine availability and to label a single active trip's vehicle.
+ * @param activeTrips - The list of active trips used to decide which UI scenario to render and to compute metrics.
+ * @param onNewTrip - Callback invoked when the user requests creating a new trip.
+ * @returns A JSX element representing the operations status card tailored to the provided data.
+ */
 export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHeroProps) {
   const navigate = useNavigate();
 

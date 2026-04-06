@@ -1,8 +1,13 @@
 import { Trip } from "@/types";
 
 /**
- * Returns the number of calendar days since the trip was created.
- * Uses UTC timestamps for consistency across timezones.
+ * Calculate the number of calendar days elapsed since the trip's creation using UTC dates.
+ *
+ * Computes the difference between the UTC midnight of `trip.createdAt` and the current UTC midnight,
+ * returns the whole-day count floored and clamped to zero.
+ *
+ * @param trip - Trip object whose `createdAt` is parseable by the JavaScript `Date` constructor
+ * @returns The number of whole calendar days between the trip's creation date and today (UTC), never negative
  */
 export function getTripAgeDays(trip: Trip): number {
   const createdAt = new Date(trip.createdAt);
@@ -26,8 +31,10 @@ export function getTripAgeDays(trip: Trip): number {
 }
 
 /**
- * Returns true when all freights in the trip are completed and there is at
- * least one freight — meaning the trip is ready to be finalized.
+ * Determine whether a trip can be finalized based on its freights' statuses.
+ *
+ * @param trip - Trip whose freights will be evaluated
+ * @returns `true` if the trip has at least one freight and every freight's status is `'completed'`, `false` otherwise.
  */
 export function isTripReadyToFinish(trip: Trip): boolean {
   return trip.freights.length > 0 && trip.freights.every((f) => f.status === "completed");
