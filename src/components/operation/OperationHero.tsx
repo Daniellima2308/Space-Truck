@@ -159,7 +159,7 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
               </p>
               <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
             </div>
-            {gross > 0 && (
+            {net !== 0 && (
               <div className="flex items-center gap-1">
                 <FontAwesomeIcon icon={iconTrendingUp} className="w-3 h-3 text-muted-foreground" />
                 <span className="text-[10px] text-muted-foreground">
