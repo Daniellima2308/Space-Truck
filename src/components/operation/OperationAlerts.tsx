@@ -43,7 +43,7 @@ interface OperationAlertsProps {
  * Derive one alert per trip based on current freight status, ready-to-finish state, planned freights, or needs-entry.
  * Returns all derived alerts unsorted and unfiltered.
  */
-export function deriveAlerts(activeTrips: Trip[], vehicles: Vehicle[], singleTripMode: boolean): Alert[] {
+function deriveAlerts(activeTrips: Trip[], vehicles: Vehicle[], singleTripMode: boolean): Alert[] {
   const alerts: Alert[] = [];
 
   for (const trip of activeTrips) {
@@ -117,7 +117,7 @@ export function deriveAlerts(activeTrips: Trip[], vehicles: Vehicle[], singleTri
 /**
  * Prepare an alert for rendering by adding button styling and chevron visibility.
  */
-export function prepareAlertProps(alert: Alert): PreparedAlert {
+function prepareAlertProps(alert: Alert): PreparedAlert {
   let buttonClass: string;
   if (alert.type === "ready_to_finish") {
     buttonClass = "bg-profit text-profit-foreground hover:opacity-90";
@@ -189,11 +189,10 @@ export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false 
     if (!finishTripId) return;
     try {
       await finishTrip(finishTripId, { arrivalKm: km, allowPendingPlanned });
+      setFinishTripId(null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Tente novamente.";
       toast({ title: "Não deu para finalizar", description: message, variant: "destructive" });
-    } finally {
-      setFinishTripId(null);
     }
   };
 
