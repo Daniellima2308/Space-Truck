@@ -161,7 +161,7 @@ export function mapFuelingRow(f: FuelingRow): Fueling {
 }
 
 export function mapExpenseRow(e: ExpenseRow): Expense {
-  const category = e.category in EXPENSE_CATEGORY_LABELS
+  const category = Object.hasOwn(EXPENSE_CATEGORY_LABELS, e.category)
     ? (e.category as ExpenseCategory)
     : "outros";
   return {
@@ -176,7 +176,7 @@ export function mapExpenseRow(e: ExpenseRow): Expense {
 }
 
 export function mapPersonalExpenseRow(pe: PersonalExpenseRow): PersonalExpense {
-  const category = pe.category in PERSONAL_EXPENSE_LABELS
+  const category = Object.hasOwn(PERSONAL_EXPENSE_LABELS, pe.category)
     ? (pe.category as PersonalExpenseCategory)
     : "outros";
   return {
