@@ -125,11 +125,10 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
     }) => {
       try {
         await finishTrip(trip.id, { arrivalKm: km, allowPendingPlanned });
+        setShowFinishModal(false);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Tente novamente.";
         toast({ title: "Não deu para finalizar", description: message, variant: "destructive" });
-      } finally {
-        setShowFinishModal(false);
       }
     };
 
