@@ -1,8 +1,9 @@
 import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
-import { formatCurrency, getTripGrossRevenue } from "@/lib/calculations";
-import { FontAwesomeIcon, iconTruck, iconPlus, iconChevronRight, iconMapPin, iconRoute } from "@/lib/icons";
+import { formatCurrency, getTripGrossRevenue, getTripNetRevenue } from "@/lib/calculations";
+import { getTripAgeDays, isTripReadyToFinish } from "@/lib/operationUtils";
+import { FontAwesomeIcon, iconTruck, iconPlus, iconChevronRight, iconMapPin, iconRoute, iconClock3, iconTrendingUp, iconCheckCircle } from "@/lib/icons";
 
 interface OperationHeroProps {
   vehicles: Vehicle[];
@@ -10,6 +11,19 @@ interface OperationHeroProps {
   onNewTrip: () => void;
 }
 
+/**
+ * Render an operations status card that adapts its content and actions based on the fleet and active trips.
+ *
+ * The component shows one of four states: no vehicles registered, vehicles present but no active trips,
+ * exactly one active trip (detailed trip view with navigation and revenue/age/status indicators), or
+ * multiple active trips (aggregate metrics and summary). Action buttons navigate to vehicle/trip flows or
+ * invoke `onNewTrip` as appropriate.
+ *
+ * @param vehicles - The current fleet used to determine availability and to label a single active trip's vehicle.
+ * @param activeTrips - The list of active trips used to decide which UI scenario to render and to compute metrics.
+ * @param onNewTrip - Callback invoked when the user requests creating a new trip.
+ * @returns A JSX element representing the operations status card tailored to the provided data.
+ */
 export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHeroProps) {
   const navigate = useNavigate();
 
@@ -80,6 +94,13 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
     const vehicle = vehicles.find((v) => v.id === trip.vehicleId);
     const currentFreight = getCurrentFreight(trip);
     const gross = getTripGrossRevenue(trip);
+    const net = getTripNetRevenue(trip);
+
+    // Trip age in days
+    const tripAgeDays = getTripAgeDays(trip);
+
+    // Check if trip is ready to finish
+    const isReadyToFinish = isTripReadyToFinish(trip);
 
     return (
       <div
@@ -101,11 +122,17 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
               <h2 className="text-base font-bold text-foreground">
                 {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Viagem ativa"}
               </h2>
-              {vehicle && (
-                <span className="inline-block mt-1 px-2 py-0.5 rounded bg-accent text-[10px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
-                  {vehicle.plate}
+              <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+                {vehicle && (
+                  <span className="inline-block px-2 py-0.5 rounded bg-accent text-[10px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
+                    {vehicle.plate}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-[10px] text-muted-foreground">
+                  <FontAwesomeIcon icon={iconClock3} className="w-2.5 h-2.5" />
+                  {tripAgeDays === 0 ? "iniciada hoje" : tripAgeDays === 1 ? "1 dia em estrada" : `${tripAgeDays} dias em estrada`}
                 </span>
-              )}
+              </div>
             </div>
           </div>
           <FontAwesomeIcon icon={iconChevronRight} className="w-5 h-5 text-muted-foreground mt-1" />
@@ -121,6 +148,12 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
               {currentFreight.origin} → {currentFreight.destination}
             </div>
           </div>
+        ) : isReadyToFinish ? (
+          <div className="rounded-xl bg-profit/8 border border-profit/30 px-3.5 py-3">
+            <p className="text-xs font-semibold text-profit">
+              ✓ Todos os fretes concluídos — viagem pronta para fechar.
+            </p>
+          </div>
         ) : (
           <div className="rounded-xl bg-secondary/50 px-3.5 py-3">
             <p className="text-xs text-muted-foreground">
@@ -131,19 +164,41 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-1 border-t border-border/40">
-          <div>
-            <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-              Faturamento parcial
-            </p>
-            <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+        <div className="flex items-end justify-between pt-1 border-t border-border/40">
+          <div className="space-y-0.5">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
+                Bruto parcial
+              </p>
+              <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+            </div>
+            {net !== 0 && (
+              <div className="flex items-center gap-1">
+                <FontAwesomeIcon icon={iconTrendingUp} className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground">
+                  Líq.{" "}
+                  <span className={net >= 0 ? "text-profit font-semibold" : "text-expense font-semibold"}>
+                    {formatCurrency(net)}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
-          <button
-            onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
-            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
-          >
-            Continuar <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
-          </button>
+          {isReadyToFinish ? (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-profit text-profit-foreground text-xs font-bold hover:opacity-90 transition-opacity"
+            >
+              <FontAwesomeIcon icon={iconCheckCircle} className="w-3.5 h-3.5" /> Finalizar
+            </button>
+          ) : (
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate(`/trip/${trip.id}`); }}
+              className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl bg-primary/10 text-primary text-xs font-semibold hover:bg-primary/20 transition-colors"
+            >
+              Continuar <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     );
@@ -151,7 +206,9 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
 
   // Scenario 4: multiple active trips
   const totalRevenue = activeTrips.reduce((sum, t) => sum + getTripGrossRevenue(t), 0);
+  const totalNet = activeTrips.reduce((sum, t) => sum + getTripNetRevenue(t), 0);
   const tripsWithActiveFreight = activeTrips.filter((t) => getCurrentFreight(t) !== null);
+  const tripsReadyToFinish = activeTrips.filter(isTripReadyToFinish);
 
   return (
     <div className="rounded-2xl p-5 border border-warning/30 bg-gradient-to-br from-card to-warning/5 space-y-4">
@@ -171,26 +228,35 @@ export function OperationHero({ vehicles, activeTrips, onNewTrip }: OperationHer
           <h2 className="text-base font-bold text-foreground">
             {activeTrips.length} viagens em andamento
           </h2>
-          <p className="text-xs text-muted-foreground mt-0.5">
-            {tripsWithActiveFreight.length > 0
-              ? `${tripsWithActiveFreight.length} com frete ativo`
-              : "Nenhuma com frete ativo no momento"}
-          </p>
+          <div className="flex items-center gap-2 mt-0.5 flex-wrap">
+            {tripsWithActiveFreight.length > 0 && (
+              <span className="text-xs text-muted-foreground">
+                {tripsWithActiveFreight.length} com frete ativo
+              </span>
+            )}
+            {tripsReadyToFinish.length > 0 && (
+              <span className="text-[10px] font-semibold text-profit bg-profit/10 px-2 py-0.5 rounded-full">
+                {tripsReadyToFinish.length} pronta{tripsReadyToFinish.length > 1 ? "s" : ""} para fechar
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
       <div className="grid grid-cols-2 gap-2">
         <div className="rounded-xl bg-secondary/60 px-3.5 py-2.5">
           <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-            Receita total
+            Receita bruta
           </p>
           <p className="text-lg font-black font-mono text-profit">{formatCurrency(totalRevenue)}</p>
         </div>
         <div className="rounded-xl bg-secondary/60 px-3.5 py-2.5">
           <p className="text-[10px] uppercase tracking-widest font-semibold text-muted-foreground">
-            Fretes ativos
+            Receita líquida
           </p>
-          <p className="text-lg font-black font-mono text-foreground">{tripsWithActiveFreight.length}</p>
+          <p className={`text-lg font-black font-mono ${totalNet >= 0 ? "text-profit" : "text-expense"}`}>
+            {formatCurrency(totalNet)}
+          </p>
         </div>
       </div>
 

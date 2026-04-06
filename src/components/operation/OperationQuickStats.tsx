@@ -1,21 +1,30 @@
 import { Trip } from "@/types";
-import { formatCurrency, getTripGrossRevenue } from "@/lib/calculations";
+import { formatCurrency, getTripGrossRevenue, getTripNetRevenue } from "@/lib/calculations";
 import { getCurrentFreight } from "@/lib/freightStatus";
-import { FontAwesomeIcon, iconRoute, iconClock3, iconWallet, iconReceipt } from "@/lib/icons";
+import { FontAwesomeIcon, iconRoute, iconClock3, iconWallet, iconTrendingUp } from "@/lib/icons";
 
 interface OperationQuickStatsProps {
   activeTrips: Trip[];
   todayTrips: Trip[];
 }
 
+/**
+ * Render a 2-column grid of four quick-stat cards summarizing active trips and today's financials.
+ *
+ * The cards display: number of active trips, today's gross revenue (formatted), count of active freights,
+ * and the active net revenue (formatted or "—" when there are no active trips). Each value uses conditional
+ * styling classes to indicate profit/info/expense states and some values use a monospace font.
+ *
+ * @param activeTrips - Array of trips currently active; used to compute counts and aggregate net revenue
+ * @param todayTrips - Array of trips for today; used to compute today's gross revenue
+ * @returns A React element containing the styled grid of quick-stat cards
+ */
 export function OperationQuickStats({ activeTrips, todayTrips }: OperationQuickStatsProps) {
   const todayRevenue = todayTrips.reduce((s, t) => s + getTripGrossRevenue(t), 0);
   const activeFreightsCount = activeTrips.filter((t) => getCurrentFreight(t) !== null).length;
 
-  const todayLaunches = todayTrips.reduce(
-    (sum, t) => sum + t.freights.length + t.fuelings.length + t.expenses.length,
-    0,
-  );
+  // Net revenue across all active trips (operational earnings so far)
+  const activeNetRevenue = activeTrips.reduce((sum, t) => sum + getTripNetRevenue(t), 0);
 
   const stats = [
     {
@@ -38,10 +47,16 @@ export function OperationQuickStats({ activeTrips, todayTrips }: OperationQuickS
       valueClass: activeFreightsCount > 0 ? "text-info" : "text-foreground",
     },
     {
-      icon: iconReceipt,
-      label: "Lançamentos hoje",
-      value: String(todayLaunches),
-      valueClass: "text-foreground",
+      icon: iconTrendingUp,
+      label: "Líquido ativo",
+      value: activeTrips.length > 0 ? formatCurrency(activeNetRevenue) : "—",
+      valueClass:
+        activeTrips.length === 0
+          ? "text-foreground"
+          : activeNetRevenue >= 0
+            ? "text-profit"
+            : "text-expense",
+      mono: true,
     },
   ];
 

@@ -1,7 +1,8 @@
 import { Trip, Vehicle } from "@/types";
 import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
-import { FontAwesomeIcon, iconPlus, iconTruck, iconHistory, iconChevronRight } from "@/lib/icons";
+import { isTripReadyToFinish } from "@/lib/operationUtils";
+import { FontAwesomeIcon, iconPlus, iconTruck, iconHistory, iconChevronRight, iconWallet, iconCheckCircle } from "@/lib/icons";
 
 interface OperationQuickActionsProps {
   vehicles: Vehicle[];
@@ -9,18 +10,33 @@ interface OperationQuickActionsProps {
   onNewTrip: () => void;
 }
 
+/**
+ * Render a set of context-aware quick action buttons for trip and fleet operations.
+ *
+ * The displayed actions depend on `activeTrips` and `vehicles` (for example: continue an ongoing freight,
+ * view a single active trip, start a new trip, finalize a trip ready to finish, record a personal expense,
+ * navigate to fleet or history). Returns `null` when no actions apply.
+ *
+ * @param vehicles - Available vehicles used to build fleet-related actions and counts
+ * @param activeTrips - Currently active trips used to derive contextual and completion actions
+ * @param onNewTrip - Callback invoked to start a new trip
+ * @returns A section element containing the quick action buttons, or `null` when no actions are applicable
+ */
 export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: OperationQuickActionsProps) {
   const navigate = useNavigate();
 
   const singleActiveTrip = activeTrips.length === 1 ? activeTrips[0] : null;
   const activeFreightTrip = activeTrips.find((t) => getCurrentFreight(t) !== null);
 
+  // Trip ready to finish: has freights and all are completed
+  const readyToFinishTrip = activeTrips.find(isTripReadyToFinish);
+
   const actions: Array<{
     icon: typeof iconPlus;
     label: string;
     description: string;
     onClick: () => void;
-    variant: "primary" | "secondary";
+    variant: "primary" | "secondary" | "success";
   }> = [];
 
   // Context-aware primary action
@@ -47,6 +63,28 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
       description: "Iniciar operação",
       onClick: onNewTrip,
       variant: "primary",
+    });
+  }
+
+  // Finalizar viagem shortcut when a trip is ready
+  if (readyToFinishTrip) {
+    actions.push({
+      icon: iconCheckCircle,
+      label: "Finalizar viagem",
+      description: "Todos os fretes concluídos",
+      onClick: () => navigate(`/trip/${readyToFinishTrip.id}`),
+      variant: "success",
+    });
+  }
+
+  // Registrar gasto pessoal when there's an active trip
+  if (activeTrips.length > 0) {
+    actions.push({
+      icon: iconWallet,
+      label: "Gasto pessoal",
+      description: "Alimentação, banho…",
+      onClick: () => navigate("/personal-expenses"),
+      variant: "secondary",
     });
   }
 
@@ -84,15 +122,31 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
             className={`flex flex-col items-start gap-1.5 rounded-xl p-3.5 text-left transition-colors ${
               action.variant === "primary"
                 ? "bg-primary/10 border border-primary/20 hover:bg-primary/20"
-                : "bg-card border border-border hover:bg-secondary"
+                : action.variant === "success"
+                  ? "bg-profit/10 border border-profit/20 hover:bg-profit/20"
+                  : "bg-card border border-border hover:bg-secondary"
             }`}
           >
             <FontAwesomeIcon
               icon={action.icon}
-              className={`w-4 h-4 ${action.variant === "primary" ? "text-primary" : "text-muted-foreground"}`}
+              className={`w-4 h-4 ${
+                action.variant === "primary"
+                  ? "text-primary"
+                  : action.variant === "success"
+                    ? "text-profit"
+                    : "text-muted-foreground"
+              }`}
             />
             <div>
-              <p className={`text-xs font-bold ${action.variant === "primary" ? "text-primary" : "text-foreground"}`}>
+              <p
+                className={`text-xs font-bold ${
+                  action.variant === "primary"
+                    ? "text-primary"
+                    : action.variant === "success"
+                      ? "text-profit"
+                      : "text-foreground"
+                }`}
+              >
                 {action.label}
               </p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{action.description}</p>

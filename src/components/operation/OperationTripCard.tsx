@@ -1,7 +1,8 @@
 import { Trip } from "@/types";
 import { useApp } from "@/context/app-context";
-import { getTripGrossRevenue, getLastDestination, formatCurrency } from "@/lib/calculations";
+import { getTripGrossRevenue, getTripNetRevenue, getLastDestination, formatCurrency } from "@/lib/calculations";
 import { getCurrentFreight } from "@/lib/freightStatus";
+import { getTripAgeDays } from "@/lib/operationUtils";
 import { useNavigate } from "react-router-dom";
 import { useState } from "react";
 import { FinishTripModal } from "@/components/FinishTripModal";
@@ -14,6 +15,9 @@ import {
   iconTrash2,
   iconAlertTriangle,
   iconRoute,
+  iconClock3,
+  iconPlayCircle,
+  iconTrendingUp,
 } from "@/lib/icons";
 
 interface OperationTripCardProps {
@@ -60,17 +64,30 @@ const PRIORITY_META: Record<
   },
 };
 
+/**
+ * Render a clickable operation card summarizing a trip, its status, revenue, and available actions.
+ *
+ * Displays vehicle info, trip age, current or last destination, freight counters, partial gross and net revenue,
+ * and action buttons to start a leg, finish the trip, or delete the trip. Also opens a finish-trip modal when needed.
+ *
+ * @param trip - The trip to display (includes freights, fuelings, vehicleId, and related metadata)
+ * @returns The trip card element with interactive controls and a finish-trip modal
+ */
 export function OperationTripCard({ trip }: OperationTripCardProps) {
   const { data, finishTrip, deleteTrip } = useApp();
   const navigate = useNavigate();
   const vehicle = data.vehicles.find((v) => v.id === trip.vehicleId);
   const gross = getTripGrossRevenue(trip);
+  const net = getTripNetRevenue(trip);
   const lastDest = getLastDestination(trip);
   const currentFreight = getCurrentFreight(trip);
   const priorityTag = getTripPriority(trip);
   const meta = PRIORITY_META[priorityTag];
 
   const [showFinishModal, setShowFinishModal] = useState(false);
+
+  // Trip age in days
+  const tripAgeDays = getTripAgeDays(trip);
 
   const operationalMaxKm = Math.max(
     vehicle?.currentKm || 0,
@@ -93,6 +110,7 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
 
   const plannedCount = trip.freights.filter((f) => f.status === "planned").length;
   const completedCount = trip.freights.filter((f) => f.status === "completed").length;
+  const inProgressCount = trip.freights.filter((f) => f.status === "in_progress").length;
 
   return (
     <>
@@ -113,11 +131,17 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
               <p className="text-sm font-bold text-foreground leading-tight">
                 {vehicle ? `${vehicle.brand} ${vehicle.model}` : "Veículo não encontrado"}
               </p>
-              {vehicle && (
-                <span className="inline-block mt-0.5 px-2 py-0.5 rounded bg-accent text-[9px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
-                  {vehicle.plate}
+              <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+                {vehicle && (
+                  <span className="px-2 py-0.5 rounded bg-accent text-[9px] font-mono font-bold tracking-wider text-muted-foreground border border-border">
+                    {vehicle.plate}
+                  </span>
+                )}
+                <span className="flex items-center gap-1 text-[9px] text-muted-foreground">
+                  <FontAwesomeIcon icon={iconClock3} className="w-2.5 h-2.5" />
+                  {tripAgeDays === 0 ? "hoje" : tripAgeDays === 1 ? "1 dia" : `${tripAgeDays} dias`}
                 </span>
-              )}
+              </div>
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
@@ -149,6 +173,12 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
 
           {/* Freight counters */}
           <div className="flex items-center gap-2 flex-wrap">
+            {inProgressCount > 0 && (
+              <span className="chip text-[10px]">
+                <FontAwesomeIcon icon={iconRoute} className="w-3 h-3 text-info" />
+                {inProgressCount} em andamento
+              </span>
+            )}
             {completedCount > 0 && (
               <span className="chip text-[10px]">
                 <FontAwesomeIcon icon={iconCheckCircle} className="w-3 h-3 text-profit" />
@@ -166,16 +196,37 @@ export function OperationTripCard({ trip }: OperationTripCardProps) {
 
         {/* Footer: revenue + actions */}
         <div
-          className="px-4 pb-4 flex items-center justify-between border-t border-border/30 pt-3"
+          className="px-4 pb-4 flex items-end justify-between border-t border-border/30 pt-3"
           onClick={(e) => e.stopPropagation()}
         >
-          <div>
-            <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
-              Faturamento parcial
-            </p>
-            <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+          <div className="space-y-1">
+            <div>
+              <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-semibold">
+                Bruto parcial
+              </p>
+              <p className="text-xl font-black font-mono text-profit">{formatCurrency(gross)}</p>
+            </div>
+            {net !== 0 && (
+              <div className="flex items-center gap-1">
+                <FontAwesomeIcon icon={iconTrendingUp} className="w-3 h-3 text-muted-foreground" />
+                <span className="text-[10px] text-muted-foreground">
+                  Líq.{" "}
+                  <span className={net >= 0 ? "text-profit font-semibold" : "text-expense font-semibold"}>
+                    {formatCurrency(net)}
+                  </span>
+                </span>
+              </div>
+            )}
           </div>
           <div className="flex gap-2">
+            {priorityTag === "pending_planned" && !currentFreight && (
+              <button
+                onClick={() => navigate(`/trip/${trip.id}`)}
+                className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-warning/10 text-warning text-xs font-semibold hover:bg-warning/20 transition-colors"
+              >
+                <FontAwesomeIcon icon={iconPlayCircle} className="w-4 h-4" /> Iniciar trecho
+              </button>
+            )}
             {priorityTag === "ready_to_finish" && (
               <button
                 onClick={() => setShowFinishModal(true)}
