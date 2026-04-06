@@ -193,6 +193,7 @@ export function OperationAlerts({ activeTrips, vehicles, singleTripMode = false 
     } catch (error) {
       const message = error instanceof Error ? error.message : "Tente novamente.";
       toast({ title: "Não deu para finalizar", description: message, variant: "destructive" });
+      throw error;
     }
   };
 
