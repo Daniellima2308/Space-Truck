@@ -5,6 +5,7 @@ import { useNavigate } from "react-router-dom";
 import { getCurrentFreight } from "@/lib/freightStatus";
 import { isTripReadyToFinish } from "@/lib/operationUtils";
 import { FinishTripModal } from "@/components/FinishTripModal";
+import { toast } from "@/hooks/use-toast";
 import {
   FontAwesomeIcon,
   iconAlertTriangle,
@@ -141,8 +142,14 @@ export function OperationAlerts({ activeTrips, vehicles }: OperationAlertsProps)
     allowPendingPlanned: boolean;
   }) => {
     if (!finishTripId) return;
-    await finishTrip(finishTripId, { arrivalKm: km, allowPendingPlanned });
-    setFinishTripId(null);
+    try {
+      await finishTrip(finishTripId, { arrivalKm: km, allowPendingPlanned });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Tente novamente.";
+      toast({ title: "Não deu para finalizar", description: message, variant: "destructive" });
+    } finally {
+      setFinishTripId(null);
+    }
   };
 
   return (
