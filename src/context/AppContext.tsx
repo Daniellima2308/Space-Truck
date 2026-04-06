@@ -7,6 +7,7 @@ import {
   Fueling,
   TripStatus,
   MaintenanceService,
+  Expense,
   PersonalExpense,
   VehicleOperationProfile,
   DriverBond,
