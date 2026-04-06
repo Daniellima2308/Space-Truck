@@ -126,6 +126,10 @@ describe("mapFreightRow", () => {
     expect(mapFreightRow({ ...base, status: null }).status).toBe("planned");
   });
 
+  it("usa 'planned' como padrão quando status é desconhecido", () => {
+    expect(mapFreightRow({ ...base, status: "unknown_status" }).status).toBe("planned");
+  });
+
   it("usa 0 como padrão quando estimated_distance é null", () => {
     expect(mapFreightRow({ ...base, estimated_distance: null }).estimatedDistance).toBe(0);
   });
@@ -223,6 +227,10 @@ describe("mapExpenseRow", () => {
     const url = "https://example.com/receipt.jpg";
     expect(mapExpenseRow({ ...base, receipt_url: url }).receiptUrl).toBe(url);
   });
+
+  it("usa 'outros' como padrão quando category é desconhecida", () => {
+    expect(mapExpenseRow({ ...base, category: "categoria_invalida" }).category).toBe("outros");
+  });
 });
 
 // ---------------------------------------------------------------------------
@@ -247,6 +255,10 @@ describe("mapPersonalExpenseRow", () => {
     expect(pe.description).toBe("Almoço na estrada");
     expect(pe.value).toBe(35);
     expect(pe.date).toBe("2026-01-01");
+  });
+
+  it("usa 'outros' como padrão quando category é desconhecida", () => {
+    expect(mapPersonalExpenseRow({ ...base, category: "categoria_invalida" }).category).toBe("outros");
   });
 });
 
@@ -533,6 +545,18 @@ describe("buildTripsFromRows", () => {
     });
 
     expect(trips[0].estimatedDistance).toBe(0);
+  });
+
+  it("usa 'open' como padrão quando status é desconhecido", () => {
+    const trips = buildTripsFromRows({
+      tripRows: [{ ...tripRows[0], status: "invalid_status" }],
+      freightsMap: new Map(),
+      fuelingsMap: new Map(),
+      expensesMap: new Map(),
+      personalExpMap: new Map(),
+    });
+
+    expect(trips[0].status).toBe("open");
   });
 
   it("normaliza conflitos de in_progress via normalizeTripFreights", () => {

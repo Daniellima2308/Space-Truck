@@ -1,15 +1,17 @@
-import type {
-  Vehicle,
-  Freight,
-  Fueling,
-  Expense,
-  PersonalExpense,
-  MaintenanceService,
-  Trip,
-  TripStatus,
-  FreightStatus,
-  ExpenseCategory,
-  PersonalExpenseCategory,
+import {
+  type Vehicle,
+  type Freight,
+  type Fueling,
+  type Expense,
+  type PersonalExpense,
+  type MaintenanceService,
+  type Trip,
+  type TripStatus,
+  type FreightStatus,
+  type ExpenseCategory,
+  type PersonalExpenseCategory,
+  EXPENSE_CATEGORY_LABELS,
+  PERSONAL_EXPENSE_LABELS,
 } from "@/types";
 import { isDriverBond, isVehicleOperationProfile } from "@/lib/vehicleOperation";
 import { normalizeTripFreights } from "@/lib/freightStatus";
@@ -122,6 +124,8 @@ export function mapVehicleRow(v: VehicleRow): Vehicle {
   };
 }
 
+const FREIGHT_STATUSES: ReadonlySet<string> = new Set<FreightStatus>(["planned", "in_progress", "completed"]);
+
 export function mapFreightRow(f: FreightRow): Freight {
   return {
     id: f.id,
@@ -132,7 +136,7 @@ export function mapFreightRow(f: FreightRow): Freight {
     grossValue: f.gross_value,
     commissionPercent: f.commission_percent,
     commissionValue: f.commission_value,
-    status: (f.status || "planned") as FreightStatus,
+    status: FREIGHT_STATUSES.has(f.status ?? "") ? (f.status as FreightStatus) : "planned",
     estimatedDistance: f.estimated_distance || 0,
     createdAt: f.created_at,
   };
@@ -157,10 +161,13 @@ export function mapFuelingRow(f: FuelingRow): Fueling {
 }
 
 export function mapExpenseRow(e: ExpenseRow): Expense {
+  const category = e.category in EXPENSE_CATEGORY_LABELS
+    ? (e.category as ExpenseCategory)
+    : "outros";
   return {
     id: e.id,
     tripId: e.trip_id,
-    category: e.category as ExpenseCategory,
+    category,
     description: e.description,
     value: e.value,
     date: e.date,
@@ -169,10 +176,13 @@ export function mapExpenseRow(e: ExpenseRow): Expense {
 }
 
 export function mapPersonalExpenseRow(pe: PersonalExpenseRow): PersonalExpense {
+  const category = pe.category in PERSONAL_EXPENSE_LABELS
+    ? (pe.category as PersonalExpenseCategory)
+    : "outros";
   return {
     id: pe.id,
     tripId: pe.trip_id,
-    category: pe.category as PersonalExpenseCategory,
+    category,
     description: pe.description,
     value: pe.value,
     date: pe.date,
@@ -234,9 +244,11 @@ export function buildPersonalExpensesMap(rows: PersonalExpenseRow[]): Map<string
   return map;
 }
 
+const TRIP_STATUSES: ReadonlySet<string> = new Set<TripStatus>(["open", "finished"]);
+
 // ---------------------------------------------------------------------------
 // Trip assembler — builds Trip[] from rows + pre-built sub-entity maps
-// Normalizes freight order and sorts fuelings by timeline internally.
+// Normalizes freight statuses and sorts fuelings by timeline internally.
 // ---------------------------------------------------------------------------
 
 export function buildTripsFromRows(params: {
@@ -254,7 +266,7 @@ export function buildTripsFromRows(params: {
   return params.tripRows.map((t) => ({
     id: t.id,
     vehicleId: t.vehicle_id,
-    status: t.status as TripStatus,
+    status: TRIP_STATUSES.has(t.status) ? (t.status as TripStatus) : "open",
     freights: normalizedFreightsMap.get(t.id) || [],
     fuelings: sortFuelingsByTimeline(params.fuelingsMap.get(t.id) || []),
     expenses: params.expensesMap.get(t.id) || [],
