@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: read
+    # Skip on PRs from forks: secrets are not available there, which would fail the scan
+    if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
       - name: Checkout repository (full history)
