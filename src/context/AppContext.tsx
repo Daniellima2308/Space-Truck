@@ -5,15 +5,13 @@ import {
   Trip,
   Freight,
   Fueling,
-  Expense,
   TripStatus,
   MaintenanceService,
+  Expense,
   PersonalExpense,
   VehicleOperationProfile,
   DriverBond,
   FreightStatus,
-  ExpenseCategory,
-  PersonalExpenseCategory,
 } from "@/types";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/context/auth-context";
@@ -39,7 +37,6 @@ import {
   validatePositiveNumber,
 } from "@/lib/fieldValidation";
 import {
-  isDriverBond,
   isVehicleOperationProfile,
   normalizeVehicleProfileForPersistence,
   normalizeVehicleProfileUpdateForPersistence,
@@ -53,8 +50,17 @@ import {
   buildTripStartKmMap,
   calculateFuelingPricePerLiter,
   getFuelingOriginalTotalValue,
-  sortFuelingsByTimeline,
 } from "@/lib/fueling";
+import {
+  mapFreightRow,
+  mapMaintenanceServiceRow,
+  mapVehicleRow,
+  buildFreightsMap,
+  buildFuelingsMap,
+  buildExpensesMap,
+  buildPersonalExpensesMap,
+  buildTripsFromRows,
+} from "@/lib/mappers";
 
 const round2 = (value: number) => Math.round(value * 100) / 100;
 
@@ -295,20 +301,7 @@ async function getVehicleFuelingSnapshot(vehicleId: string): Promise<VehicleFuel
 
   const freightsByTrip = new Map<string, Freight[]>();
   (freights || []).forEach((freight) => {
-    const normalized: Freight = {
-      id: freight.id,
-      tripId: freight.trip_id,
-      origin: freight.origin,
-      destination: freight.destination,
-      kmInitial: freight.km_initial,
-      grossValue: freight.gross_value,
-      commissionPercent: freight.commission_percent,
-      commissionValue: freight.commission_value,
-      status: (freight.status || "planned") as FreightStatus,
-      estimatedDistance: freight.estimated_distance || 0,
-      createdAt: freight.created_at,
-    };
-
+    const normalized = mapFreightRow(freight);
     if (!freightsByTrip.has(freight.trip_id)) freightsByTrip.set(freight.trip_id, []);
     freightsByTrip.get(freight.trip_id)!.push(normalized);
   });
@@ -749,204 +742,23 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
           );
         }
 
-        const vehicles: Vehicle[] = (vehiclesRes.data || []).map(
-          (v: {
-            id: string;
-            brand: string;
-            model: string;
-            year: number;
-            plate: string;
-            is_fleet_owner: boolean | null;
-            driver_name: string | null;
-            current_km: number | null;
-            operation_profile: string | null;
-            driver_bond: string | null;
-            default_commission_percent: number | null;
-          }) => ({
-            id: v.id,
-            brand: v.brand,
-            model: v.model,
-            year: v.year,
-            plate: v.plate,
-            isFleetOwner: v.is_fleet_owner,
-            driverName: v.driver_name,
-            currentKm: v.current_km || 0,
-            operationProfile: isVehicleOperationProfile(v.operation_profile)
-              ? v.operation_profile
-              : "driver_owner",
-            driverBond: isDriverBond(v.driver_bond) ? v.driver_bond : undefined,
-            defaultCommissionPercent: v.default_commission_percent ?? undefined,
-          }),
-        );
+        const vehicles: Vehicle[] = (vehiclesRes.data || []).map(mapVehicleRow);
 
-        const freightsMap = new Map<string, Freight[]>();
-        (freightsRes.data || []).forEach(
-          (f: {
-            id: string;
-            trip_id: string;
-            origin: string;
-            destination: string;
-            km_initial: number;
-            gross_value: number;
-            commission_percent: number;
-            commission_value: number;
-            status: string | null;
-            estimated_distance: number | null;
-            created_at: string;
-          }) => {
-            const freight: Freight = {
-              id: f.id,
-              tripId: f.trip_id,
-              origin: f.origin,
-              destination: f.destination,
-              kmInitial: f.km_initial,
-              grossValue: f.gross_value,
-              commissionPercent: f.commission_percent,
-              commissionValue: f.commission_value,
-              status: (f.status || "planned") as FreightStatus,
-              estimatedDistance: f.estimated_distance || 0,
-              createdAt: f.created_at,
-            };
-            if (!freightsMap.has(f.trip_id)) freightsMap.set(f.trip_id, []);
-            freightsMap.get(f.trip_id)!.push(freight);
-          },
-        );
+        const freightsMap = buildFreightsMap(freightsRes.data || []);
+        const fuelingsMap = buildFuelingsMap(fuelingsRes.data || []);
+        const expensesMap = buildExpensesMap(expensesRes.data || []);
+        const personalExpMap = buildPersonalExpensesMap(personalExpRes.data || []);
 
-        const fuelingsMap = new Map<string, Fueling[]>();
-        (fuelingsRes.data || []).forEach(
-          (f: {
-            id: string;
-            trip_id: string;
-            station: string;
-            total_value: number;
-            liters: number;
-            price_per_liter: number;
-            km_current: number;
-            full_tank: boolean | null;
-            average: number;
-            date: string;
-            receipt_url: string | null;
-            allocated_value: number | null;
-            original_total_value: number | null;
-          }) => {
-            const fueling: Fueling = {
-              id: f.id,
-              tripId: f.trip_id,
-              stationName: f.station,
-              totalValue: f.total_value,
-              liters: f.liters,
-              pricePerLiter: f.price_per_liter,
-              kmCurrent: f.km_current,
-              fullTank: f.full_tank,
-              average: f.average,
-              date: f.date,
-              receiptUrl: f.receipt_url || undefined,
-              allocatedValue: f.allocated_value ?? undefined,
-              originalTotalValue: f.original_total_value ?? undefined,
-            };
-            if (!fuelingsMap.has(f.trip_id)) fuelingsMap.set(f.trip_id, []);
-            fuelingsMap.get(f.trip_id)!.push(fueling);
-          },
-        );
-
-        const expensesMap = new Map<string, Expense[]>();
-        (expensesRes.data || []).forEach(
-          (e: {
-            id: string;
-            trip_id: string;
-            category: string;
-            description: string;
-            value: number;
-            date: string;
-            receipt_url: string | null;
-          }) => {
-            const expense: Expense = {
-              id: e.id,
-              tripId: e.trip_id,
-              category: e.category as ExpenseCategory,
-              description: e.description,
-              value: e.value,
-              date: e.date,
-              receiptUrl: e.receipt_url || undefined,
-            };
-            if (!expensesMap.has(e.trip_id)) expensesMap.set(e.trip_id, []);
-            expensesMap.get(e.trip_id)!.push(expense);
-          },
-        );
-
-        const personalExpMap = new Map<string, PersonalExpense[]>();
-        (personalExpRes.data || []).forEach(
-          (pe: {
-            id: string;
-            trip_id: string;
-            category: string;
-            description: string;
-            value: number;
-            date: string;
-          }) => {
-            const item: PersonalExpense = {
-              id: pe.id,
-              tripId: pe.trip_id,
-              category: pe.category as PersonalExpenseCategory,
-              description: pe.description,
-              value: pe.value,
-              date: pe.date,
-            };
-            if (!personalExpMap.has(pe.trip_id))
-              personalExpMap.set(pe.trip_id, []);
-            personalExpMap.get(pe.trip_id)!.push(item);
-          },
-        );
-
-        const normalizedFreightsMap = new Map<string, Freight[]>();
-        for (const [tripId, freights] of freightsMap.entries()) {
-          normalizedFreightsMap.set(tripId, normalizeTripFreights(freights));
-        }
-
-        const trips: Trip[] = (tripsRes.data || []).map(
-          (t: {
-            id: string;
-            vehicle_id: string;
-            status: string;
-            created_at: string;
-            finished_at: string | null;
-            estimated_distance: number | null;
-          }) => ({
-            id: t.id,
-            vehicleId: t.vehicle_id,
-            status: t.status as TripStatus,
-            freights: normalizedFreightsMap.get(t.id) || [],
-            fuelings: fuelingsMap.get(t.id) || [],
-            expenses: expensesMap.get(t.id) || [],
-            personalExpenses: personalExpMap.get(t.id) || [],
-            createdAt: t.created_at,
-            finishedAt: t.finished_at,
-            estimatedDistance: t.estimated_distance || 0,
-          }),
-        );
-
-        trips.forEach((trip) => {
-          trip.fuelings = sortFuelingsByTimeline(trip.fuelings);
+        const trips: Trip[] = buildTripsFromRows({
+          tripRows: tripsRes.data || [],
+          freightsMap,
+          fuelingsMap,
+          expensesMap,
+          personalExpMap,
         });
 
-        const maintenanceServices: MaintenanceService[] = (
-          maintRes.data || []
-        ).map(
-          (s: {
-            id: string;
-            vehicle_id: string;
-            service_name: string;
-            last_change_km: number;
-            interval_km: number;
-            created_at: string;
-          }) => ({
-            id: s.id,
-            vehicleId: s.vehicle_id,
-            serviceName: s.service_name,
-            lastChangeKm: s.last_change_km,
-            intervalKm: s.interval_km,
-            createdAt: s.created_at,
-          }),
+        const maintenanceServices: MaintenanceService[] = (maintRes.data || []).map(
+          mapMaintenanceServiceRow,
         );
 
         const appData = { vehicles, trips, maintenanceServices };
