@@ -8,6 +8,8 @@ interface OperationQuickActionsProps {
   vehicles: Vehicle[];
   activeTrips: Trip[];
   onNewTrip: () => void;
+  /** When true (single active trip), skip primary navigation/finish actions already present in OperationHero */
+  singleTripMode?: boolean;
 }
 
 /**
@@ -22,7 +24,7 @@ interface OperationQuickActionsProps {
  * @param onNewTrip - Callback invoked to start a new trip
  * @returns A section element containing the quick action buttons, or `null` when no actions are applicable
  */
-export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: OperationQuickActionsProps) {
+export function OperationQuickActions({ vehicles, activeTrips, onNewTrip, singleTripMode = false }: OperationQuickActionsProps) {
   const navigate = useNavigate();
 
   const singleActiveTrip = activeTrips.length === 1 ? activeTrips[0] : null;
@@ -39,7 +41,7 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
     variant: "primary" | "secondary" | "success";
   }> = [];
 
-  // Context-aware primary action
+  // Context-aware primary action — always rendered to keep a focusable entry-point for keyboard users
   if (activeFreightTrip) {
     actions.push({
       icon: iconChevronRight,
@@ -56,7 +58,7 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
       onClick: () => navigate(`/trip/${singleActiveTrip.id}`),
       variant: "primary",
     });
-  } else if (vehicles.length > 0) {
+  } else if (!singleTripMode && vehicles.length > 0) {
     actions.push({
       icon: iconPlus,
       label: "Nova Viagem",
@@ -66,8 +68,8 @@ export function OperationQuickActions({ vehicles, activeTrips, onNewTrip }: Oper
     });
   }
 
-  // Finalizar viagem shortcut when a trip is ready
-  if (readyToFinishTrip) {
+  // Finalizar viagem shortcut — suppressed in single-trip mode (Hero handles it)
+  if (!singleTripMode && readyToFinishTrip) {
     actions.push({
       icon: iconCheckCircle,
       label: "Finalizar viagem",
