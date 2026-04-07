@@ -176,18 +176,19 @@ function makeBuilder(table: TableName) {
     return { data: rows, error: null };
   };
 
+  function extractErrorMsg(err: string | null | { message: string }): string {
+    return typeof err === "string" ? err : err?.message ?? "";
+  }
+
   const executeMutation = async () => {
     if (state.mode === "insert" && table === "vehicles" && dbErrors.vehicles_insert != null) {
-      const msg = typeof dbErrors.vehicles_insert === "string" ? dbErrors.vehicles_insert : dbErrors.vehicles_insert.message;
-      return { data: [], error: { message: msg } };
+      return { data: [], error: { message: extractErrorMsg(dbErrors.vehicles_insert) } };
     }
     if (state.mode === "update" && table === "vehicles" && dbErrors.vehicles_update != null) {
-      const msg = typeof dbErrors.vehicles_update === "string" ? dbErrors.vehicles_update : dbErrors.vehicles_update.message;
-      return { data: [], error: { message: msg } };
+      return { data: [], error: { message: extractErrorMsg(dbErrors.vehicles_update) } };
     }
     if (state.mode === "delete" && table === "vehicles" && dbErrors.vehicles_delete != null) {
-      const msg = typeof dbErrors.vehicles_delete === "string" ? dbErrors.vehicles_delete : dbErrors.vehicles_delete.message;
-      return { data: [], error: { message: msg } };
+      return { data: [], error: { message: extractErrorMsg(dbErrors.vehicles_delete) } };
     }
 
     const rows = applyFilters(dbState[table], state.filters);
@@ -206,8 +207,7 @@ function makeBuilder(table: TableName) {
       state.mode = "insert";
       state.insertValues = values;
       if (dbErrors.vehicles_insert != null && table === "vehicles") {
-        const msg = typeof dbErrors.vehicles_insert === "string" ? dbErrors.vehicles_insert : dbErrors.vehicles_insert.message;
-        return { data: null, error: { message: msg } };
+        return { data: null, error: { message: extractErrorMsg(dbErrors.vehicles_insert) } };
       }
       const arr = (Array.isArray(values) ? values : [values]).map((v, i) => ({
         id: v.id ?? `${table}-${dbState[table].length + i + 1}`,
