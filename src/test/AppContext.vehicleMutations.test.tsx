@@ -32,9 +32,9 @@ const fieldValidationMocks = vi.hoisted(() => ({
 }));
 
 const dbErrors = vi.hoisted(() => ({
-  vehicles_insert: null as string | null,
-  vehicles_update: null as string | null,
-  vehicles_delete: null as string | null,
+  vehicles_insert: null as string | null | { message: string },
+  vehicles_update: null as string | null | { message: string },
+  vehicles_delete: null as string | null | { message: string },
 }));
 
 vi.mock("@/hooks/use-toast", () => ({
@@ -177,14 +177,17 @@ function makeBuilder(table: TableName) {
   };
 
   const executeMutation = async () => {
-    if (state.mode === "insert" && table === "vehicles" && dbErrors.vehicles_insert) {
-      return { data: [], error: { message: dbErrors.vehicles_insert } };
+    if (state.mode === "insert" && table === "vehicles" && dbErrors.vehicles_insert != null) {
+      const msg = typeof dbErrors.vehicles_insert === "string" ? dbErrors.vehicles_insert : dbErrors.vehicles_insert.message;
+      return { data: [], error: { message: msg } };
     }
-    if (state.mode === "update" && table === "vehicles" && dbErrors.vehicles_update) {
-      return { data: [], error: { message: dbErrors.vehicles_update } };
+    if (state.mode === "update" && table === "vehicles" && dbErrors.vehicles_update != null) {
+      const msg = typeof dbErrors.vehicles_update === "string" ? dbErrors.vehicles_update : dbErrors.vehicles_update.message;
+      return { data: [], error: { message: msg } };
     }
-    if (state.mode === "delete" && table === "vehicles" && dbErrors.vehicles_delete) {
-      return { data: [], error: { message: dbErrors.vehicles_delete } };
+    if (state.mode === "delete" && table === "vehicles" && dbErrors.vehicles_delete != null) {
+      const msg = typeof dbErrors.vehicles_delete === "string" ? dbErrors.vehicles_delete : dbErrors.vehicles_delete.message;
+      return { data: [], error: { message: msg } };
     }
 
     const rows = applyFilters(dbState[table], state.filters);
@@ -202,8 +205,9 @@ function makeBuilder(table: TableName) {
     insert: vi.fn(async (values: Row | Row[]) => {
       state.mode = "insert";
       state.insertValues = values;
-      if (dbErrors.vehicles_insert && table === "vehicles") {
-        return { data: null, error: { message: dbErrors.vehicles_insert } };
+      if (dbErrors.vehicles_insert != null && table === "vehicles") {
+        const msg = typeof dbErrors.vehicles_insert === "string" ? dbErrors.vehicles_insert : dbErrors.vehicles_insert.message;
+        return { data: null, error: { message: msg } };
       }
       const arr = (Array.isArray(values) ? values : [values]).map((v, i) => ({
         id: v.id ?? `${table}-${dbState[table].length + i + 1}`,
@@ -457,6 +461,39 @@ describe("AppContext vehicle mutations", () => {
     await app.updateVehicleKm("vehicle-1", 500);
     const v = dbState.vehicles.find((x) => x.id === "vehicle-1");
     expect(Number(v?.current_km)).toBe(500);
+    unmount();
+  });
+
+  // ─── fallback error messages ──────────────────────────────────────────────
+
+  it("updateVehicle com erro sem message usa fallback", async () => {
+    dbErrors.vehicles_update = { message: "" };
+    const { app, unmount } = await renderApp();
+    await expect(
+      app.updateVehicle("vehicle-1", { brand: "Erro" }),
+    ).rejects.toThrow("Falha ao atualizar o veículo.");
+    unmount();
+  });
+
+  it("deleteVehicle com erro sem message usa fallback", async () => {
+    dbErrors.vehicles_delete = { message: "" };
+    const { app, unmount } = await renderApp();
+    await expect(app.deleteVehicle("vehicle-1")).rejects.toThrow(
+      "Falha ao excluir o veículo.",
+    );
+    unmount();
+  });
+
+  it("updateVehicleKm com erro sem message usa fallback", async () => {
+    dbErrors.vehicles_update = { message: "" };
+    const { app, unmount } = await renderApp();
+    await app.updateVehicleKm("vehicle-1", 999);
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+        description: "Falha ao atualizar o KM do veículo.",
+      }),
+    );
     unmount();
   });
 });
