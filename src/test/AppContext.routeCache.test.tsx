@@ -375,7 +375,7 @@ describe("AppContext route cache flows", () => {
     unmount();
   }, 15000);
 
-  it("bloqueia edição de frete quando a nova rota falha, preserva dados antigos e mostra feedback claro", async () => {
+  it("persiste frete com novos dados quando a distância falha, mostra feedback de aviso", async () => {
     sharedMocks.refreshRouteDistanceCacheMock.mockResolvedValue({
       distanceKm: null,
       reason: "Geocodificação falhou",
@@ -396,13 +396,13 @@ describe("AppContext route cache flows", () => {
     });
 
     expect(dbState.freights[0]).toMatchObject({
-      origin: "Origem antiga",
-      destination: "Destino antigo",
+      origin: "Nova origem",
+      destination: "Novo destino",
       estimated_distance: 500,
     });
     expect(
       operations.updates.find((entry) => entry.table === "freights"),
-    ).toBeUndefined();
+    ).toBeDefined();
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({
         title: "Previsão ainda em ajuste",
