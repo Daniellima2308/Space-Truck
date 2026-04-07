@@ -336,6 +336,39 @@ describe("AppContext fueling mutations", () => {
     unmount();
   });
 
+  it("addFueling com KM incoerente mostra toast destrutivo e não persiste", async () => {
+    fieldValidationMocks.validateKmByContext.mockReturnValueOnce({
+      isValid: false,
+      message: "KM muito baixo para este veículo",
+    });
+
+    const countBefore = dbState.fuelings.length;
+    const { app, unmount } = await renderApp();
+    await app.addFueling("trip-1", fuelingPayload());
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: expect.stringMatching(/KM incoerente/i),
+        variant: "destructive",
+      }),
+    );
+    expect(dbState.fuelings.length).toBe(countBefore);
+    unmount();
+  });
+
+  it("addFueling online com erro na persistência mostra toast de erro", async () => {
+    const { app, unmount } = await renderApp();
+    // Remove the trip so getTripVehicleId fails inside persistFuelingAdd
+    dbState.trips = [];
+    await app.addFueling("trip-1", fuelingPayload());
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+        title: expect.stringMatching(/Não foi possível salvar/i),
+      }),
+    );
+    unmount();
+  });
+
   it("updateFueling offline enfileira", async () => {
     offlineState.online = false;
     const { app, unmount } = await renderApp();
@@ -378,6 +411,43 @@ describe("AppContext fueling mutations", () => {
     expect(dbState.fuelings.find((f) => f.id === "fueling-1")).toBeUndefined();
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Abastecimento excluído" }),
+    );
+    unmount();
+  });
+
+  it("updateFueling online com erro na persistência mostra toast de erro", async () => {
+    const { app, unmount } = await renderApp();
+    // Remove the trip so getTripVehicleId fails inside persistFuelingUpdate
+    dbState.trips = [];
+    await app.updateFueling("trip-1", "fueling-1", fuelingPayload());
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+        title: expect.stringMatching(/Não foi possível atualizar/i),
+      }),
+    );
+    unmount();
+  });
+
+  it("deleteFueling online com erro na persistência mostra toast de erro", async () => {
+    const { app, unmount } = await renderApp();
+    // Remove the trip so getTripVehicleId fails inside persistFuelingDelete
+    dbState.trips = [];
+    await app.deleteFueling("trip-1", "fueling-1");
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        variant: "destructive",
+        title: expect.stringMatching(/Não foi possível excluir/i),
+      }),
+    );
+    unmount();
+  });
+
+  it("updateFueling online sucesso mostra toast de sucesso", async () => {
+    const { app, unmount } = await renderApp();
+    await app.updateFueling("trip-1", "fueling-1", fuelingPayload());
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Abastecimento atualizado" }),
     );
     unmount();
   });

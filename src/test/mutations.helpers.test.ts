@@ -14,6 +14,7 @@ import {
   showOfflineSaved,
   showWarnings,
   ensureMutation,
+  getTripVehicleId,
 } from "@/context/mutations/helpers";
 
 const toastMock = vi.hoisted(() => vi.fn());
@@ -21,9 +22,26 @@ vi.mock("@/hooks/use-toast", () => ({
   toast: toastMock,
 }));
 
-// Supabase is referenced in helpers but not needed for the pure functions
+const supabaseMock = vi.hoisted(() => {
+  const chainBuilder = {
+    select: vi.fn(() => chainBuilder),
+    eq: vi.fn(() => chainBuilder),
+    maybeSingle: vi.fn(async () => ({ data: null, error: null })),
+    single: vi.fn(async () => ({ data: null, error: null })),
+    insert: vi.fn(async () => ({ data: null, error: null })),
+    update: vi.fn(() => chainBuilder),
+    delete: vi.fn(() => chainBuilder),
+    in: vi.fn(() => chainBuilder),
+    order: vi.fn(() => chainBuilder),
+    limit: vi.fn(() => chainBuilder),
+    then: (resolve: (v: unknown) => unknown) =>
+      Promise.resolve({ data: [], error: null }).then(resolve),
+  };
+  return { from: vi.fn(() => chainBuilder), chainBuilder };
+});
+
 vi.mock("@/integrations/supabase/client", () => ({
-  supabase: { from: vi.fn() },
+  supabase: { from: supabaseMock.from },
 }));
 
 vi.mock("@/lib/fieldValidation", () => ({
@@ -339,5 +357,64 @@ describe("ensureMutation", () => {
         "fallback msg",
       ),
     ).rejects.toThrow("fallback msg");
+  });
+});
+
+describe("getTripVehicleId", () => {
+  beforeEach(() => {
+    supabaseMock.from.mockClear();
+    supabaseMock.chainBuilder.maybeSingle.mockReset();
+    supabaseMock.chainBuilder.select.mockClear();
+    supabaseMock.chainBuilder.eq.mockClear();
+    // Reset chain to return itself
+    supabaseMock.chainBuilder.select.mockReturnValue(supabaseMock.chainBuilder);
+    supabaseMock.chainBuilder.eq.mockReturnValue(supabaseMock.chainBuilder);
+  });
+
+  it("returns vehicle_id when trip exists", async () => {
+    supabaseMock.chainBuilder.maybeSingle.mockResolvedValueOnce({
+      data: { vehicle_id: "vehicle-42" },
+      error: null,
+    });
+    const result = await getTripVehicleId("trip-1");
+    expect(result).toBe("vehicle-42");
+  });
+
+  it("throws when supabase returns an error", async () => {
+    supabaseMock.chainBuilder.maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: "RLS denied" },
+    });
+    await expect(getTripVehicleId("trip-1")).rejects.toThrow("RLS denied");
+  });
+
+  it("throws fallback message when error has no message", async () => {
+    supabaseMock.chainBuilder.maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: { message: "" },
+    });
+    await expect(getTripVehicleId("trip-1")).rejects.toThrow(
+      "Falha ao localizar o veículo da viagem.",
+    );
+  });
+
+  it("throws when trip not found (data is null)", async () => {
+    supabaseMock.chainBuilder.maybeSingle.mockResolvedValueOnce({
+      data: null,
+      error: null,
+    });
+    await expect(getTripVehicleId("trip-1")).rejects.toThrow(
+      "Viagem não encontrada para este abastecimento.",
+    );
+  });
+
+  it("throws when vehicle_id is null", async () => {
+    supabaseMock.chainBuilder.maybeSingle.mockResolvedValueOnce({
+      data: { vehicle_id: null },
+      error: null,
+    });
+    await expect(getTripVehicleId("trip-1")).rejects.toThrow(
+      "Viagem não encontrada para este abastecimento.",
+    );
   });
 });

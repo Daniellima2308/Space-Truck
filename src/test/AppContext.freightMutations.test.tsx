@@ -865,4 +865,18 @@ describe("AppContext freight mutations", () => {
     ).rejects.toThrow("Erro ao carregar frete");
     unmount();
   });
+
+  it("updateFreight com KM incoerente lança exceção", async () => {
+    fieldValidationMocks.validateKmByContext.mockReturnValueOnce({
+      isValid: false,
+      message: "KM abaixo do mínimo",
+      warnings: [],
+    });
+
+    const { app, unmount } = await renderApp();
+    await expect(
+      app.updateFreight("trip-1", "freight-in-progress", freightPayload()),
+    ).rejects.toThrow("KM abaixo do mínimo");
+    unmount();
+  });
 });

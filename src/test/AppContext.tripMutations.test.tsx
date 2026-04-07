@@ -567,4 +567,143 @@ describe("AppContext trip mutations", () => {
     expect(dbState.trips.find((t) => t.id === "trip-to-delete")).toBeUndefined();
     unmount();
   });
+
+  it("finishTrip online com pendingPlanned + sem activeFreight mostra mensagem correta", async () => {
+    dbState.trips = [
+      {
+        id: "trip-1",
+        user_id: "user-1",
+        vehicle_id: "vehicle-1",
+        status: "open",
+        created_at: now,
+        finished_at: null,
+        estimated_distance: 0,
+      },
+    ];
+    dbState.freights = [
+      {
+        id: "freight-planned",
+        user_id: "user-1",
+        trip_id: "trip-1",
+        origin: "A",
+        destination: "B",
+        km_initial: 100,
+        gross_value: 1000,
+        commission_percent: 10,
+        commission_value: 100,
+        status: "planned",
+        estimated_distance: 200,
+        created_at: now,
+      },
+      {
+        id: "freight-done",
+        user_id: "user-1",
+        trip_id: "trip-1",
+        origin: "B",
+        destination: "C",
+        km_initial: 300,
+        gross_value: 500,
+        commission_percent: 10,
+        commission_value: 50,
+        status: "completed",
+        estimated_distance: 100,
+        created_at: now,
+      },
+    ];
+
+    const { app, unmount } = await renderApp();
+    await app.finishTrip("trip-1", { allowPendingPlanned: true, arrivalKm: 800 });
+
+    const trip = dbState.trips.find((t) => t.id === "trip-1");
+    expect(trip?.status).toBe("finished");
+    // Should get "Trechos não iniciados ficaram fora..." message (no active freight)
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: expect.stringContaining("Trechos não iniciados"),
+      }),
+    );
+    unmount();
+  });
+
+  it("finishTrip online com activeFreight sem pendingPlanned mostra mensagem correta", async () => {
+    dbState.trips = [
+      {
+        id: "trip-1",
+        user_id: "user-1",
+        vehicle_id: "vehicle-1",
+        status: "open",
+        created_at: now,
+        finished_at: null,
+        estimated_distance: 0,
+      },
+    ];
+    dbState.freights = [
+      {
+        id: "freight-active",
+        user_id: "user-1",
+        trip_id: "trip-1",
+        origin: "A",
+        destination: "B",
+        km_initial: 100,
+        gross_value: 1000,
+        commission_percent: 10,
+        commission_value: 100,
+        status: "in_progress",
+        estimated_distance: 200,
+        created_at: now,
+      },
+    ];
+
+    const { app, unmount } = await renderApp();
+    await app.finishTrip("trip-1", { arrivalKm: 800 });
+
+    const trip = dbState.trips.find((t) => t.id === "trip-1");
+    expect(trip?.status).toBe("finished");
+    // Should get "Frete em andamento concluído junto com a viagem."
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        description: expect.stringContaining("Frete em andamento concluído junto"),
+      }),
+    );
+    unmount();
+  });
+
+  it("finishTrip offline sem arrivalKm usa estimatedDistance", async () => {
+    dbState.trips = [
+      {
+        id: "trip-1",
+        user_id: "user-1",
+        vehicle_id: "vehicle-1",
+        status: "open",
+        created_at: now,
+        finished_at: null,
+        estimated_distance: 250,
+      },
+    ];
+    dbState.freights = [
+      {
+        id: "freight-1",
+        user_id: "user-1",
+        trip_id: "trip-1",
+        origin: "A",
+        destination: "B",
+        km_initial: 100,
+        gross_value: 1000,
+        commission_percent: 10,
+        commission_value: 100,
+        status: "completed",
+        estimated_distance: 200,
+        created_at: now,
+      },
+    ];
+
+    const { app, unmount } = await renderApp();
+    offlineState.online = false;
+    await app.finishTrip("trip-1");
+
+    expect(offlineState.queue).toHaveLength(1);
+    // finalTripDistance should be the trip.estimatedDistance since arrivalKm is undefined
+    expect(offlineState.queue[0].payload.finalTripDistance).toBe(250);
+    unmount();
+  });
 });
