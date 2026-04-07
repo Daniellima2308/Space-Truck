@@ -292,6 +292,104 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
               }
               break;
             }
+            case "startFreight":
+              await supabase
+                .from("freights")
+                .update({ status: "in_progress" })
+                .eq("id", action.payload.freightId);
+              break;
+            case "completeFreight": {
+              await supabase
+                .from("freights")
+                .update({ status: "completed" })
+                .eq("id", action.payload.freightId);
+
+              if (action.payload.option === "start_next_if_planned") {
+                const { data: nextPlanned } = await supabase
+                  .from("freights")
+                  .select("id")
+                  .eq("trip_id", action.payload.tripId)
+                  .eq("status", "planned")
+                  .order("created_at", { ascending: true })
+                  .limit(1)
+                  .maybeSingle();
+
+                if (nextPlanned?.id) {
+                  await supabase
+                    .from("freights")
+                    .update({ status: "in_progress" })
+                    .eq("id", nextPlanned.id);
+                }
+              }
+              break;
+            }
+            case "updateFreight": {
+              const { data: currentFreight } = await supabase
+                .from("freights")
+                .select("origin, destination, estimated_distance, trip_id")
+                .eq("id", action.payload.freightId)
+                .maybeSingle();
+
+              if (!currentFreight) break;
+
+              const routeChanged =
+                currentFreight.origin !== action.payload.origin ||
+                currentFreight.destination !== action.payload.destination;
+              const shouldRefreshRoute =
+                routeChanged || action.payload.forceRouteRefresh;
+              let nextEstimatedDistance = currentFreight.estimated_distance || 0;
+
+              if (shouldRefreshRoute) {
+                const { refreshFreightEstimatedDistance } = await import(
+                  "@/context/mutations/helpers"
+                );
+                const { estimatedDistance, diagnostic: distanceDiagnostic } =
+                  await refreshFreightEstimatedDistance({
+                    origin: action.payload.origin,
+                    destination: action.payload.destination,
+                    userId: user.id,
+                  });
+
+                if (distanceDiagnostic.distanceKm === null) {
+                  const details = buildRouteFailureDetails({
+                    reason: distanceDiagnostic.reason,
+                    originQueryUsed: distanceDiagnostic.originQueryUsed,
+                    destinationQueryUsed: distanceDiagnostic.destinationQueryUsed,
+                  });
+                  routeSyncFailures.push(details);
+                  console.error(
+                    "Falha ao resolver rota durante sync offline de updateFreight",
+                    {
+                      tripId: action.payload.tripId,
+                      freightId: action.payload.freightId,
+                      origin: action.payload.origin,
+                      destination: action.payload.destination,
+                      reason: distanceDiagnostic.reason,
+                      originQueryUsed: distanceDiagnostic.originQueryUsed,
+                      destinationQueryUsed: distanceDiagnostic.destinationQueryUsed,
+                    },
+                  );
+                }
+
+                nextEstimatedDistance = estimatedDistance;
+              }
+
+              await supabase
+                .from("freights")
+                .update({
+                  origin: action.payload.origin,
+                  destination: action.payload.destination,
+                  km_initial: action.payload.km_initial,
+                  gross_value: action.payload.gross_value,
+                  commission_percent: action.payload.commission_percent,
+                  commission_value: action.payload.commission_value,
+                  estimated_distance: nextEstimatedDistance,
+                })
+                .eq("id", action.payload.freightId);
+
+              affectedTripIds.add(currentFreight.trip_id);
+              break;
+            }
             case "deleteFueling":
               await persistFuelingDelete({
                 userId: user.id,
@@ -299,10 +397,33 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                 fuelingId: action.payload.id,
               });
               break;
+            case "updateExpense":
+              await supabase
+                .from("expenses")
+                .update({
+                  category: action.payload.category,
+                  description: action.payload.description,
+                  value: action.payload.value,
+                  date: action.payload.date,
+                  receipt_url: action.payload.receipt_url,
+                })
+                .eq("id", action.payload.id);
+              break;
             case "deleteExpense":
               await supabase
                 .from("expenses")
                 .delete()
+                .eq("id", action.payload.id);
+              break;
+            case "updatePersonalExpense":
+              await supabase
+                .from("personal_expenses")
+                .update({
+                  category: action.payload.category,
+                  description: action.payload.description,
+                  value: action.payload.value,
+                  date: action.payload.date,
+                })
                 .eq("id", action.payload.id);
               break;
             case "deletePersonalExpense":

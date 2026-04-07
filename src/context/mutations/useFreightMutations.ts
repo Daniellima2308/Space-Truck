@@ -244,6 +244,18 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         };
       }
 
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "startFreight",
+          payload: {
+            tripId: tripId,
+            freightId: freightId,
+          },
+        });
+        showOfflineSaved("Frete iniciado");
+        return { status: "started" };
+      }
+
       await supabase
         .from("freights")
         .update({ status: "in_progress" })
@@ -266,6 +278,19 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         | "complete_only"
         | "start_next_if_planned" = "start_next_if_planned",
     ): Promise<{ promotedFreightId?: string | null }> => {
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "completeFreight",
+          payload: {
+            tripId: tripId,
+            freightId: freightId,
+            option: option,
+          },
+        });
+        showOfflineSaved("Frete concluído");
+        return { promotedFreightId: null };
+      }
+
       await supabase
         .from("freights")
         .update({ status: "completed" })
@@ -372,6 +397,27 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       );
 
       const commissionValue = f.grossValue * (f.commissionPercent / 100);
+
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "updateFreight",
+          payload: {
+            tripId: tripId,
+            freightId: freightId,
+            origin: f.origin,
+            destination: f.destination,
+            km_initial: f.kmInitial,
+            gross_value: f.grossValue,
+            commission_percent: f.commissionPercent,
+            commission_value: commissionValue,
+            forceRouteRefresh: options?.forceRouteRefresh || false,
+          },
+        });
+        showOfflineSaved("Frete atualizado");
+        return {
+          status: "updated",
+        };
+      }
 
       const { data: currentFreight, error: currentFreightError } =
         await supabase

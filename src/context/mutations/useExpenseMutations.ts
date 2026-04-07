@@ -107,6 +107,22 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
       }
       showWarnings(getNumericWarnings({ totalValue: e.value }));
 
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "updateExpense",
+          payload: {
+            id: expenseId,
+            category: e.category,
+            description: e.description,
+            value: e.value,
+            date: e.date,
+            receipt_url: e.receiptUrl || null,
+          },
+        });
+        showOfflineSaved("Despesa atualizada");
+        return;
+      }
+
       await supabase
         .from("expenses")
         .update({
@@ -200,6 +216,21 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
         return;
       }
       showWarnings(getNumericWarnings({ totalValue: e.value }));
+
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "updatePersonalExpense",
+          payload: {
+            id: id,
+            category: e.category,
+            description: e.description,
+            value: e.value,
+            date: e.date,
+          },
+        });
+        showOfflineSaved("Gasto pessoal atualizado");
+        return;
+      }
 
       await supabase
         .from("personal_expenses")
