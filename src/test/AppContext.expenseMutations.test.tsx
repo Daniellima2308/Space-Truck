@@ -468,4 +468,158 @@ describe("AppContext expense mutations", () => {
     expect(dbState.expenses.find((e) => e.id === "expense-1")).toBeUndefined();
     unmount();
   });
+
+  it("addExpense com valor inválido mostra toast de erro e não persiste", async () => {
+    const { validatePositiveNumber } = await import("@/lib/fieldValidation");
+    vi.mocked(validatePositiveNumber).mockReturnValueOnce({
+      isValid: false,
+      message: "Valor deve ser maior que zero",
+    });
+
+    const beforeCount = dbState.expenses.length;
+    const { app, unmount } = await renderApp();
+    await app.addExpense("trip-1", { ...expensePayload(), value: 0 });
+
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "destructive" }),
+    );
+    expect(dbState.expenses.length).toBe(beforeCount); // unchanged
+    unmount();
+  });
+
+  it("addPersonalExpense offline enfileira", async () => {
+    offlineState.online = false;
+    const { app, unmount } = await renderApp();
+    await app.addPersonalExpense("trip-1", {
+      category: "banho",
+      description: "Banho no posto",
+      value: 30,
+      date: "2026-03-22",
+    });
+    expect(offlineState.queue).toHaveLength(1);
+    expect(offlineState.queue[0].type).toBe("addPersonalExpense");
+    unmount();
+  });
+
+  it("addPersonalExpense online persiste e mostra sucesso", async () => {
+    const before = dbState.personal_expenses.length;
+    const { app, unmount } = await renderApp();
+    await app.addPersonalExpense("trip-1", {
+      category: "banho",
+      description: "Banho no posto",
+      value: 30,
+      date: "2026-03-22",
+    });
+    expect(dbState.personal_expenses.length).toBeGreaterThan(before);
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Gasto pessoal salvo" }),
+    );
+    unmount();
+  });
+
+  it("addPersonalExpense com valor inválido mostra erro e não persiste", async () => {
+    const { validatePositiveNumber } = await import("@/lib/fieldValidation");
+    vi.mocked(validatePositiveNumber).mockReturnValueOnce({
+      isValid: false,
+      message: "Valor inválido",
+    });
+
+    const before = dbState.personal_expenses.length;
+    const { app, unmount } = await renderApp();
+    await app.addPersonalExpense("trip-1", {
+      category: "banho",
+      description: "Banho",
+      value: 0,
+      date: "2026-03-22",
+    });
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "destructive" }),
+    );
+    expect(dbState.personal_expenses.length).toBe(before);
+    unmount();
+  });
+
+  it("deletePersonalExpense offline enfileira", async () => {
+    dbState.personal_expenses.push({
+      id: "pe-offline",
+      user_id: "user-1",
+      trip_id: "trip-1",
+      category: "alimentacao",
+      description: "Almoço",
+      value: 25,
+      date: "2026-03-22",
+    });
+
+    offlineState.online = false;
+    const { app, unmount } = await renderApp();
+    await app.deletePersonalExpense("trip-1", "pe-offline");
+    expect(offlineState.queue).toHaveLength(1);
+    expect(offlineState.queue[0].type).toBe("deletePersonalExpense");
+    unmount();
+  });
+
+  it("deletePersonalExpense online exclui", async () => {
+    dbState.personal_expenses.push({
+      id: "pe-del",
+      user_id: "user-1",
+      trip_id: "trip-1",
+      category: "alimentacao",
+      description: "Jantar",
+      value: 40,
+      date: "2026-03-22",
+    });
+
+    const { app, unmount } = await renderApp();
+    await app.deletePersonalExpense("trip-1", "pe-del");
+    expect(dbState.personal_expenses.find((p) => p.id === "pe-del")).toBeUndefined();
+    unmount();
+  });
+
+  it("updatePersonalExpense offline enfileira", async () => {
+    dbState.personal_expenses.push({
+      id: "pe-upd",
+      user_id: "user-1",
+      trip_id: "trip-1",
+      category: "alimentacao",
+      description: "Café",
+      value: 10,
+      date: "2026-03-22",
+    });
+
+    offlineState.online = false;
+    const { app, unmount } = await renderApp();
+    await app.updatePersonalExpense("trip-1", "pe-upd", {
+      category: "alimentacao",
+      description: "Café da manhã",
+      value: 15,
+      date: "2026-03-22",
+    });
+    expect(offlineState.queue).toHaveLength(1);
+    expect(offlineState.queue[0].type).toBe("updatePersonalExpense");
+    unmount();
+  });
+
+  it("updatePersonalExpense online atualiza o gasto pessoal", async () => {
+    dbState.personal_expenses.push({
+      id: "pe-upd2",
+      user_id: "user-1",
+      trip_id: "trip-1",
+      category: "alimentacao",
+      description: "Almoço",
+      value: 30,
+      date: "2026-03-22",
+    });
+
+    const { app, unmount } = await renderApp();
+    await app.updatePersonalExpense("trip-1", "pe-upd2", {
+      category: "alimentacao",
+      description: "Almoço atualizado",
+      value: 35,
+      date: "2026-03-22",
+    });
+
+    const pe = dbState.personal_expenses.find((p) => p.id === "pe-upd2");
+    expect(pe?.value).toBe(35);
+    unmount();
+  });
 });

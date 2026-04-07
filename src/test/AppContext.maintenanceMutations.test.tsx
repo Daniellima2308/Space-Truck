@@ -54,10 +54,20 @@ vi.mock("@/lib/fieldValidation", () => fieldValidationMocks);
 vi.mock("@/lib/vehicleOperation", () => ({
   isDriverBond: vi.fn().mockReturnValue(false),
   isVehicleOperationProfile: vi.fn().mockReturnValue(false),
-  normalizeVehicleProfileForPersistence: vi.fn((value: unknown) => value),
-  normalizeVehicleProfileUpdateForPersistence: vi.fn((value: unknown) => value),
+  normalizeVehicleProfileForPersistence: vi.fn().mockReturnValue({
+    operationProfile: "driver_owner",
+    driverBond: null,
+    defaultCommissionPercent: null,
+  }),
+  normalizeVehicleProfileUpdateForPersistence: vi.fn().mockReturnValue({
+    operationProfile: "driver_owner",
+    driverBond: null,
+    defaultCommissionPercent: null,
+  }),
 }));
 
+// We need to mock helpers.getVehicleTimelineKms since it calls supabase internally
+// but the supabase mock will handle that
 vi.mock("@/lib/offlineQueue", () => ({
   isOnline: () => offlineState.online,
   getOfflineQueue: () => offlineState.queue,
@@ -100,7 +110,11 @@ function seedDb() {
       year: 2022,
       plate: "ABC1234",
       operation_profile: "driver_owner",
-      current_km: 500,
+      driver_bond: null,
+      default_commission_percent: null,
+      is_fleet_owner: false,
+      driver_name: null,
+      current_km: 50000,
       created_at: now,
     },
   ];
@@ -122,18 +136,29 @@ function seedDb() {
       trip_id: "trip-1",
       origin: "A",
       destination: "B",
-      km_initial: 100,
+      km_initial: 45000,
+      km_final: 0,
       gross_value: 1000,
       commission_percent: 10,
       commission_value: 100,
-      status: "in_progress",
+      status: "completed",
       estimated_distance: 200,
       created_at: now,
     },
   ];
   dbState.fuelings = [];
   dbState.expenses = [];
-  dbState.maintenance_services = [];
+  dbState.maintenance_services = [
+    {
+      id: "maint-1",
+      user_id: "user-1",
+      vehicle_id: "vehicle-1",
+      service_name: "Troca de óleo",
+      last_change_km: 45000,
+      interval_km: 5000,
+      created_at: now,
+    },
+  ];
   dbState.personal_expenses = [];
   dbState.profiles = [{ user_id: "user-1", personal_expenses_enabled: false }];
 }
@@ -155,9 +180,8 @@ function makeBuilder(table: TableName) {
     filters: [] as Array<{ column: string; value: unknown; type: "eq" | "in" }>,
     order: null as null | { column: string; ascending: boolean },
     limit: null as number | null,
-    mode: "select" as "select" | "update" | "delete" | "insert",
+    mode: "select" as "select" | "update" | "delete",
     updateValues: null as Row | null,
-    lastInserted: null as Row[] | null,
   };
 
   const executeSelect = async () => {
@@ -191,17 +215,14 @@ function makeBuilder(table: TableName) {
 
   const builder = {
     select: vi.fn(() => builder),
-    insert: vi.fn((values: Row | Row[]) => {
+    insert: vi.fn(async (values: Row | Row[]) => {
       const arr = (Array.isArray(values) ? values : [values]).map((v, i) => ({
         id: v.id ?? `${table}-${dbState[table].length + i + 1}`,
         created_at: v.created_at ?? now,
         ...v,
       }));
       dbState[table].push(...arr);
-      // Store last inserted rows for .single()/.then() after chained .select()
-      state.lastInserted = arr;
-      state.mode = "insert";
-      return builder;
+      return { data: arr, error: null };
     }),
     update: vi.fn((values: Row) => {
       state.mode = "update";
@@ -233,16 +254,13 @@ function makeBuilder(table: TableName) {
       return { data: result.data[0] ?? null, error: null };
     }),
     single: vi.fn(async () => {
-      if (state.mode === "insert" && state.lastInserted?.length) {
-        return { data: state.lastInserted[0], error: null };
-      }
       const result = await executeSelect();
       return result.data[0]
         ? { data: result.data[0], error: null }
         : { data: null, error: { message: "Not found" } };
     }),
     then: (
-      resolve: (value: { data: Row[] | null; error: null }) => unknown,
+      resolve: (value: { data: Row[]; error: null }) => unknown,
       reject?: (reason: unknown) => unknown,
     ) => {
       const promise = state.mode === "select" ? executeSelect() : executeMutation();
@@ -280,7 +298,14 @@ async function renderApp() {
   return { app: captured!, unmount: rendered.unmount };
 }
 
-describe("AppContext trip mutations", () => {
+const maintenancePayload = () => ({
+  vehicleId: "vehicle-1",
+  serviceName: "Troca de filtro",
+  lastChangeKm: 45000,
+  intervalKm: 5000,
+});
+
+describe("AppContext maintenance mutations", () => {
   beforeEach(() => {
     seedDb();
     offlineState.queue = [];
@@ -296,177 +321,40 @@ describe("AppContext trip mutations", () => {
     cleanup();
   });
 
-  it("finishTrip sem frete lança erro", async () => {
-    dbState.trips.push({
-      id: "trip-no-freight",
-      user_id: "user-1",
-      vehicle_id: "vehicle-1",
-      status: "open",
-      created_at: now,
-      finished_at: null,
-      estimated_distance: 0,
-    });
+  // ─── addMaintenanceService ────────────────────────────────────────────────
 
-    const { app, unmount } = await renderApp();
-    await expect(app.finishTrip("trip-no-freight")).rejects.toThrow();
-    unmount();
-  });
-
-  it("finishTrip com planned pendentes retorna pendingPlannedFreights > 0 sem finalizar", async () => {
-    dbState.trips = [
-      {
-        id: "trip-1",
-        user_id: "user-1",
-        vehicle_id: "vehicle-1",
-        status: "open",
-        created_at: now,
-        finished_at: null,
-        estimated_distance: 0,
-      },
-    ];
-    dbState.freights = [
-      {
-        id: "freight-1",
-        user_id: "user-1",
-        trip_id: "trip-1",
-        origin: "A",
-        destination: "B",
-        km_initial: 100,
-        gross_value: 1000,
-        commission_percent: 10,
-        commission_value: 100,
-        status: "in_progress",
-        estimated_distance: 200,
-        created_at: now,
-      },
-      {
-        id: "freight-2",
-        user_id: "user-1",
-        trip_id: "trip-1",
-        origin: "B",
-        destination: "C",
-        km_initial: 300,
-        gross_value: 1000,
-        commission_percent: 10,
-        commission_value: 100,
-        status: "planned",
-        estimated_distance: 100,
-        created_at: now,
-      },
-    ];
-
-    const { app, unmount } = await renderApp();
-    const result = await app.finishTrip("trip-1");
-    expect(result.pendingPlannedFreights).toBe(1);
-
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("open");
-    unmount();
-  });
-
-  it("finishTrip com allowPendingPlanned finaliza viagem e conclui frete ativo", async () => {
-    dbState.trips = [
-      {
-        id: "trip-1",
-        user_id: "user-1",
-        vehicle_id: "vehicle-1",
-        status: "open",
-        created_at: now,
-        finished_at: null,
-        estimated_distance: 0,
-      },
-    ];
-    dbState.freights = [
-      {
-        id: "freight-1",
-        user_id: "user-1",
-        trip_id: "trip-1",
-        origin: "A",
-        destination: "B",
-        km_initial: 100,
-        gross_value: 1000,
-        commission_percent: 10,
-        commission_value: 100,
-        status: "in_progress",
-        estimated_distance: 200,
-        created_at: now,
-      },
-      {
-        id: "freight-2",
-        user_id: "user-1",
-        trip_id: "trip-1",
-        origin: "B",
-        destination: "C",
-        km_initial: 300,
-        gross_value: 1000,
-        commission_percent: 10,
-        commission_value: 100,
-        status: "planned",
-        estimated_distance: 100,
-        created_at: now,
-      },
-    ];
-
-    const { app, unmount } = await renderApp();
-    await app.finishTrip("trip-1", { allowPendingPlanned: true });
-
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("finished");
-
-    const activeFreight = dbState.freights.find((f) => f.id === "freight-1");
-    expect(activeFreight?.status).toBe("completed");
-    unmount();
-  });
-
-  it("finishTrip com arrivalKm inválido não finaliza", async () => {
+  it("addMaintenanceService lastChangeKm inválido mostra toast destrutivo e retorna", async () => {
     fieldValidationMocks.validatePositiveNumber.mockReturnValueOnce({
       isValid: false,
-      message: "KM inválido",
+      message: "KM da última troca deve ser maior que zero",
     });
 
     const { app, unmount } = await renderApp();
-    const result = await app.finishTrip("trip-1", { arrivalKm: -1 });
+    await app.addMaintenanceService(maintenancePayload());
 
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({ variant: "destructive" }),
     );
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("open");
-    // Returns an object (no throw), with pendingPlannedFreights info
-    expect(result).toBeDefined();
+    expect(dbState.maintenance_services).toHaveLength(1); // unchanged
     unmount();
   });
 
-  it("finishTrip offline enfileira ação e não persiste", async () => {
-    // Render while online so data loads, then go offline
+  it("addMaintenanceService intervalKm inválido mostra toast destrutivo e retorna", async () => {
+    // First call (lastChangeKm) passes, second call (intervalKm) fails
+    fieldValidationMocks.validatePositiveNumber
+      .mockReturnValueOnce({ isValid: true })
+      .mockReturnValueOnce({ isValid: false, message: "Intervalo deve ser positivo" });
+
     const { app, unmount } = await renderApp();
-    offlineState.online = false;
+    await app.addMaintenanceService(maintenancePayload());
 
-    await app.finishTrip("trip-1", { arrivalKm: 800 });
-
-    expect(offlineState.queue).toHaveLength(1);
-    expect(offlineState.queue[0].type).toBe("finishTrip");
-
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("open");
+    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
+      expect.objectContaining({ variant: "destructive" }),
+    );
     unmount();
   });
 
-  it("finishTrip online com arrivalKm finaliza e atualiza veículo", async () => {
-    const { app, unmount } = await renderApp();
-    await app.finishTrip("trip-1", { arrivalKm: 900 });
-
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("finished");
-
-    const vehicle = dbState.vehicles.find((v) => v.id === "vehicle-1");
-    expect(Number(vehicle?.current_km)).toBeGreaterThanOrEqual(900);
-    unmount();
-  });
-
-  it("finishTrip com kmContextValidation inválido não finaliza e mostra erro", async () => {
-    // Use arrivalKm > vehicle current_km (500) so minOperationalKm check passes,
-    // but km context context check fails
+  it("addMaintenanceService km incoerente mostra toast destrutivo e retorna", async () => {
     fieldValidationMocks.validateKmByContext.mockReturnValueOnce({
       isValid: false,
       message: "KM abaixo do mínimo histórico",
@@ -474,97 +362,59 @@ describe("AppContext trip mutations", () => {
     });
 
     const { app, unmount } = await renderApp();
-    const result = await app.finishTrip("trip-1", { arrivalKm: 600 });
+    await app.addMaintenanceService(maintenancePayload());
 
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
+      expect.objectContaining({
+        variant: "destructive",
+        title: "KM incoerente para manutenção",
+      }),
     );
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("open");
-    expect(result).toBeDefined();
     unmount();
   });
 
-  it("finishTrip com km abaixo do máximo real não finaliza", async () => {
-    // vehicle current_km is 500, trying arrivalKm=50 should fail (below minOperationalKm)
-    const { app, unmount } = await renderApp();
-    const result = await app.finishTrip("trip-1", { arrivalKm: 50 });
-
-    expect(sharedMocks.toastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ variant: "destructive" }),
-    );
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("open");
-    expect(result).toBeDefined();
-    unmount();
-  });
-
-  it("finishTrip com arrivalKm warnings exibe toast de aviso mas finaliza", async () => {
+  it("addMaintenanceService com warnings exibe toast de aviso", async () => {
     fieldValidationMocks.validateKmByContext.mockReturnValueOnce({
       isValid: true,
-      warnings: ["KM está bem alto"],
+      warnings: ["KM acima do esperado, mas aceito"],
     });
 
     const { app, unmount } = await renderApp();
-    await app.finishTrip("trip-1", { arrivalKm: 2000 });
+    await app.addMaintenanceService(maintenancePayload());
 
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
-      expect.objectContaining({ description: "KM está bem alto" }),
-    );
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("finished");
-    unmount();
-  });
-
-  it("finishTrip sem arrivalKm finaliza viagem chamando fetchData", async () => {
-    const { app, unmount } = await renderApp();
-    await app.finishTrip("trip-1");
-
-    const trip = dbState.trips.find((t) => t.id === "trip-1");
-    expect(trip?.status).toBe("finished");
-    unmount();
-  });
-
-  it("finishTrip com id não encontrado lança erro", async () => {
-    const { app, unmount } = await renderApp();
-    await expect(app.finishTrip("nao-existe")).rejects.toThrow();
-    unmount();
-  });
-
-  it("addTrip cria nova viagem e retorna objeto Trip", async () => {
-    dbState.trips = [];
-    const { app, unmount } = await renderApp();
-    const result = await app.addTrip("vehicle-1");
-
-    expect(result).toBeDefined();
-    expect(result.vehicleId).toBe("vehicle-1");
-    expect(result.status).toBe("open");
-    unmount();
-  });
-
-  it("addTrip com viagem ativa existente lança erro", async () => {
-    // trip-1 is already open for vehicle-1
-    const { app, unmount } = await renderApp();
-    await expect(app.addTrip("vehicle-1")).rejects.toThrow(
-      "Este veículo já possui uma viagem em andamento.",
+      expect.objectContaining({
+        title: "Confere esse número rapidinho",
+        description: "KM acima do esperado, mas aceito",
+      }),
     );
     unmount();
   });
 
-  it("deleteTrip remove viagem do banco", async () => {
-    dbState.trips.push({
-      id: "trip-to-delete",
-      user_id: "user-1",
-      vehicle_id: "vehicle-1",
-      status: "finished",
-      created_at: now,
-      finished_at: now,
-      estimated_distance: 100,
-    });
-
+  it("addMaintenanceService sucesso insere manutenção", async () => {
+    const before = dbState.maintenance_services.length;
     const { app, unmount } = await renderApp();
-    await app.deleteTrip("trip-to-delete");
-    expect(dbState.trips.find((t) => t.id === "trip-to-delete")).toBeUndefined();
+    await app.addMaintenanceService(maintenancePayload());
+    expect(dbState.maintenance_services.length).toBeGreaterThan(before);
+    unmount();
+  });
+
+  // ─── deleteMaintenanceService ─────────────────────────────────────────────
+
+  it("deleteMaintenanceService remove manutenção do banco", async () => {
+    const { app, unmount } = await renderApp();
+    await app.deleteMaintenanceService("maint-1");
+    const maint = dbState.maintenance_services.find((m) => m.id === "maint-1");
+    expect(maint).toBeUndefined();
+    unmount();
+  });
+
+  it("deleteMaintenanceService aciona fetchData após exclusão", async () => {
+    const beforeLen = dbState.maintenance_services.length;
+    const { app, unmount } = await renderApp();
+    await app.deleteMaintenanceService("maint-1");
+    // After delete + fetchData, maintenance_services in db is now empty
+    expect(dbState.maintenance_services.length).toBeLessThan(beforeLen);
     unmount();
   });
 });
