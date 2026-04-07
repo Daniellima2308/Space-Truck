@@ -272,8 +272,12 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
   const freightsByTrip = new Map<string, Freight[]>();
   (freights || []).forEach((freight) => {
     const normalized = mapFreightRow(freight);
-    if (!freightsByTrip.has(freight.trip_id)) freightsByTrip.set(freight.trip_id, []);
-    freightsByTrip.get(freight.trip_id)!.push(normalized);
+    const existing = freightsByTrip.get(freight.trip_id);
+    if (existing) {
+      existing.push(normalized);
+    } else {
+      freightsByTrip.set(freight.trip_id, [normalized]);
+    }
   });
 
   const fuelingsByTrip = new Map<string, Fueling[]>();
@@ -293,8 +297,12 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
       originalTotalValue: fueling.original_total_value ?? undefined,
     };
 
-    if (!fuelingsByTrip.has(fueling.trip_id)) fuelingsByTrip.set(fueling.trip_id, []);
-    fuelingsByTrip.get(fueling.trip_id)!.push(normalized);
+    const existing = fuelingsByTrip.get(fueling.trip_id);
+    if (existing) {
+      existing.push(normalized);
+    } else {
+      fuelingsByTrip.set(fueling.trip_id, [normalized]);
+    }
   });
 
   const trips: Trip[] = (vehicleTrips || []).map((trip) => ({
