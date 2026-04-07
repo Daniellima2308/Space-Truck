@@ -265,7 +265,14 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
       .filter((t) => t.status === "finished")
       .map((t) => t.id);
     if (finishedTripIds.length === 0) return;
-    await supabase.from("trips").delete().in("id", finishedTripIds);
+    const { error } = await supabase.from("trips").delete().in("id", finishedTripIds);
+    if (error) {
+      showActionError(
+        "Não foi possível limpar o histórico",
+        error.message || "Falha ao excluir viagens finalizadas.",
+      );
+      return;
+    }
     await fetchData();
   }, [data.trips, fetchData]);
 

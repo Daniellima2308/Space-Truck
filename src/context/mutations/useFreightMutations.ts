@@ -477,8 +477,9 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           });
 
           if (routeChanged) {
+            const userMessage = `Rota salva, mas a previsão ainda não foi liberada. ${description}`;
             if (!options?.suppressSuccessToast) {
-              showActionNotice("Previsão ainda em ajuste", `Rota salva, mas a previsão ainda não foi liberada. ${description}`);
+              showActionNotice("Previsão ainda em ajuste", userMessage);
             }
           }
           await supabase
