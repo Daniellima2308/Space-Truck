@@ -24,6 +24,24 @@ import {
   persistFuelingDelete,
 } from "./helpers";
 
+function validateFuelingInputs(f: {
+  totalValue: number;
+  liters: number;
+  kmCurrent: number;
+}): boolean {
+  const totalValidation = validatePositiveNumber(f.totalValue, "Valor total");
+  const litersValidation = validatePositiveNumber(f.liters, "Litros");
+  const kmValidation = validatePositiveNumber(f.kmCurrent, "KM atual", true);
+
+  if (!totalValidation.isValid || !litersValidation.isValid || !kmValidation.isValid) {
+    const message =
+      totalValidation.message || litersValidation.message || kmValidation.message;
+    showActionError("Não foi possível salvar agora", message);
+    return false;
+  }
+  return true;
+}
+
 interface FuelingMutationsParams {
   user: User | null;
   data: AppData;
@@ -38,29 +56,7 @@ export function useFuelingMutations({ user, data, fetchData }: FuelingMutationsP
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
-      const totalValidation = validatePositiveNumber(
-        f.totalValue,
-        "Valor total",
-      );
-      const litersValidation = validatePositiveNumber(f.liters, "Litros");
-      const kmValidation = validatePositiveNumber(
-        f.kmCurrent,
-        "KM atual",
-        true,
-      );
-
-      if (
-        !totalValidation.isValid ||
-        !litersValidation.isValid ||
-        !kmValidation.isValid
-      ) {
-        const message =
-          totalValidation.message ||
-          litersValidation.message ||
-          kmValidation.message;
-        showActionError("Não foi possível salvar agora", message);
-        return;
-      }
+      if (!validateFuelingInputs(f)) return;
 
       const fuelingId = crypto.randomUUID();
       const pricePerLiter = calculateFuelingPricePerLiter(f.totalValue, f.liters);
@@ -153,28 +149,7 @@ export function useFuelingMutations({ user, data, fetchData }: FuelingMutationsP
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
-      const totalValidation = validatePositiveNumber(
-        f.totalValue,
-        "Valor total",
-      );
-      const litersValidation = validatePositiveNumber(f.liters, "Litros");
-      const kmValidation = validatePositiveNumber(
-        f.kmCurrent,
-        "KM atual",
-        true,
-      );
-      if (
-        !totalValidation.isValid ||
-        !litersValidation.isValid ||
-        !kmValidation.isValid
-      ) {
-        const message =
-          totalValidation.message ||
-          litersValidation.message ||
-          kmValidation.message;
-        showActionError("Não foi possível salvar agora", message);
-        return;
-      }
+      if (!validateFuelingInputs(f)) return;
       const pricePerLiter = calculateFuelingPricePerLiter(f.totalValue, f.liters);
       const trip = data.trips.find((t) => t.id === tripId);
       const vehicleId = trip?.vehicleId || "";

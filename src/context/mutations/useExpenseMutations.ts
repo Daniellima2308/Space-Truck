@@ -17,6 +17,32 @@ import {
   showWarnings,
 } from "./helpers";
 
+function validateExpenseValue(value: number, label: string): boolean {
+  const validation = validatePositiveNumber(value, label);
+  if (!validation.isValid) {
+    showActionError("Não foi possível salvar agora", validation.message);
+    return false;
+  }
+  return true;
+}
+
+async function handleExpenseDelete(
+  type: string,
+  payload: Record<string, unknown>,
+  offlineTitle: string,
+  table: "expenses" | "personal_expenses",
+  id: string,
+  fetchData: () => Promise<void>,
+) {
+  if (!isOnline()) {
+    addToOfflineQueue({ type, payload });
+    showOfflineSaved(offlineTitle);
+    return;
+  }
+  await supabase.from(table).delete().eq("id", id);
+  await fetchData();
+}
+
 interface ExpenseMutationsParams {
   user: User | null;
   data: AppData;
@@ -28,17 +54,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
     async (tripId: string, e: Omit<Expense, "id" | "tripId">) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
-      const valueValidation = validatePositiveNumber(
-        e.value,
-        "Valor da despesa",
-      );
-      if (!valueValidation.isValid) {
-        showActionError(
-          "Não foi possível salvar agora",
-          valueValidation.message,
-        );
-        return;
-      }
+      if (!validateExpenseValue(e.value, "Valor da despesa")) return;
       showWarnings(getNumericWarnings({ totalValue: e.value }));
 
       if (!isOnline()) {
@@ -74,16 +90,14 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
 
   const deleteExpense = useCallback(
     async (_tripId: string, expenseId: string) => {
-      if (!isOnline()) {
-        addToOfflineQueue({
-          type: "deleteExpense",
-          payload: { id: expenseId },
-        });
-        showOfflineSaved("Despesa excluída");
-        return;
-      }
-      await supabase.from("expenses").delete().eq("id", expenseId);
-      await fetchData();
+      await handleExpenseDelete(
+        "deleteExpense",
+        { id: expenseId },
+        "Despesa excluída",
+        "expenses",
+        expenseId,
+        fetchData,
+      );
     },
     [fetchData],
   );
@@ -94,17 +108,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
       expenseId: string,
       e: Omit<Expense, "id" | "tripId">,
     ) => {
-      const valueValidation = validatePositiveNumber(
-        e.value,
-        "Valor da despesa",
-      );
-      if (!valueValidation.isValid) {
-        showActionError(
-          "Não foi possível salvar agora",
-          valueValidation.message,
-        );
-        return;
-      }
+      if (!validateExpenseValue(e.value, "Valor da despesa")) return;
       showWarnings(getNumericWarnings({ totalValue: e.value }));
 
       if (!isOnline()) {
@@ -150,17 +154,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
     async (tripId: string, e: Omit<PersonalExpense, "id" | "tripId">) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
-      const valueValidation = validatePositiveNumber(
-        e.value,
-        "Valor do gasto pessoal",
-      );
-      if (!valueValidation.isValid) {
-        showActionError(
-          "Não foi possível salvar agora",
-          valueValidation.message,
-        );
-        return;
-      }
+      if (!validateExpenseValue(e.value, "Valor do gasto pessoal")) return;
       showWarnings(getNumericWarnings({ totalValue: e.value }));
 
       if (!isOnline()) {
@@ -194,13 +188,14 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
 
   const deletePersonalExpense = useCallback(
     async (_tripId: string, id: string) => {
-      if (!isOnline()) {
-        addToOfflineQueue({ type: "deletePersonalExpense", payload: { id } });
-        showOfflineSaved("Gasto pessoal removido");
-        return;
-      }
-      await supabase.from("personal_expenses").delete().eq("id", id);
-      await fetchData();
+      await handleExpenseDelete(
+        "deletePersonalExpense",
+        { id },
+        "Gasto pessoal removido",
+        "personal_expenses",
+        id,
+        fetchData,
+      );
     },
     [fetchData],
   );
@@ -211,17 +206,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
       id: string,
       e: Omit<PersonalExpense, "id" | "tripId">,
     ) => {
-      const valueValidation = validatePositiveNumber(
-        e.value,
-        "Valor do gasto pessoal",
-      );
-      if (!valueValidation.isValid) {
-        showActionError(
-          "Não foi possível salvar agora",
-          valueValidation.message,
-        );
-        return;
-      }
+      if (!validateExpenseValue(e.value, "Valor do gasto pessoal")) return;
       showWarnings(getNumericWarnings({ totalValue: e.value }));
 
       if (!isOnline()) {
