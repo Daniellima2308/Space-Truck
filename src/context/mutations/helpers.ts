@@ -522,7 +522,7 @@ export async function getTripVehicleId(tripId: string) {
     throw new Error("Viagem não encontrada para este abastecimento.");
   }
 
-  return data.vehicle_id as string;
+  return data.vehicle_id;
 }
 
 export async function persistFuelingAdd(params: {
