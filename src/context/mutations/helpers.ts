@@ -13,6 +13,13 @@ import {
 import { mapFreightRow } from "@/lib/mappers";
 import { normalizeTripFreights } from "@/lib/freightStatus";
 
+const VALID_TRIP_STATUSES: ReadonlySet<string> = new Set<TripStatus>(["open", "finished"]);
+
+export function asTripStatus(value: string): TripStatus {
+  if (VALID_TRIP_STATUSES.has(value)) return value as TripStatus;
+  return "open";
+}
+
 export const round2 = (value: number) => Math.round(value * 100) / 100;
 
 export function getTripMaxRealKm(trip: Trip | undefined, vehicleCurrentKm = 0) {
@@ -190,10 +197,6 @@ export async function recalculateTripEstimatedDistance(tripId: string): Promise<
   try {
     await updateTripEstimatedDistanceBySum(tripId);
   } catch (error) {
-    console.error(
-      "Falha ao recalcular distância estimada da viagem",
-      error,
-    );
     toast({
       title: "Falha ao recalcular rota estimada",
       description:
@@ -308,7 +311,7 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
   const trips: Trip[] = (vehicleTrips || []).map((trip) => ({
     id: trip.id,
     vehicleId,
-    status: trip.status as TripStatus,
+    status: asTripStatus(trip.status),
     freights: normalizeTripFreights(freightsByTrip.get(trip.id) || []),
     fuelings: fuelingsByTrip.get(trip.id) || [],
     expenses: [],

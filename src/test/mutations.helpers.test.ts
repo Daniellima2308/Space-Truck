@@ -1,6 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   round2,
+  asTripStatus,
   getTripMaxRealKm,
   getTripStartKm,
   getTripPendingPlannedFreights,
@@ -416,5 +417,20 @@ describe("getTripVehicleId", () => {
     await expect(getTripVehicleId("trip-1")).rejects.toThrow(
       "Viagem não encontrada para este abastecimento.",
     );
+  });
+
+  // ─── asTripStatus ───────────────────────────────────────────────────────
+  describe("asTripStatus", () => {
+    it("retorna 'open' para valor válido 'open'", () => {
+      expect(asTripStatus("open")).toBe("open");
+    });
+
+    it("retorna 'finished' para valor válido 'finished'", () => {
+      expect(asTripStatus("finished")).toBe("finished");
+    });
+
+    it("retorna 'open' como fallback para valor desconhecido", () => {
+      expect(asTripStatus("unknown_status")).toBe("open");
+    });
   });
 });

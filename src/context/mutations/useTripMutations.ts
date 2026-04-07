@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { AppData, Trip, TripStatus } from "@/types";
+import { AppData, Trip } from "@/types";
 import {
   isOnline,
   addToOfflineQueue,
@@ -21,7 +21,24 @@ import {
   showWarnings,
   recalculateVehicleKm,
   getVehicleTimelineKms,
+  asTripStatus,
 } from "./helpers";
+
+function getFinishTripDescription(
+  hasPendingPlanned: boolean,
+  hasActiveFreight: boolean,
+): string {
+  if (hasPendingPlanned && hasActiveFreight) {
+    return "Frete em andamento concluído. Trechos não iniciados ficaram fora do consolidado final da viagem.";
+  }
+  if (hasPendingPlanned) {
+    return "Trechos não iniciados ficaram fora do consolidado final da viagem.";
+  }
+  if (hasActiveFreight) {
+    return "Frete em andamento concluído junto com a viagem.";
+  }
+  return "Fechamento concluído com o consolidado final da viagem.";
+}
 
 interface TripMutationsParams {
   user: User | null;
@@ -53,7 +70,7 @@ export function useTripMutations({ user, data, fetchData, updateVehicleKm }: Tri
       const trip: Trip = {
         id: inserted.id,
         vehicleId: inserted.vehicle_id,
-        status: inserted.status as TripStatus,
+        status: asTripStatus(inserted.status),
         freights: [],
         fuelings: [],
         expenses: [],
@@ -219,13 +236,10 @@ export function useTripMutations({ user, data, fetchData, updateVehicleKm }: Tri
       }
       showActionSuccess(
         "Viagem finalizada",
-        pendingPlannedFreights.length > 0
-          ? activeFreight?.id
-            ? "Frete em andamento concluído. Trechos não iniciados ficaram fora do consolidado final da viagem."
-            : "Trechos não iniciados ficaram fora do consolidado final da viagem."
-          : activeFreight?.id
-            ? "Frete em andamento concluído junto com a viagem."
-            : "Fechamento concluído com o consolidado final da viagem.",
+        getFinishTripDescription(
+          pendingPlannedFreights.length > 0,
+          Boolean(activeFreight?.id),
+        ),
       );
       return {
         autoCompletedFreightId: activeFreight?.id ?? null,

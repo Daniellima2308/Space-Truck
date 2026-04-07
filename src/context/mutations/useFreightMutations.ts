@@ -137,15 +137,6 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         });
 
         showActionNotice("Previsão ainda em ajuste", description);
-
-        console.error("Falha no diagnóstico de rota ao criar frete", {
-          tripId,
-          origin: f.origin,
-          destination: f.destination,
-          reason: distanceDiagnostic.reason,
-          originQueryUsed: distanceDiagnostic.originQueryUsed,
-          destinationQueryUsed: distanceDiagnostic.destinationQueryUsed,
-        });
       }
 
       const { error: freightInsertError } = await supabase
@@ -464,16 +455,6 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         if (distanceDiagnostic.distanceKm === null) {
           const description = buildRouteFailureDetails({
             reason: distanceDiagnostic.reason,
-          });
-
-          console.error("Falha no diagnóstico de rota ao editar frete", {
-            tripId,
-            freightId,
-            origin: f.origin,
-            destination: f.destination,
-            reason: distanceDiagnostic.reason,
-            originQueryUsed: distanceDiagnostic.originQueryUsed,
-            destinationQueryUsed: distanceDiagnostic.destinationQueryUsed,
           });
 
           if (routeChanged) {
