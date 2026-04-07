@@ -346,10 +346,10 @@ export function getVehicleCurrentKmFromSources(params: {
   fuelingKms: Array<number | null | undefined>;
 }) {
   const validFreightKms = params.freightKms.filter(
-    (km): km is number => typeof km === "number" && Number.isFinite(km) && km > 0,
+    (km): km is number => typeof km === "number" && Number.isFinite(km) && km >= 0,
   );
   const validFuelingKms = params.fuelingKms.filter(
-    (km): km is number => typeof km === "number" && Number.isFinite(km) && km > 0,
+    (km): km is number => typeof km === "number" && Number.isFinite(km) && km >= 0,
   );
   const maxKm = Math.max(0, ...validFreightKms, ...validFuelingKms);
 

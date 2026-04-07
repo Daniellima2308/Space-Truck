@@ -117,27 +117,6 @@ export function useTripMutations({ user, data, fetchData, updateVehicleKm }: Tri
       const minOperationalKm = getTripMaxRealKm(trip, vehicle?.currentKm || 0);
       const tripStartKm = getTripStartKm(trip);
 
-      if (!isOnline()) {
-        addToOfflineQueue({
-          type: "finishTrip",
-          payload: {
-            tripId: id,
-            arrivalKm,
-            vehicleId: trip.vehicleId,
-            activeFreightId: activeFreight?.id ?? null,
-            finalTripDistance:
-              arrivalKm != null && tripStartKm != null
-                ? Math.max(arrivalKm - tripStartKm, 0)
-                : trip.estimatedDistance,
-          },
-        });
-        showOfflineSaved("Viagem finalizada");
-        return {
-          autoCompletedFreightId: activeFreight?.id ?? null,
-          pendingPlannedFreights: pendingPlannedFreights.length,
-        };
-      }
-
       if (arrivalKm != null) {
         const arrivalValidation = validatePositiveNumber(
           arrivalKm,
@@ -190,6 +169,27 @@ export function useTripMutations({ user, data, fetchData, updateVehicleKm }: Tri
         if (kmContextValidation.warnings.length > 0) {
           showWarnings(kmContextValidation.warnings);
         }
+      }
+
+      if (!isOnline()) {
+        addToOfflineQueue({
+          type: "finishTrip",
+          payload: {
+            tripId: id,
+            arrivalKm,
+            vehicleId: trip.vehicleId,
+            activeFreightId: activeFreight?.id ?? null,
+            finalTripDistance:
+              arrivalKm != null && tripStartKm != null
+                ? Math.max(arrivalKm - tripStartKm, 0)
+                : trip.estimatedDistance,
+          },
+        });
+        showOfflineSaved("Viagem finalizada");
+        return {
+          autoCompletedFreightId: activeFreight?.id ?? null,
+          pendingPlannedFreights: pendingPlannedFreights.length,
+        };
       }
 
       if (activeFreight?.id) {
