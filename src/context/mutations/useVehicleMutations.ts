@@ -130,10 +130,20 @@ export function useVehicleMutations({ user, data, fetchData }: VehicleMutationsP
         return;
       }
 
-      await supabase
+      const { error } = await supabase
         .from("vehicles")
         .update({ current_km: km })
         .eq("id", vehicleId);
+
+      if (error) {
+        toast({
+          title: "Não deu para salvar",
+          description: error.message || "Falha ao atualizar o KM do veículo.",
+          variant: "destructive",
+        });
+        return;
+      }
+
       await fetchData();
       const updatedVehicles = data.vehicles.map((v) =>
         v.id === vehicleId ? { ...v, currentKm: km } : v,

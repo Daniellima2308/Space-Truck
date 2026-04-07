@@ -123,7 +123,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
         return;
       }
 
-      await supabase
+      const { error: updateExpenseError } = await supabase
         .from("expenses")
         .update({
           category: e.category,
@@ -133,6 +133,13 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
           receipt_url: e.receiptUrl || null,
         })
         .eq("id", expenseId);
+      if (updateExpenseError) {
+        showActionError(
+          "Não foi possível salvar agora",
+          updateExpenseError.message || "Falha ao atualizar a despesa.",
+        );
+        return;
+      }
       await fetchData();
       showActionSuccess("Despesa atualizada");
     },
@@ -232,7 +239,7 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
         return;
       }
 
-      await supabase
+      const { error: updatePersonalExpenseError } = await supabase
         .from("personal_expenses")
         .update({
           category: e.category,
@@ -241,15 +248,24 @@ export function useExpenseMutations({ user, data, fetchData }: ExpenseMutationsP
           date: e.date,
         })
         .eq("id", id);
+      if (updatePersonalExpenseError) {
+        showActionError(
+          "Não foi possível salvar agora",
+          updatePersonalExpenseError.message || "Falha ao atualizar o gasto pessoal.",
+        );
+        return;
+      }
       await fetchData();
     },
     [fetchData],
   );
 
   const clearHistory = useCallback(async () => {
-    const finishedTrips = data.trips.filter((t) => t.status === "finished");
-    for (const trip of finishedTrips)
-      await supabase.from("trips").delete().eq("id", trip.id);
+    const finishedTripIds = data.trips
+      .filter((t) => t.status === "finished")
+      .map((t) => t.id);
+    if (finishedTripIds.length === 0) return;
+    await supabase.from("trips").delete().in("id", finishedTripIds);
     await fetchData();
   }, [data.trips, fetchData]);
 
