@@ -1,6 +1,11 @@
 import type { Freight, Trip } from "@/types";
 import { getWeightedTripAverageConsumption } from "@/lib/fueling";
 import {
+  getFinalizedFreights,
+  getOperationalFreights,
+  getPlannedFreights,
+} from "@/domain/operation/baseSelectors";
+import {
   getTripNetRevenue,
   getTripNetRevenueToDate,
   getTripTotalCommissions,
@@ -30,17 +35,7 @@ export interface TripOperationalSummary {
   profitPerKmToDate: number;
 }
 
-export function getOperationalFreights(trip: Trip): Freight[] {
-  return trip.freights.filter((freight) => freight.status === "in_progress" || freight.status === "completed");
-}
-
-export function getPlannedFreights(trip: Trip): Freight[] {
-  return trip.freights.filter((freight) => freight.status === "planned");
-}
-
-export function getFinalizedFreights(trip: Trip): Freight[] {
-  return trip.status === "finished" ? getOperationalFreights(trip) : trip.freights;
-}
+export { getFinalizedFreights, getOperationalFreights, getPlannedFreights };
 
 function getFreightEstimatedKmSum(freights: Freight[]): number {
   return freights.reduce(

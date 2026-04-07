@@ -1,4 +1,5 @@
 import type { Trip } from "@/types";
+import { getFinalizedFreights, getOperationalFreights } from "@/domain/operation/baseSelectors";
 
 export interface TripFinancialSummary {
   grossRevenue: number;
@@ -11,14 +12,6 @@ export interface TripFinancialSummary {
   otherExpenses: number;
   netRevenue: number;
   netRevenueToDate: number;
-}
-
-function getOperationalFreights(trip: Trip) {
-  return trip.freights.filter((freight) => freight.status === "in_progress" || freight.status === "completed");
-}
-
-function getFinalizedFreights(trip: Trip) {
-  return trip.status === "finished" ? getOperationalFreights(trip) : trip.freights;
 }
 
 export function getTripGrossRevenue(trip: Trip): number {
