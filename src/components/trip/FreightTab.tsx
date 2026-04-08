@@ -1,8 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Trip, Freight, Vehicle, FREIGHT_STATUS_LABELS } from "@/types";
-import { formatCurrency, formatNumber } from "@/lib/calculations";
+import { formatCurrency, formatDate, formatNumber } from "@/lib/calculations";
 import { sortFreightsByOperationalPriority } from "@/lib/freightStatus";
+import {
+  getFreightReceivableStatus,
+  getFreightReceivedPercentage,
+  getFreightRemainingBalance,
+  type FreightReceivableStatus,
+} from "@/lib/freightReceivables";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import {
   Dialog,
@@ -72,6 +78,8 @@ export function FreightTab({
   const [dest, setDest] = useState("");
   const [km, setKm] = useState("");
   const [gross, setGross] = useState("");
+  const [paymentDueDate, setPaymentDueDate] = useState("");
+  const [amountReceived, setAmountReceived] = useState("");
   const [useCommission, setUseCommission] = useState(false);
   const [comm, setComm] = useState("");
   const [finishingFreight, setFinishingFreight] = useState<Freight | null>(
@@ -86,10 +94,14 @@ export function FreightTab({
   const [editOrigin, setEditOrigin] = useState("");
   const [editDestination, setEditDestination] = useState("");
   const [editKmInitial, setEditKmInitial] = useState("");
+  const [editingReceivableFreight, setEditingReceivableFreight] = useState<Freight | null>(null);
+  const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
+  const [editAmountReceived, setEditAmountReceived] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishingFreight, setIsFinishingFreight] = useState(false);
   const [isSavingKm, setIsSavingKm] = useState(false);
   const [isSavingRouteReview, setIsSavingRouteReview] = useState(false);
+  const [isSavingReceivable, setIsSavingReceivable] = useState(false);
   const [pendingStartId, setPendingStartId] = useState<string | null>(null);
   const [startBlockedFreight, setStartBlockedFreight] = useState<Freight | null>(null);
   const [isHandingOffFreight, setIsHandingOffFreight] = useState(false);
@@ -134,6 +146,18 @@ export function FreightTab({
     in_progress: "bg-warning/15 text-warning border-warning/30",
     completed: "bg-profit/15 text-profit border-profit/30",
   };
+  const receivableStatusClass: Record<FreightReceivableStatus, string> = {
+    pending: "bg-secondary text-muted-foreground border-border",
+    partial: "bg-info/15 text-info border-info/30",
+    overdue: "bg-expense/15 text-expense border-expense/30",
+    received: "bg-profit/15 text-profit border-profit/30",
+  };
+  const receivableStatusLabel: Record<FreightReceivableStatus, string> = {
+    pending: "Pendente",
+    partial: "Parcial",
+    overdue: "Vencido",
+    received: "Recebido",
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -149,6 +173,8 @@ export function FreightTab({
         destination: dest,
         kmInitial: parseFloat(km),
         grossValue: parseFloat(gross),
+        paymentDueDate: paymentDueDate || undefined,
+        amountReceived: Number(amountReceived || 0),
         commissionPercent,
         createdAt: new Date().toISOString(),
       });
@@ -158,6 +184,8 @@ export function FreightTab({
       setGross("");
       setUseCommission(false);
       setComm("");
+      setPaymentDueDate("");
+      setAmountReceived("");
       setShowForm(false);
     } catch (error) {
       const message =
@@ -295,6 +323,8 @@ export function FreightTab({
         destination: editingKmFreight.destination,
         kmInitial: parsedKm,
         grossValue: editingKmFreight.grossValue,
+        paymentDueDate: editingKmFreight.paymentDueDate,
+        amountReceived: editingKmFreight.amountReceived,
         commissionPercent: editingKmFreight.commissionPercent,
         createdAt: editingKmFreight.createdAt,
       });
@@ -327,6 +357,8 @@ export function FreightTab({
           destination: editDestination.trim(),
           kmInitial: routeReviewFreight.kmInitial,
           grossValue: routeReviewFreight.grossValue,
+          paymentDueDate: routeReviewFreight.paymentDueDate,
+          amountReceived: routeReviewFreight.amountReceived,
           commissionPercent: routeReviewFreight.commissionPercent,
           createdAt: routeReviewFreight.createdAt,
         },
@@ -372,6 +404,35 @@ export function FreightTab({
       });
     } finally {
       setIsSavingRouteReview(false);
+    }
+  };
+
+  const openReceivableDialog = (freight: Freight) => {
+    setEditingReceivableFreight(freight);
+    setEditPaymentDueDate(freight.paymentDueDate ?? "");
+    setEditAmountReceived(String(freight.amountReceived ?? 0));
+  };
+
+  const handleSaveReceivable = async () => {
+    if (!editingReceivableFreight || isSavingReceivable) return;
+    const parsedAmountReceived = Number(editAmountReceived || 0);
+    if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) return;
+
+    try {
+      setIsSavingReceivable(true);
+      await updateFreight(trip.id, editingReceivableFreight.id, {
+        origin: editingReceivableFreight.origin,
+        destination: editingReceivableFreight.destination,
+        kmInitial: editingReceivableFreight.kmInitial,
+        grossValue: editingReceivableFreight.grossValue,
+        paymentDueDate: editPaymentDueDate || undefined,
+        amountReceived: parsedAmountReceived,
+        commissionPercent: editingReceivableFreight.commissionPercent,
+        createdAt: editingReceivableFreight.createdAt,
+      });
+      setEditingReceivableFreight(null);
+    } finally {
+      setIsSavingReceivable(false);
     }
   };
 
@@ -553,6 +614,41 @@ export function FreightTab({
                 )}
               </div>
             </div>
+            <div className="rounded-md bg-secondary/60 p-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Recebido
+              </p>
+              <p className="text-sm font-mono font-bold">
+                {formatCurrency(f.amountReceived)}
+              </p>
+              <p className="text-[10px] text-muted-foreground">
+                {getFreightReceivedPercentage(f).toFixed(0)}%
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-md bg-secondary/60 p-2 space-y-1.5">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                Contas a receber
+              </p>
+              <span
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[getFreightReceivableStatus(f)]}`}
+              >
+                {receivableStatusLabel[getFreightReceivableStatus(f)]}
+              </span>
+            </div>
+            <p className="text-xs text-foreground">
+              Saldo restante:{" "}
+              <span className="font-mono font-semibold">
+                {formatCurrency(getFreightRemainingBalance(f))}
+              </span>
+            </p>
+            {f.paymentDueDate && (
+              <p className="text-xs text-muted-foreground">
+                Vencimento previsto: {formatDate(f.paymentDueDate)}
+              </p>
+            )}
           </div>
 
           <div className="rounded-md bg-secondary/60 p-2">
@@ -605,6 +701,12 @@ export function FreightTab({
                   <FontAwesomeIcon icon={iconCheckCircle2} className="w-3.5 h-3.5" /> Concluir
                 </button>
               )}
+              <button
+                onClick={() => openReceivableDialog(f)}
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+              >
+                <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> Recebimento
+              </button>
             </div>
           )}
           </div>
@@ -644,6 +746,24 @@ export function FreightTab({
                 min="0.01"
                 value={gross}
                 onChange={(e) => setGross(e.target.value)}
+                className="input-field"
+                disabled={isSubmitting}
+              />
+              <input
+                placeholder="Vencimento previsto"
+                type="date"
+                value={paymentDueDate}
+                onChange={(e) => setPaymentDueDate(e.target.value)}
+                className="input-field"
+                disabled={isSubmitting}
+              />
+              <input
+                placeholder="Valor recebido (R$)"
+                type="number"
+                step="0.01"
+                min="0"
+                value={amountReceived}
+                onChange={(e) => setAmountReceived(e.target.value)}
                 className="input-field"
                 disabled={isSubmitting}
               />
@@ -774,6 +894,57 @@ export function FreightTab({
               onClick={() => setStartBlockedFreight(null)}
             >
               Cancelar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog
+        open={!!editingReceivableFreight}
+        onOpenChange={(open) => !open && !isSavingReceivable && setEditingReceivableFreight(null)}
+      >
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle>Atualizar recebimento do frete</DialogTitle>
+            <DialogDescription>
+              Ajuste vencimento e valor recebido sem alterar os demais dados do trecho.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-3">
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Vencimento previsto</span>
+              <input
+                type="date"
+                value={editPaymentDueDate}
+                onChange={(e) => setEditPaymentDueDate(e.target.value)}
+                className="input-field"
+                disabled={isSavingReceivable}
+              />
+            </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Valor recebido (R$)</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editAmountReceived}
+                onChange={(e) => setEditAmountReceived(e.target.value)}
+                className="input-field"
+                disabled={isSavingReceivable}
+              />
+            </label>
+          </div>
+
+          <DialogFooter>
+            <button
+              type="button"
+              className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
+              onClick={handleSaveReceivable}
+              disabled={isSavingReceivable}
+            >
+              {isSavingReceivable ? "Salvando..." : "Salvar recebimento"}
             </button>
           </DialogFooter>
         </DialogContent>

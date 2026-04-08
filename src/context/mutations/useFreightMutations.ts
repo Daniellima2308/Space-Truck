@@ -114,6 +114,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             commission_value: commissionValue,
             status: freightStatus,
             estimated_distance: 0,
+            payment_due_date: f.paymentDueDate ?? null,
+            amount_received: f.amountReceived,
           },
         });
         if (freightFeedback.variant === "notice") {
@@ -153,6 +155,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_value: commissionValue,
           status: freightStatus,
           estimated_distance: estimatedDistance,
+          payment_due_date: f.paymentDueDate ?? null,
+          amount_received: f.amountReceived,
         });
       if (freightInsertError)
         throw new Error(
@@ -401,6 +405,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             gross_value: f.grossValue,
             commission_percent: f.commissionPercent,
             commission_value: commissionValue,
+            payment_due_date: f.paymentDueDate ?? null,
+            amount_received: f.amountReceived,
             forceRouteRefresh: options?.forceRouteRefresh || false,
           },
         });
@@ -413,7 +419,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       const { data: currentFreight, error: currentFreightError } =
         await supabase
           .from("freights")
-          .select("origin, destination, estimated_distance, status, km_initial")
+          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, amount_received")
           .eq("id", freightId)
           .single();
 
@@ -473,6 +479,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               commission_percent: f.commissionPercent,
               commission_value: commissionValue,
               estimated_distance: nextEstimatedDistance,
+              payment_due_date: f.paymentDueDate ?? null,
+              amount_received: f.amountReceived,
             })
             .eq("id", freightId);
           await recalculateTripEstimatedDistance(tripId);
@@ -500,6 +508,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_percent: f.commissionPercent,
           commission_value: commissionValue,
           estimated_distance: nextEstimatedDistance,
+          payment_due_date: f.paymentDueDate ?? null,
+          amount_received: f.amountReceived,
         })
         .eq("id", freightId);
       await recalculateTripEstimatedDistance(tripId);

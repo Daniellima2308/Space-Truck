@@ -46,6 +46,8 @@ export interface FreightRow {
   commission_value: number;
   status: string | null;
   estimated_distance: number | null;
+  payment_due_date: string | null;
+  amount_received: number | null;
   created_at: string;
 }
 
@@ -138,6 +140,8 @@ export function mapFreightRow(f: FreightRow): Freight {
     commissionValue: f.commission_value,
     status: FREIGHT_STATUSES.has(f.status ?? "") ? (f.status as FreightStatus) : "planned",
     estimatedDistance: f.estimated_distance || 0,
+    paymentDueDate: f.payment_due_date || undefined,
+    amountReceived: f.amount_received ?? 0,
     createdAt: f.created_at,
   };
 }
