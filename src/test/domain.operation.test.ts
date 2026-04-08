@@ -135,6 +135,33 @@ describe("domain operation summaries", () => {
     expect(commissionedView.profile).toBe("commissioned_driver");
     expect(commissionedView.primaryLabel).toBe("Comissão gerada");
     expect(commissionedView.primaryValue).toBe(700);
+
+    const ownerWithDriverVehicle: Vehicle = {
+      ...vehicle,
+      operationProfile: "owner_with_driver",
+    };
+    const ownerWithDriverView = getTripProfileView(ownerWithDriverVehicle, baseTrip);
+    expect(ownerWithDriverView.profile).toBe("owner_with_driver");
+    expect(ownerWithDriverView.primaryLabel).toBe("Resultado do caminhão");
+    expect(ownerWithDriverView.primaryValue).toBe(5200);
+
+    const customVehicle: Vehicle = {
+      ...vehicle,
+      operationProfile: "custom",
+    };
+    const customView = getTripProfileView(customVehicle, baseTrip);
+    expect(customView.profile).toBe("custom");
+    expect(customView.primaryLabel).toBe("Resultado líquido");
+    expect(customView.primaryValue).toBe(5150);
+
+    const unknownProfileVehicle = {
+      ...vehicle,
+      operationProfile: "unknown_profile",
+    } as Vehicle;
+    const defaultView = getTripProfileView(unknownProfileVehicle, baseTrip);
+    expect(defaultView.profile).toBe("custom");
+    expect(defaultView.primaryLabel).toBe("Resultado líquido");
+    expect(defaultView.primaryValue).toBe(5150);
   });
 
   it("gera leitura consolidada do veículo", () => {
@@ -143,9 +170,12 @@ describe("domain operation summaries", () => {
       id: "trip-2",
       status: "finished",
       estimatedDistance: 1400,
+      fuelings: baseTrip.fuelings.map((fueling) => ({ ...fueling, tripId: "trip-2" })),
+      expenses: baseTrip.expenses.map((expense) => ({ ...expense, tripId: "trip-2" })),
+      personalExpenses: baseTrip.personalExpenses.map((expense) => ({ ...expense, tripId: "trip-2" })),
       freights: [
-        { ...baseTrip.freights[0], status: "completed" },
-        baseTrip.freights[1],
+        { ...baseTrip.freights[0], tripId: "trip-2", status: "completed" },
+        { ...baseTrip.freights[1], tripId: "trip-2" },
       ],
     };
 
