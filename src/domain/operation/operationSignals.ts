@@ -1,6 +1,7 @@
 import type { Trip } from "@/types";
+import { getOperationalFreights, getPlannedFreights } from "@/domain/operation/baseSelectors";
 import { getTripFinancialSummary } from "@/domain/operation/financialSummaries";
-import { getTripOperationalSummary, getOperationalFreights, getPlannedFreights } from "@/domain/operation/tripSummaries";
+import { getTripOperationalSummary } from "@/domain/operation/tripSummaries";
 
 export interface OperationSignalsV1 {
   hasFreight: boolean;
