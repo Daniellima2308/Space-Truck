@@ -1,10 +1,6 @@
 import type { Freight, Trip } from "@/types";
 import { getWeightedTripAverageConsumption } from "@/lib/fueling";
-import {
-  getFinalizedFreights,
-  getOperationalFreights,
-  getPlannedFreights,
-} from "@/domain/operation/baseSelectors";
+import { getOperationalFreights } from "@/domain/operation/baseSelectors";
 import {
   getTripNetRevenue,
   getTripNetRevenueToDate,
@@ -36,10 +32,7 @@ export interface TripOperationalSummary {
 }
 
 function getFreightEstimatedKmSum(freights: Freight[]): number {
-  return freights.reduce(
-    (sum, freight) => sum + (freight.estimatedDistance > 0 ? freight.estimatedDistance : 0),
-    0,
-  );
+  return freights.reduce((sum, freight) => sum + Math.max(freight.estimatedDistance, 0), 0);
 }
 
 function getKmFromCheckpoints(checkpoints: number[]): number {
@@ -48,8 +41,7 @@ function getKmFromCheckpoints(checkpoints: number[]): number {
 
   const startKm = Math.min(...validCheckpoints);
   const endKm = Math.max(...validCheckpoints);
-  const total = endKm - startKm;
-  return total > 0 ? total : 0;
+  return Math.max(endKm - startKm, 0);
 }
 
 export function getTripFreightEstimatedKmTotal(trip: Trip): number {
@@ -96,7 +88,7 @@ export function getTripAverageConsumption(trip: Trip): number {
 
 export function getTripEstimatedKmToDate(trip: Trip): number {
   return getOperationalFreights(trip).reduce(
-    (sum, freight) => sum + (freight.estimatedDistance > 0 ? freight.estimatedDistance : 0),
+    (sum, freight) => sum + Math.max(freight.estimatedDistance, 0),
     0,
   );
 }

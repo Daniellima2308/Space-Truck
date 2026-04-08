@@ -1,30 +1,9 @@
 import { Trip } from "@/types";
 import {
   getFinalizedFreights,
-  getOperationalFreights,
-  getPlannedFreights,
   getTripActualKmTotal,
-  getTripActualKmToDate,
-  getTripAverageConsumption,
-  getTripCostPerKm,
-  getTripCostPerKmToDate,
-  getTripEstimatedKmToDate,
-  getTripEstimatedKmTotal,
-  getTripFinalDistanceSnapshot,
-  getTripFreightEstimatedKmTotal,
-  getTripGrossRevenue,
-  getTripGrossRevenueToDate,
   getTripKmBasisToDate,
   getTripKmBasisTotal,
-  getTripLatestCheckpointKm,
-  getTripNetRevenue,
-  getTripNetRevenueToDate,
-  getTripProfitPerKm,
-  getTripProfitPerKmToDate,
-  getTripTotalCommissions,
-  getTripTotalCommissionsToDate,
-  getTripTotalExpenses,
-  getTripTotalPersonalExpenses,
 } from "@/domain/operation";
 
 export {
@@ -52,7 +31,7 @@ export {
   getTripCostPerKmToDate,
   getTripProfitPerKm,
   getTripProfitPerKmToDate,
-};
+} from "@/domain/operation";
 
 export function getTripTotalKm(trip: Trip): number {
   return getTripActualKmTotal(trip);
