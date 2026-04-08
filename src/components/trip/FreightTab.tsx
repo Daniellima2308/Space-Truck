@@ -165,6 +165,15 @@ export function FreightTab({
     if (showCommissionInput && !comm) return;
 
     const commissionPercent = showCommissionInput ? parseFloat(comm) : 0;
+    const parsedAmountReceived = Number(amountReceived || 0);
+    if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) {
+      toast({
+        title: "Valor recebido inválido",
+        description: "Informe um valor recebido maior ou igual a zero.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsSubmitting(true);
@@ -174,7 +183,7 @@ export function FreightTab({
         kmInitial: parseFloat(km),
         grossValue: parseFloat(gross),
         paymentDueDate: paymentDueDate || undefined,
-        amountReceived: Number(amountReceived || 0),
+        amountReceived: parsedAmountReceived,
         commissionPercent,
         createdAt: new Date().toISOString(),
       });
@@ -431,6 +440,16 @@ export function FreightTab({
         createdAt: editingReceivableFreight.createdAt,
       });
       setEditingReceivableFreight(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar o recebimento agora.";
+      toast({
+        title: "Não foi possível salvar agora",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingReceivable(false);
     }
@@ -539,7 +558,12 @@ export function FreightTab({
           </div>
         )}
 
-        {sortedFreights.map((f: Freight) => (
+        {sortedFreights.map((f: Freight) => {
+          const receivableStatus = getFreightReceivableStatus(f);
+          const remainingBalance = getFreightRemainingBalance(f);
+          const receivedPercentage = getFreightReceivedPercentage(f);
+
+          return (
           <div key={f.id} className="gradient-card rounded-xl p-3 space-y-2">
           <div className="flex items-start justify-between gap-3">
             <div className="space-y-1">
@@ -622,7 +646,7 @@ export function FreightTab({
                 {formatCurrency(f.amountReceived)}
               </p>
               <p className="text-[10px] text-muted-foreground">
-                {getFreightReceivedPercentage(f).toFixed(0)}%
+                {receivedPercentage.toFixed(0)}%
               </p>
             </div>
           </div>
@@ -633,15 +657,15 @@ export function FreightTab({
                 Contas a receber
               </p>
               <span
-                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[getFreightReceivableStatus(f)]}`}
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[receivableStatus]}`}
               >
-                {receivableStatusLabel[getFreightReceivableStatus(f)]}
+                {receivableStatusLabel[receivableStatus]}
               </span>
             </div>
             <p className="text-xs text-foreground">
               Saldo restante:{" "}
               <span className="font-mono font-semibold">
-                {formatCurrency(getFreightRemainingBalance(f))}
+                {formatCurrency(remainingBalance)}
               </span>
             </p>
             {f.paymentDueDate && (
@@ -710,7 +734,8 @@ export function FreightTab({
             </div>
           )}
           </div>
-        ))}
+          );
+        })}
       {isOpen &&
         (showForm ? (
           <form

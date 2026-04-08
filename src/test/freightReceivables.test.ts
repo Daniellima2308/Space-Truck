@@ -91,4 +91,21 @@ describe("freightReceivables", () => {
       ),
     ).toBe(true);
   });
+
+  it("ignora datas inválidas de vencimento", () => {
+    const referenceDate = new Date(2026, 3, 10, 12, 0, 0, 0);
+
+    expect(
+      isFreightOverdue(
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-02-30" },
+        referenceDate,
+      ),
+    ).toBe(false);
+    expect(
+      isFreightOverdue(
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026/04/08" },
+        referenceDate,
+      ),
+    ).toBe(false);
+  });
 });

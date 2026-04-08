@@ -9,6 +9,8 @@ function normalizeAmount(value: number | null | undefined): number {
 
 function getDueDateTimestamp(paymentDueDate?: string): number | null {
   if (!paymentDueDate) return null;
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(paymentDueDate)) return null;
+
   const [yearRaw, monthRaw, dayRaw] = paymentDueDate.split("-");
   const year = Number(yearRaw);
   const month = Number(monthRaw);
@@ -20,7 +22,20 @@ function getDueDateTimestamp(paymentDueDate?: string): number | null {
   ) {
     return null;
   }
+
+  if (month < 1 || month > 12 || day < 1 || day > 31) {
+    return null;
+  }
+
   const dueDate = new Date(year, month - 1, day, 23, 59, 59, 999);
+  if (
+    dueDate.getFullYear() !== year ||
+    dueDate.getMonth() !== month - 1 ||
+    dueDate.getDate() !== day
+  ) {
+    return null;
+  }
+
   const dueMs = dueDate.getTime();
   if (Number.isNaN(dueMs)) return null;
   return dueMs;
