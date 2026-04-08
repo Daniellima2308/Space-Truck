@@ -34,6 +34,8 @@ export function getOperationSignalsV1(trip: Trip): OperationSignalsV1 {
     hasCoreData: hasFreight || hasFueling || hasExpenses,
     hasRealKm: operationalSummary.kmBasisToDate.source === "actual" && operationalSummary.kmBasisToDate.km > 0,
     hasEstimatedKm: operationalSummary.kmBasisToDate.source === "estimated" && operationalSummary.kmBasisToDate.km > 0,
+    // TODO(PR3): alinhar com TripDetailPage/getCurrentFreight quando a UI migrar para estes sinais.
+    // Hoje este critério usa ausência de fretes "planned", enquanto a UI ainda usa ausência de frete ativo.
     canFinishTrip: hasFreight && plannedFreights.length === 0,
     isProfitable: financialSummary.netRevenue > 0,
   };

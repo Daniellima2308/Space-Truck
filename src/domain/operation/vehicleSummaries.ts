@@ -24,6 +24,10 @@ export function getVehicleSummary(vehicle: Vehicle, trips: Trip[]): VehicleSumma
   const vehicleTrips = getTripsByVehicle(vehicle.id, trips);
   const activeTrips = vehicleTrips.filter((trip) => trip.status === "open");
   const finishedTrips = vehicleTrips.filter((trip) => trip.status === "finished");
+  const currentTrip = activeTrips.reduce<Trip | undefined>((latest, trip) => {
+    if (!latest) return trip;
+    return new Date(trip.createdAt).getTime() > new Date(latest.createdAt).getTime() ? trip : latest;
+  }, undefined);
 
   const aggregates = vehicleTrips.reduce(
     (acc, trip) => {
@@ -42,8 +46,8 @@ export function getVehicleSummary(vehicle: Vehicle, trips: Trip[]): VehicleSumma
     },
   );
 
-  const currentTripOperational = activeTrips.length > 0
-    ? getTripOperationalSummary(activeTrips[0])
+  const currentTripOperational = currentTrip
+    ? getTripOperationalSummary(currentTrip)
     : undefined;
 
   return {

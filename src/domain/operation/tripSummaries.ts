@@ -143,6 +143,8 @@ export function getTripCostPerKm(trip: Trip): number {
 export function getTripCostPerKmToDate(trip: Trip): number {
   const { km } = getTripKmBasisToDate(trip);
   if (km === 0) return 0;
+  // Mantém despesas totais da viagem por serem custos já incorridos no período da operação.
+  // Apenas as comissões são limitadas ao recorte "to date" (fretes operacionais até o momento).
   const totalCost = getTripTotalExpenses(trip) + getTripTotalCommissionsToDate(trip);
   return Math.round((totalCost / km) * 100) / 100;
 }
