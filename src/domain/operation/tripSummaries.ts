@@ -35,8 +35,6 @@ export interface TripOperationalSummary {
   profitPerKmToDate: number;
 }
 
-export { getFinalizedFreights, getOperationalFreights, getPlannedFreights };
-
 function getFreightEstimatedKmSum(freights: Freight[]): number {
   return freights.reduce(
     (sum, freight) => sum + (freight.estimatedDistance > 0 ? freight.estimatedDistance : 0),
