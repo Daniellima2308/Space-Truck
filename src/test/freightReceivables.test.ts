@@ -72,4 +72,23 @@ describe("freightReceivables", () => {
       ),
     ).toBe(false);
   });
+
+  it("usa o fim do dia local para vencimento (não UTC)", () => {
+    const dueDate = "2026-04-08";
+    const almostEndOfDay = new Date(2026, 3, 8, 23, 0, 0, 0);
+    const nextDay = new Date(2026, 3, 9, 0, 0, 0, 0);
+
+    expect(
+      isFreightOverdue(
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate },
+        almostEndOfDay,
+      ),
+    ).toBe(false);
+    expect(
+      isFreightOverdue(
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate },
+        nextDay,
+      ),
+    ).toBe(true);
+  });
 });
