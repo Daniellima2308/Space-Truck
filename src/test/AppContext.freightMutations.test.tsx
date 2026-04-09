@@ -795,6 +795,20 @@ describe("AppContext freight mutations", () => {
     unmount();
   });
 
+  it("updateFreight com vencimento impossível retorna blocked", async () => {
+    const { app, unmount } = await renderApp();
+
+    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+      ...freightPayload(),
+      paymentDueDate: "2026-02-30",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.userMessage).toMatch(/data existente/);
+
+    unmount();
+  });
+
   it("updateFreight com frete completed e KM alterado retorna blocked", async () => {
     // current freight is completed with km_initial=100, trying to change to 200
     dbState.freights = [

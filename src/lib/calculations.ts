@@ -83,6 +83,8 @@ function parseDateLikeInput(value: string): Date | null {
     return localDate;
   }
 
+  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) return null;
+
   const fallbackDate = new Date(value);
   if (Number.isNaN(fallbackDate.getTime())) return null;
   return fallbackDate;

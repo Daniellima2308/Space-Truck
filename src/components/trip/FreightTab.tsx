@@ -444,7 +444,7 @@ export function FreightTab({
 
     try {
       setIsSavingReceivable(true);
-      await updateFreight(trip.id, latestFreight.id, {
+      const result = await updateFreight(trip.id, latestFreight.id, {
         origin: latestFreight.origin,
         destination: latestFreight.destination,
         kmInitial: latestFreight.kmInitial,
@@ -454,6 +454,11 @@ export function FreightTab({
         commissionPercent: latestFreight.commissionPercent,
         createdAt: latestFreight.createdAt,
       });
+
+      if (result.status === "blocked") {
+        return;
+      }
+
       setEditingReceivableFreight(null);
     } catch (error) {
       const message =

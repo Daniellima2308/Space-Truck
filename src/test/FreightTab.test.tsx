@@ -247,6 +247,39 @@ describe("FreightTab", () => {
     });
   });
 
+  it("mantém diálogo de recebimento aberto quando update retorna blocked", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({
+      status: "blocked",
+      userMessage: "Dados inválidos",
+    });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Atualizar recebimento do frete")).toBeInTheDocument();
+    });
+  });
+
   it("força nova tentativa de previsão ao revisar rota sem alterar campos", async () => {
     const updateFreight = vi
       .fn()

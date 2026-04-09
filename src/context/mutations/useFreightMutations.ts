@@ -48,13 +48,29 @@ function normalizeReceivableInput(params: {
     throw new Error("Valor recebido inválido. Informe um valor maior ou igual a zero.");
   }
 
-  if (
-    params.paymentDueDate != null &&
-    params.paymentDueDate !== "" &&
-    (typeof params.paymentDueDate !== "string" ||
-      !/^\d{4}-\d{2}-\d{2}$/.test(params.paymentDueDate))
-  ) {
-    throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+  if (params.paymentDueDate != null && params.paymentDueDate !== "") {
+    if (typeof params.paymentDueDate !== "string") {
+      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+    }
+
+    const dateMatch = params.paymentDueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) {
+      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+    }
+
+    const [, yearRaw, monthRaw, dayRaw] = dateMatch;
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const day = Number(dayRaw);
+    const parsed = new Date(year, month - 1, day);
+    const isSameDate =
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day;
+
+    if (!isSameDate) {
+      throw new Error("Vencimento previsto inválido. Informe uma data existente.");
+    }
   }
 
   return {
