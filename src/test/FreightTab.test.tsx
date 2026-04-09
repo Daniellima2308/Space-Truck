@@ -170,6 +170,47 @@ describe("FreightTab", () => {
     expect(screen.getByPlaceholderText("Destino")).toHaveValue("RJ");
   });
 
+  it("mostra erro quando o valor recebido é inválido no cadastro", async () => {
+    const addFreight = vi.fn().mockResolvedValue(undefined);
+
+    const { container } = render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={addFreight}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), {
+      target: { value: "SP" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), {
+      target: { value: "RJ" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), {
+      target: { value: "100" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), {
+      target: { value: "1000" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Valor recebido (R$)"), {
+      target: { value: "-7" },
+    });
+
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => {
+      expect(addFreight).not.toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Valor recebido inválido" }),
+      );
+    });
+  });
+
   it("mostra erro ao tentar salvar recebimento inválido", async () => {
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
 

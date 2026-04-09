@@ -318,6 +318,8 @@ const freightPayload = () => ({
   kmInitial: 100,
   grossValue: 2000,
   commissionPercent: 10,
+  amountReceived: 0,
+  paymentDueDate: undefined as string | undefined,
 });
 
 describe("AppContext freight mutations", () => {
@@ -382,6 +384,19 @@ describe("AppContext freight mutations", () => {
     await expect(app.addFreight("trip-1", freightPayload())).rejects.toThrow(
       "Comissão inválida",
     );
+    unmount();
+  });
+
+  it("addFreight com valor recebido inválido lança erro", async () => {
+    const { app, unmount } = await renderApp();
+
+    await expect(
+      app.addFreight("trip-1", {
+        ...freightPayload(),
+        amountReceived: -1,
+      }),
+    ).rejects.toThrow("Valor recebido inválido");
+
     unmount();
   });
 
@@ -749,6 +764,34 @@ describe("AppContext freight mutations", () => {
 
     expect(result.status).toBe("updated");
     expect(offlineState.queue[0].type).toBe("updateFreight");
+    unmount();
+  });
+
+  it("updateFreight com valor recebido inválido retorna blocked", async () => {
+    const { app, unmount } = await renderApp();
+
+    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+      ...freightPayload(),
+      amountReceived: -10,
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.userMessage).toMatch(/Valor recebido inválido/);
+
+    unmount();
+  });
+
+  it("updateFreight com vencimento inválido retorna blocked", async () => {
+    const { app, unmount } = await renderApp();
+
+    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+      ...freightPayload(),
+      paymentDueDate: "08/04/2026",
+    });
+
+    expect(result.status).toBe("blocked");
+    expect(result.userMessage).toMatch(/Vencimento previsto inválido/);
+
     unmount();
   });
 
