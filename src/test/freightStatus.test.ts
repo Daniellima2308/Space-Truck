@@ -21,6 +21,7 @@ function makeFreight(
     commissionValue: 100,
     status,
     estimatedDistance: 200,
+    amountReceived: 0,
     createdAt,
   };
 }

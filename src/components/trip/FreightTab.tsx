@@ -319,23 +319,28 @@ export function FreightTab({
     setEditDestination(freight.destination);
   };
 
+  const getLatestFreight = (freightId: string): Freight | null => {
+    return trip.freights.find((freight) => freight.id === freightId) ?? null;
+  };
+
   const handleSaveKmEdit = async () => {
     if (!editingKmFreight || isSavingKm) return;
+    const latestFreight = getLatestFreight(editingKmFreight.id) ?? editingKmFreight;
 
     const parsedKm = Number(editKmInitial);
     if (!Number.isFinite(parsedKm)) return;
 
     try {
       setIsSavingKm(true);
-      await updateFreight(trip.id, editingKmFreight.id, {
-        origin: editingKmFreight.origin,
-        destination: editingKmFreight.destination,
+      await updateFreight(trip.id, latestFreight.id, {
+        origin: latestFreight.origin,
+        destination: latestFreight.destination,
         kmInitial: parsedKm,
-        grossValue: editingKmFreight.grossValue,
-        paymentDueDate: editingKmFreight.paymentDueDate,
-        amountReceived: editingKmFreight.amountReceived,
-        commissionPercent: editingKmFreight.commissionPercent,
-        createdAt: editingKmFreight.createdAt,
+        grossValue: latestFreight.grossValue,
+        paymentDueDate: latestFreight.paymentDueDate,
+        amountReceived: latestFreight.amountReceived,
+        commissionPercent: latestFreight.commissionPercent,
+        createdAt: latestFreight.createdAt,
       });
 
       setEditingKmFreight(null);
@@ -355,21 +360,22 @@ export function FreightTab({
   const handleSaveRouteReview = async () => {
     if (!routeReviewFreight || isSavingRouteReview) return;
     if (!editOrigin.trim() || !editDestination.trim()) return;
+    const latestFreight = getLatestFreight(routeReviewFreight.id) ?? routeReviewFreight;
 
     try {
       setIsSavingRouteReview(true);
       const result = await updateFreight(
         trip.id,
-        routeReviewFreight.id,
+        latestFreight.id,
         {
           origin: editOrigin.trim(),
           destination: editDestination.trim(),
-          kmInitial: routeReviewFreight.kmInitial,
-          grossValue: routeReviewFreight.grossValue,
-          paymentDueDate: routeReviewFreight.paymentDueDate,
-          amountReceived: routeReviewFreight.amountReceived,
-          commissionPercent: routeReviewFreight.commissionPercent,
-          createdAt: routeReviewFreight.createdAt,
+          kmInitial: latestFreight.kmInitial,
+          grossValue: latestFreight.grossValue,
+          paymentDueDate: latestFreight.paymentDueDate,
+          amountReceived: latestFreight.amountReceived,
+          commissionPercent: latestFreight.commissionPercent,
+          createdAt: latestFreight.createdAt,
         },
         { forceRouteRefresh: true, suppressSuccessToast: true },
       );
@@ -424,20 +430,29 @@ export function FreightTab({
 
   const handleSaveReceivable = async () => {
     if (!editingReceivableFreight || isSavingReceivable) return;
+    const latestFreight =
+      getLatestFreight(editingReceivableFreight.id) ?? editingReceivableFreight;
     const parsedAmountReceived = Number(editAmountReceived || 0);
-    if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) return;
+    if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) {
+      toast({
+        title: "Valor recebido inválido",
+        description: "Informe um valor recebido maior ou igual a zero.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     try {
       setIsSavingReceivable(true);
-      await updateFreight(trip.id, editingReceivableFreight.id, {
-        origin: editingReceivableFreight.origin,
-        destination: editingReceivableFreight.destination,
-        kmInitial: editingReceivableFreight.kmInitial,
-        grossValue: editingReceivableFreight.grossValue,
+      await updateFreight(trip.id, latestFreight.id, {
+        origin: latestFreight.origin,
+        destination: latestFreight.destination,
+        kmInitial: latestFreight.kmInitial,
+        grossValue: latestFreight.grossValue,
         paymentDueDate: editPaymentDueDate || undefined,
         amountReceived: parsedAmountReceived,
-        commissionPercent: editingReceivableFreight.commissionPercent,
-        createdAt: editingReceivableFreight.createdAt,
+        commissionPercent: latestFreight.commissionPercent,
+        createdAt: latestFreight.createdAt,
       });
       setEditingReceivableFreight(null);
     } catch (error) {

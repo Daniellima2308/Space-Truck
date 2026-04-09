@@ -76,7 +76,7 @@ export function getFreightReceivableStatus(
   const amountReceived = normalizeAmount(freight.amountReceived);
 
   if (amountReceived >= grossValue) return "received";
-  if (amountReceived > 0 && amountReceived < grossValue) return "partial";
   if (isFreightOverdue(freight, referenceDate)) return "overdue";
+  if (amountReceived > 0 && amountReceived < grossValue) return "partial";
   return "pending";
 }

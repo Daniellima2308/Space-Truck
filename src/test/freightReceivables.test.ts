@@ -22,6 +22,12 @@ describe("freightReceivables", () => {
     expect(
       getFreightReceivedPercentage({ grossValue: 1000, amountReceived: 5000 }),
     ).toBe(100);
+    expect(
+      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 0 }),
+    ).toBe(0);
+    expect(
+      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 1000 }),
+    ).toBe(0);
   });
 
   it("deriva status conforme regra da PR4", () => {
@@ -37,6 +43,13 @@ describe("freightReceivables", () => {
     expect(
       getFreightReceivableStatus(
         { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-01" },
+        referenceDate,
+      ),
+    ).toBe("overdue");
+
+    expect(
+      getFreightReceivableStatus(
+        { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-30" },
         referenceDate,
       ),
     ).toBe("partial");

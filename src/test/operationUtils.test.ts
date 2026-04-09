@@ -30,6 +30,7 @@ function makeFreight(id: string, status: Freight["status"]): Freight {
     commissionValue: 100,
     status,
     estimatedDistance: 200,
+    amountReceived: 0,
     createdAt: "2026-01-01T00:00:00.000Z",
   };
 }

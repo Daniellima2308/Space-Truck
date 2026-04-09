@@ -57,5 +57,33 @@ export function formatNumber(value: number): string {
 }
 
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("pt-BR");
+  const parsedDate = parseDateLikeInput(date);
+  if (!parsedDate) return "—";
+  return parsedDate.toLocaleDateString("pt-BR");
+}
+
+function parseDateLikeInput(value: string): Date | null {
+  if (!value) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    const [yearRaw, monthRaw, dayRaw] = value.split("-");
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const day = Number(dayRaw);
+    const localDate = new Date(year, month - 1, day);
+
+    if (
+      localDate.getFullYear() !== year ||
+      localDate.getMonth() !== month - 1 ||
+      localDate.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return localDate;
+  }
+
+  const fallbackDate = new Date(value);
+  if (Number.isNaN(fallbackDate.getTime())) return null;
+  return fallbackDate;
 }
