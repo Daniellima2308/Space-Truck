@@ -325,7 +325,6 @@ describe("AppContext freight flow", () => {
       kmInitial: 120,
       grossValue: 2400,
       commissionPercent: 10,
-      createdAt: now,
     });
 
     expect(dbState.freights).toEqual(
@@ -365,7 +364,6 @@ describe("AppContext freight flow", () => {
       kmInitial: 180,
       grossValue: 2100,
       commissionPercent: 10,
-      createdAt: now,
     });
 
     expect(dbState.freights).toEqual(
@@ -405,7 +403,6 @@ describe("AppContext freight flow", () => {
       kmInitial: 190,
       grossValue: 2100,
       commissionPercent: 10,
-      createdAt: now,
     });
 
     expect(dbState.freights).toEqual(
@@ -519,7 +516,6 @@ describe("AppContext freight flow", () => {
       kmInitial: 150,
       grossValue: 1000,
       commissionPercent: 10,
-      createdAt: now,
     });
 
     expect(result).toEqual({

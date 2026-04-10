@@ -41,7 +41,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       tripId: string,
       f: Omit<
         Freight,
-        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
+        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
       >,
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
@@ -320,7 +320,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       freightId: string,
       f: Omit<
         Freight,
-        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
+        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
       >,
       options?: { forceRouteRefresh?: boolean; suppressSuccessToast?: boolean },
     ): Promise<FreightUpdateResult> => {

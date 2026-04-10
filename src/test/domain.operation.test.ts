@@ -156,7 +156,7 @@ describe("domain operation summaries", () => {
 
     const unknownProfileVehicle = {
       ...vehicle,
-      operationProfile: "unknown_profile",
+      operationProfile: "unknown_profile" as unknown,
     } as Vehicle;
     const defaultView = getTripProfileView(unknownProfileVehicle, baseTrip);
     expect(defaultView.profile).toBe("custom");

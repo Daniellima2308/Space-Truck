@@ -358,7 +358,7 @@ describe("AppContext vehicle mutations", () => {
   it("updateVehicle atualiza operationProfile e normaliza perfil", async () => {
     const { app, unmount } = await renderApp();
     await app.updateVehicle("vehicle-1", {
-      operationProfile: "fleet_owner" as const,
+      operationProfile: "driver_owner" as const,
       driverBond: "clt" as const,
       defaultCommissionPercent: 12,
     });

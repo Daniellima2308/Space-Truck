@@ -589,7 +589,7 @@ describe("AppContext expense mutations", () => {
     offlineState.online = false;
     const { app, unmount } = await renderApp();
     await app.updatePersonalExpense("trip-1", "pe-upd", {
-      category: "alimentacao",
+      category: "almoco_janta" as const,
       description: "Café da manhã",
       value: 15,
       date: "2026-03-22",
@@ -612,7 +612,7 @@ describe("AppContext expense mutations", () => {
 
     const { app, unmount } = await renderApp();
     await app.updatePersonalExpense("trip-1", "pe-upd2", {
-      category: "alimentacao",
+      category: "almoco_janta" as const,
       description: "Almoço atualizado",
       value: 35,
       date: "2026-03-22",
