@@ -46,7 +46,7 @@ export interface AppContextType {
     tripId: string,
     f: Omit<
       Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt" | "amountReceived"
+      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
     >,
   ) => Promise<void>;
   updateFreight: (
@@ -54,7 +54,7 @@ export interface AppContextType {
     freightId: string,
     f: Omit<
       Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt" | "amountReceived"
+      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
     >,
     options?: { forceRouteRefresh?: boolean; suppressSuccessToast?: boolean },
   ) => Promise<FreightUpdateResult>;
