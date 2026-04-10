@@ -35,6 +35,15 @@ interface FreightMutationsParams {
   fetchData: (options?: { throwOnError?: boolean }) => Promise<void>;
 }
 
+function assertFreightUpdateSucceeded(
+  result: { error: { message?: string } | null; status?: number | null },
+  contextMessage: string,
+) {
+  if (!result.error) return;
+  console.error(contextMessage, result.error);
+  throw new Error(result.error.message || "Falha ao atualizar frete.");
+}
+
 function normalizeReceivableInput(params: {
   amountReceived: unknown;
   paymentDueDate?: unknown;
@@ -538,7 +547,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               showActionNotice("Previsão ainda em ajuste", userMessage);
             }
           }
-          await supabase
+          const fallbackUpdateResult = await supabase
             .from("freights")
             .update({
               origin: f.origin,
@@ -552,6 +561,10 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               amount_received: receivable.amountReceived,
             })
             .eq("id", freightId);
+          assertFreightUpdateSucceeded(
+            fallbackUpdateResult,
+            "Falha ao salvar frete sem previsão de rota",
+          );
           await recalculateTripEstimatedDistance(tripId);
           if (vehicleId) {
             await recalculateVehicleKm(vehicleId);
@@ -567,7 +580,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         nextEstimatedDistance = estimatedDistance;
       }
 
-      await supabase
+      const updateResult = await supabase
         .from("freights")
         .update({
           origin: f.origin,
@@ -581,6 +594,10 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           amount_received: receivable.amountReceived,
         })
         .eq("id", freightId);
+      assertFreightUpdateSucceeded(
+        updateResult,
+        "Falha ao atualizar frete",
+      );
       await recalculateTripEstimatedDistance(tripId);
       if (vehicleId) {
         await recalculateVehicleKm(vehicleId);

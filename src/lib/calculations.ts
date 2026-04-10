@@ -63,10 +63,11 @@ export function formatDate(date: string): string {
 }
 
 function parseDateLikeInput(value: string): Date | null {
-  if (!value) return null;
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return null;
 
-  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
-    const [yearRaw, monthRaw, dayRaw] = value.split("-");
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    const [yearRaw, monthRaw, dayRaw] = normalizedValue.split("-");
     const year = Number(yearRaw);
     const month = Number(monthRaw);
     const day = Number(dayRaw);
@@ -83,9 +84,71 @@ function parseDateLikeInput(value: string): Date | null {
     return localDate;
   }
 
-  if (!/^\d{4}-\d{2}-\d{2}T/.test(value)) return null;
+  const strictIsoDateTimeMatch = normalizedValue.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/,
+  );
+  if (!strictIsoDateTimeMatch) return null;
 
-  const fallbackDate = new Date(value);
-  if (Number.isNaN(fallbackDate.getTime())) return null;
-  return fallbackDate;
+  const [
+    ,
+    yearRaw,
+    monthRaw,
+    dayRaw,
+    hourRaw,
+    minuteRaw,
+    secondRaw = "00",
+    fractionalRaw = "",
+    timezoneRaw,
+  ] = strictIsoDateTimeMatch;
+
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  const second = Number(secondRaw);
+  const millisecond = fractionalRaw
+    ? Number(fractionalRaw.slice(1).padEnd(3, "0"))
+    : 0;
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59
+  ) {
+    return null;
+  }
+
+  const utcTime = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+  const utcDate = new Date(utcTime);
+
+  if (
+    utcDate.getUTCFullYear() !== year ||
+    utcDate.getUTCMonth() !== month - 1 ||
+    utcDate.getUTCDate() !== day ||
+    utcDate.getUTCHours() !== hour ||
+    utcDate.getUTCMinutes() !== minute ||
+    utcDate.getUTCSeconds() !== second ||
+    utcDate.getUTCMilliseconds() !== millisecond
+  ) {
+    return null;
+  }
+
+  if (timezoneRaw === "Z") {
+    return utcDate;
+  }
+
+  const timezoneSign = timezoneRaw.startsWith("-") ? -1 : 1;
+  const [offsetHoursRaw, offsetMinutesRaw] = timezoneRaw.slice(1).split(":");
+  const offsetHours = Number(offsetHoursRaw);
+  const offsetMinutes = Number(offsetMinutesRaw);
+
+  if (offsetHours > 23 || offsetMinutes > 59) return null;
+
+  const offsetInMinutes = timezoneSign * (offsetHours * 60 + offsetMinutes);
+  return new Date(utcTime - offsetInMinutes * 60_000);
 }

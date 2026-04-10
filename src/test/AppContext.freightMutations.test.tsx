@@ -432,11 +432,22 @@ describe("AppContext freight mutations", () => {
   it("addFreight offline enfileira ação e mostra toast", async () => {
     const { app, unmount } = await renderApp();
     offlineState.online = false;
+    const payload = {
+      ...freightPayload(),
+      amountReceived: 320,
+      paymentDueDate: "2026-04-20",
+    };
 
-    await app.addFreight("trip-1", freightPayload());
+    await app.addFreight("trip-1", payload);
 
     expect(offlineState.queue).toHaveLength(1);
     expect(offlineState.queue[0].type).toBe("addFreight");
+    expect(offlineState.queue[0].payload).toEqual(
+      expect.objectContaining({
+        amount_received: payload.amountReceived,
+        payment_due_date: payload.paymentDueDate,
+      }),
+    );
     unmount();
   });
 
@@ -476,11 +487,23 @@ describe("AppContext freight mutations", () => {
 
   it("addFreight online com rota OK insere frete e mostra sucesso", async () => {
     dbState.freights = [];
+    const payload = {
+      ...freightPayload(),
+      amountReceived: 500,
+      paymentDueDate: "2026-04-30",
+    };
 
     const { app, unmount } = await renderApp();
-    await app.addFreight("trip-1", freightPayload());
+    await app.addFreight("trip-1", payload);
 
-    expect(dbState.freights.some((f) => f.origin === "São Paulo - SP")).toBe(true);
+    const insertedFreight = dbState.freights.find((f) => f.origin === "São Paulo - SP");
+    expect(insertedFreight).toBeTruthy();
+    expect(insertedFreight).toEqual(
+      expect.objectContaining({
+        amount_received: payload.amountReceived,
+        payment_due_date: payload.paymentDueDate,
+      }),
+    );
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Frete iniciado" }),
     );
@@ -759,11 +782,22 @@ describe("AppContext freight mutations", () => {
   it("updateFreight offline enfileira e retorna updated", async () => {
     const { app, unmount } = await renderApp();
     offlineState.online = false;
+    const payload = {
+      ...freightPayload(),
+      amountReceived: 180,
+      paymentDueDate: "2026-05-05",
+    };
 
-    const result = await app.updateFreight("trip-1", "freight-in-progress", freightPayload());
+    const result = await app.updateFreight("trip-1", "freight-in-progress", payload);
 
     expect(result.status).toBe("updated");
     expect(offlineState.queue[0].type).toBe("updateFreight");
+    expect(offlineState.queue[0].payload).toEqual(
+      expect.objectContaining({
+        amount_received: payload.amountReceived,
+        payment_due_date: payload.paymentDueDate,
+      }),
+    );
     unmount();
   });
 
@@ -842,13 +876,25 @@ describe("AppContext freight mutations", () => {
 
   it("updateFreight sem mudança de rota atualiza e retorna updated", async () => {
     const { app, unmount } = await renderApp();
-    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+    const payload = {
       ...freightPayload(),
       origin: "A", // same as current
       destination: "B", // same as current
+      amountReceived: 750,
+      paymentDueDate: "2026-06-10",
+    };
+    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+      ...payload,
     });
 
     expect(result.status).toBe("updated");
+    const updatedFreight = dbState.freights.find((f) => f.id === "freight-in-progress");
+    expect(updatedFreight).toEqual(
+      expect.objectContaining({
+        amount_received: payload.amountReceived,
+        payment_due_date: payload.paymentDueDate,
+      }),
+    );
     unmount();
   });
 
