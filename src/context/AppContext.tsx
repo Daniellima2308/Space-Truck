@@ -384,6 +384,8 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   commission_percent: action.payload.commission_percent,
                   commission_value: action.payload.commission_value,
                   estimated_distance: nextEstimatedDistance,
+                  payment_due_date: action.payload.payment_due_date ?? null,
+                  amount_received: action.payload.amount_received ?? 0,
                 })
                 .eq("id", action.payload.freightId);
 

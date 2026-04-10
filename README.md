@@ -30,10 +30,22 @@ git clone <YOUR_GIT_URL>
 cd <YOUR_PROJECT_NAME>
 
 # Step 3: Install the necessary dependencies.
-npm i
+npm ci
 
 # Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
+```
+
+
+## Recommended validation checklist
+
+Before opening a PR, run the same checks used in CI:
+
+```sh
+npm ci
+npm run build
+npm run lint
+npm test
 ```
 
 ## Environment variables

@@ -48,6 +48,8 @@ export interface Freight {
   commissionValue: number;
   status: FreightStatus;
   estimatedDistance: number;
+  paymentDueDate?: string;
+  amountReceived: number;
   createdAt: string;
 }
 

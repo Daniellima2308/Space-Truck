@@ -57,5 +57,98 @@ export function formatNumber(value: number): string {
 }
 
 export function formatDate(date: string): string {
-  return new Date(date).toLocaleDateString("pt-BR");
+  const parsedDate = parseDateLikeInput(date);
+  if (!parsedDate) return "—";
+  return parsedDate.toLocaleDateString("pt-BR");
+}
+
+function parseDateLikeInput(value: string): Date | null {
+  const normalizedValue = value.trim();
+  if (!normalizedValue) return null;
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    const [yearRaw, monthRaw, dayRaw] = normalizedValue.split("-");
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const day = Number(dayRaw);
+    const localDate = new Date(year, month - 1, day);
+
+    if (
+      localDate.getFullYear() !== year ||
+      localDate.getMonth() !== month - 1 ||
+      localDate.getDate() !== day
+    ) {
+      return null;
+    }
+
+    return localDate;
+  }
+
+  const strictIsoDateTimeMatch = normalizedValue.match(
+    /^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2})(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})$/,
+  );
+  if (!strictIsoDateTimeMatch) return null;
+
+  const [
+    ,
+    yearRaw,
+    monthRaw,
+    dayRaw,
+    hourRaw,
+    minuteRaw,
+    secondRaw = "00",
+    fractionalRaw = "",
+    timezoneRaw,
+  ] = strictIsoDateTimeMatch;
+
+  const year = Number(yearRaw);
+  const month = Number(monthRaw);
+  const day = Number(dayRaw);
+  const hour = Number(hourRaw);
+  const minute = Number(minuteRaw);
+  const second = Number(secondRaw);
+  const millisecond = fractionalRaw
+    ? Number(fractionalRaw.slice(1).padEnd(3, "0"))
+    : 0;
+
+  if (
+    month < 1 ||
+    month > 12 ||
+    day < 1 ||
+    day > 31 ||
+    hour > 23 ||
+    minute > 59 ||
+    second > 59
+  ) {
+    return null;
+  }
+
+  const utcTime = Date.UTC(year, month - 1, day, hour, minute, second, millisecond);
+  const utcDate = new Date(utcTime);
+
+  if (
+    utcDate.getUTCFullYear() !== year ||
+    utcDate.getUTCMonth() !== month - 1 ||
+    utcDate.getUTCDate() !== day ||
+    utcDate.getUTCHours() !== hour ||
+    utcDate.getUTCMinutes() !== minute ||
+    utcDate.getUTCSeconds() !== second ||
+    utcDate.getUTCMilliseconds() !== millisecond
+  ) {
+    return null;
+  }
+
+  if (timezoneRaw === "Z") {
+    return utcDate;
+  }
+
+  const timezoneSign = timezoneRaw.startsWith("-") ? -1 : 1;
+  const [offsetHoursRaw, offsetMinutesRaw] = timezoneRaw.slice(1).split(":");
+  const offsetHours = Number(offsetHoursRaw);
+  const offsetMinutes = Number(offsetMinutesRaw);
+
+  if (offsetHours > 23 || offsetMinutes > 59) return null;
+
+  const offsetInMinutes = timezoneSign * (offsetHours * 60 + offsetMinutes);
+  return new Date(utcTime - offsetInMinutes * 60_000);
 }

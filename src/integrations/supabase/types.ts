@@ -70,6 +70,7 @@ export type Database = {
       }
       freights: {
         Row: {
+          amount_received: number
           commission_percent: number
           commission_value: number
           created_at: string
@@ -80,11 +81,13 @@ export type Database = {
           km_final: number
           km_initial: number
           origin: string
+          payment_due_date: string | null
           status: string
           trip_id: string
           user_id: string
         }
         Insert: {
+          amount_received?: number
           commission_percent?: number
           commission_value?: number
           created_at?: string
@@ -95,11 +98,13 @@ export type Database = {
           km_final?: number
           km_initial?: number
           origin: string
+          payment_due_date?: string | null
           status?: string
           trip_id: string
           user_id: string
         }
         Update: {
+          amount_received?: number
           commission_percent?: number
           commission_value?: number
           created_at?: string
@@ -110,6 +115,7 @@ export type Database = {
           km_final?: number
           km_initial?: number
           origin?: string
+          payment_due_date?: string | null
           status?: string
           trip_id?: string
           user_id?: string

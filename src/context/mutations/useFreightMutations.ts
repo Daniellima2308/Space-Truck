@@ -35,6 +35,62 @@ interface FreightMutationsParams {
   fetchData: (options?: { throwOnError?: boolean }) => Promise<void>;
 }
 
+function assertFreightUpdateSucceeded(
+  result: { error: { message?: string } | null; status?: number | null },
+  contextMessage: string,
+) {
+  if (!result.error) return;
+  console.error(contextMessage, result.error);
+  throw new Error(result.error.message || "Falha ao atualizar frete.");
+}
+
+function normalizeReceivableInput(params: {
+  amountReceived: unknown;
+  paymentDueDate?: unknown;
+}): { amountReceived: number; paymentDueDate?: string } {
+  const parsedAmount =
+    typeof params.amountReceived === "number"
+      ? params.amountReceived
+      : Number(params.amountReceived ?? 0);
+
+  if (!Number.isFinite(parsedAmount) || parsedAmount < 0) {
+    throw new Error("Valor recebido inválido. Informe um valor maior ou igual a zero.");
+  }
+
+  if (params.paymentDueDate != null && params.paymentDueDate !== "") {
+    if (typeof params.paymentDueDate !== "string") {
+      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+    }
+
+    const dateMatch = params.paymentDueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (!dateMatch) {
+      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+    }
+
+    const [, yearRaw, monthRaw, dayRaw] = dateMatch;
+    const year = Number(yearRaw);
+    const month = Number(monthRaw);
+    const day = Number(dayRaw);
+    const parsed = new Date(year, month - 1, day);
+    const isSameDate =
+      parsed.getFullYear() === year &&
+      parsed.getMonth() === month - 1 &&
+      parsed.getDate() === day;
+
+    if (!isSameDate) {
+      throw new Error("Vencimento previsto inválido. Informe uma data existente.");
+    }
+  }
+
+  return {
+    amountReceived: parsedAmount,
+    paymentDueDate:
+      typeof params.paymentDueDate === "string" && params.paymentDueDate !== ""
+        ? params.paymentDueDate
+        : undefined,
+  };
+}
+
 export function useFreightMutations({ user, data, fetchData }: FreightMutationsParams) {
   const addFreight = useCallback(
     async (
@@ -45,6 +101,11 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       >,
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
+
+      const receivable = normalizeReceivableInput({
+        amountReceived: f.amountReceived,
+        paymentDueDate: f.paymentDueDate,
+      });
 
       const kmValidation = validatePositiveNumber(
         f.kmInitial,
@@ -114,6 +175,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             commission_value: commissionValue,
             status: freightStatus,
             estimated_distance: 0,
+            payment_due_date: receivable.paymentDueDate ?? null,
+            amount_received: receivable.amountReceived,
           },
         });
         if (freightFeedback.variant === "notice") {
@@ -153,6 +216,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_value: commissionValue,
           status: freightStatus,
           estimated_distance: estimatedDistance,
+          payment_due_date: receivable.paymentDueDate ?? null,
+          amount_received: receivable.amountReceived,
         });
       if (freightInsertError)
         throw new Error(
@@ -336,6 +401,23 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         "KM inicial",
         true,
       );
+      let receivable: { amountReceived: number; paymentDueDate?: string };
+      try {
+        receivable = normalizeReceivableInput({
+          amountReceived: f.amountReceived,
+          paymentDueDate: f.paymentDueDate,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Dados de recebimento inválidos.";
+        showActionError("Não foi possível salvar agora", message);
+        return {
+          status: "blocked",
+          userMessage: message,
+        };
+      }
       const grossValidation = validatePositiveNumber(
         f.grossValue,
         "Valor bruto",
@@ -401,6 +483,8 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             gross_value: f.grossValue,
             commission_percent: f.commissionPercent,
             commission_value: commissionValue,
+            payment_due_date: receivable.paymentDueDate ?? null,
+            amount_received: receivable.amountReceived,
             forceRouteRefresh: options?.forceRouteRefresh || false,
           },
         });
@@ -413,7 +497,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       const { data: currentFreight, error: currentFreightError } =
         await supabase
           .from("freights")
-          .select("origin, destination, estimated_distance, status, km_initial")
+          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, amount_received")
           .eq("id", freightId)
           .single();
 
@@ -463,7 +547,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               showActionNotice("Previsão ainda em ajuste", userMessage);
             }
           }
-          await supabase
+          const fallbackUpdateResult = await supabase
             .from("freights")
             .update({
               origin: f.origin,
@@ -473,8 +557,14 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               commission_percent: f.commissionPercent,
               commission_value: commissionValue,
               estimated_distance: nextEstimatedDistance,
+              payment_due_date: receivable.paymentDueDate ?? null,
+              amount_received: receivable.amountReceived,
             })
             .eq("id", freightId);
+          assertFreightUpdateSucceeded(
+            fallbackUpdateResult,
+            "Falha ao salvar frete sem previsão de rota",
+          );
           await recalculateTripEstimatedDistance(tripId);
           if (vehicleId) {
             await recalculateVehicleKm(vehicleId);
@@ -490,7 +580,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         nextEstimatedDistance = estimatedDistance;
       }
 
-      await supabase
+      const updateResult = await supabase
         .from("freights")
         .update({
           origin: f.origin,
@@ -500,8 +590,14 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_percent: f.commissionPercent,
           commission_value: commissionValue,
           estimated_distance: nextEstimatedDistance,
+          payment_due_date: receivable.paymentDueDate ?? null,
+          amount_received: receivable.amountReceived,
         })
         .eq("id", freightId);
+      assertFreightUpdateSucceeded(
+        updateResult,
+        "Falha ao atualizar frete",
+      );
       await recalculateTripEstimatedDistance(tripId);
       if (vehicleId) {
         await recalculateVehicleKm(vehicleId);

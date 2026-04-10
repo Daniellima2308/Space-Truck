@@ -1,4 +1,4 @@
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { FreightTab } from "@/components/trip/FreightTab";
 import { Trip, Vehicle } from "@/types";
@@ -77,6 +77,7 @@ function makeFreight(
     commissionValue: 100,
     status,
     estimatedDistance: 450,
+    amountReceived: 0,
     createdAt,
   };
 }
@@ -167,6 +168,116 @@ describe("FreightTab", () => {
 
     expect(screen.getByPlaceholderText("Origem")).toHaveValue("SP");
     expect(screen.getByPlaceholderText("Destino")).toHaveValue("RJ");
+  });
+
+  it("mostra erro quando o valor recebido é inválido no cadastro", async () => {
+    const addFreight = vi.fn().mockResolvedValue(undefined);
+
+    const { container } = render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={addFreight}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), {
+      target: { value: "SP" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), {
+      target: { value: "RJ" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), {
+      target: { value: "100" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), {
+      target: { value: "1000" },
+    });
+    fireEvent.change(screen.getByPlaceholderText("Valor recebido (R$)"), {
+      target: { value: "-7" },
+    });
+
+    fireEvent.submit(container.querySelector("form")!);
+
+    await waitFor(() => {
+      expect(addFreight).not.toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Valor recebido inválido" }),
+      );
+    });
+  });
+
+  it("mostra erro ao tentar salvar recebimento inválido", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByRole("spinbutton"), {
+      target: { value: "-5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).not.toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Valor recebido inválido" }),
+      );
+    });
+  });
+
+  it("mantém diálogo de recebimento aberto quando update retorna blocked", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({
+      status: "blocked",
+      userMessage: "Dados inválidos",
+    });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledTimes(1);
+      expect(screen.getByText("Atualizar recebimento do frete")).toBeInTheDocument();
+    });
   });
 
   it("força nova tentativa de previsão ao revisar rota sem alterar campos", async () => {
