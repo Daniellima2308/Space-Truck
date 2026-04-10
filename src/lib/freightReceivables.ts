@@ -85,6 +85,14 @@ export function getFreightAdjustedBalance(
   return Math.max(0, plannedBalance + net);
 }
 
+export function getFreightReceivableTarget(
+  freight: Pick<Freight, "grossValue" | "balanceAdjustments">,
+): number {
+  const grossValue = normalizeAmount(freight.grossValue);
+  const net = getFreightAdjustmentsNet(freight);
+  return Math.max(0, grossValue + net);
+}
+
 export function getFreightTotalReceived(
   freight: Pick<Freight, "amountReceived">,
 ): number {
@@ -96,16 +104,16 @@ export function isFreightLockedByProof(
 ): boolean {
   if (!freight.balanceReleaseMode || freight.balanceReleaseMode === "none") return false;
   if (freight.balanceReleaseMode === "direct_delivery") return false;
-  if (!freight.deliveryProofStatus || freight.deliveryProofStatus === "not_required") return false;
+  if (freight.deliveryProofStatus === "not_required") return false;
   return freight.deliveryProofStatus !== "confirmed";
 }
 
 export function isFreightSettled(
-  freight: Pick<Freight, "grossValue" | "amountReceived">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "balanceAdjustments">,
 ): boolean {
-  const grossValue = normalizeAmount(freight.grossValue);
-  if (grossValue <= 0) return true;
-  return getFreightTotalReceived(freight) >= grossValue;
+  const target = getFreightReceivableTarget(freight);
+  if (target <= 0) return true;
+  return getFreightTotalReceived(freight) >= target;
 }
 
 export function getFreightReceivedPercentage(freight: Pick<Freight, "grossValue" | "amountReceived">): number {
@@ -117,10 +125,10 @@ export function getFreightReceivedPercentage(freight: Pick<Freight, "grossValue"
 }
 
 export function isFreightOverdue(
-  freight: Pick<Freight, "grossValue" | "amountReceived" | "paymentDueDate">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "paymentDueDate" | "balanceAdjustments">,
   referenceDate = new Date(),
 ): boolean {
-  if (getFreightRemainingBalance(freight) <= 0) return false;
+  if (isFreightSettled(freight)) return false;
 
   const dueMs = getDueDateTimestamp(freight.paymentDueDate);
   if (dueMs === null) return false;
@@ -136,15 +144,16 @@ export function getFreightReceivableStatus(
     | "paymentDueDate"
     | "deliveryProofStatus"
     | "balanceReleaseMode"
+    | "balanceAdjustments"
   >,
   referenceDate = new Date(),
 ): FreightReceivableStatus {
-  const grossValue = normalizeAmount(freight.grossValue);
+  const target = getFreightReceivableTarget(freight);
   const amountReceived = getFreightTotalReceived(freight);
 
-  if (amountReceived >= grossValue) return "received";
+  if (amountReceived >= target) return "received";
   if (isFreightLockedByProof(freight)) return "pending";
   if (isFreightOverdue(freight, referenceDate)) return "overdue";
-  if (amountReceived > 0 && amountReceived < grossValue) return "partial";
+  if (amountReceived > 0 && amountReceived < target) return "partial";
   return "pending";
 }

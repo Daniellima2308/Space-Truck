@@ -149,6 +149,13 @@ function seedDb() {
       commission_value: 100,
       status: "in_progress",
       estimated_distance: 200,
+      payment_due_date: "2026-04-10",
+      amount_received: 300,
+      advance_amount: 250,
+      payer_name: "Pagador Original",
+      delivery_proof_status: "pending_send",
+      balance_release_mode: "proof_photo",
+      balance_adjustments: [{ type: "discount", amount: 50 }],
       created_at: now,
     },
   ];
@@ -796,6 +803,33 @@ describe("AppContext freight mutations", () => {
       expect.objectContaining({
         amount_received: payload.amountReceived,
         payment_due_date: payload.paymentDueDate,
+      }),
+    );
+    unmount();
+  });
+
+  it("updateFreight parcial preserva metadata de recebíveis já salva", async () => {
+    const { app, unmount } = await renderApp();
+
+    const result = await app.updateFreight("trip-1", "freight-in-progress", {
+      origin: "Origem Atualizada",
+      destination: "Destino Atualizado",
+      kmInitial: 150,
+      grossValue: 2200,
+      commissionPercent: 12,
+      amountReceived: 350,
+      paymentDueDate: "2026-04-20",
+    });
+
+    expect(result.status).toBe("route_refreshed");
+    const updated = dbState.freights.find((f) => f.id === "freight-in-progress");
+    expect(updated).toEqual(
+      expect.objectContaining({
+        advance_amount: 250,
+        payer_name: "Pagador Original",
+        delivery_proof_status: "pending_send",
+        balance_release_mode: "proof_photo",
+        balance_adjustments: [{ type: "discount", amount: 50 }],
       }),
     );
     unmount();

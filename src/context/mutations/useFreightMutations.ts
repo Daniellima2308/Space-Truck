@@ -35,6 +35,8 @@ interface FreightMutationsParams {
   fetchData: (options?: { throwOnError?: boolean }) => Promise<void>;
 }
 
+type NormalizedReceivableInput = ReturnType<typeof normalizeReceivableInput>;
+
 function assertFreightUpdateSucceeded(
   result: { error: { message?: string } | null; status?: number | null },
   contextMessage: string,
@@ -160,6 +162,62 @@ function normalizeReceivableInput(params: {
   };
 }
 
+function buildReceivablePayload(receivable: NormalizedReceivableInput) {
+  return {
+    payment_due_date: receivable.paymentDueDate ?? null,
+    amount_received: receivable.amountReceived,
+    advance_amount: receivable.advanceAmount,
+    payer_name: receivable.payerName ?? null,
+    delivery_proof_status: receivable.deliveryProofStatus,
+    balance_release_mode: receivable.balanceReleaseMode,
+    balance_adjustments: receivable.balanceAdjustments,
+  };
+}
+
+function hasOwnField<T extends object>(obj: T, key: keyof T): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key);
+}
+
+function resolveReceivableInput(
+  freightInput: Omit<
+    Freight,
+    "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
+  >,
+  fallback?: {
+    paymentDueDate?: string | null;
+    amountReceived?: number | null;
+    advanceAmount?: number | null;
+    payerName?: string | null;
+    deliveryProofStatus?: string | null;
+    balanceReleaseMode?: string | null;
+    balanceAdjustments?: unknown;
+  },
+): NormalizedReceivableInput {
+  return normalizeReceivableInput({
+    amountReceived: hasOwnField(freightInput, "amountReceived")
+      ? freightInput.amountReceived
+      : fallback?.amountReceived,
+    advanceAmount: hasOwnField(freightInput, "advanceAmount")
+      ? freightInput.advanceAmount
+      : fallback?.advanceAmount,
+    payerName: hasOwnField(freightInput, "payerName")
+      ? freightInput.payerName
+      : fallback?.payerName,
+    deliveryProofStatus: hasOwnField(freightInput, "deliveryProofStatus")
+      ? freightInput.deliveryProofStatus
+      : fallback?.deliveryProofStatus,
+    balanceReleaseMode: hasOwnField(freightInput, "balanceReleaseMode")
+      ? freightInput.balanceReleaseMode
+      : fallback?.balanceReleaseMode,
+    balanceAdjustments: hasOwnField(freightInput, "balanceAdjustments")
+      ? freightInput.balanceAdjustments
+      : fallback?.balanceAdjustments,
+    paymentDueDate: hasOwnField(freightInput, "paymentDueDate")
+      ? freightInput.paymentDueDate
+      : fallback?.paymentDueDate,
+  });
+}
+
 export function useFreightMutations({ user, data, fetchData }: FreightMutationsParams) {
   const addFreight = useCallback(
     async (
@@ -249,13 +307,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             commission_value: commissionValue,
             status: freightStatus,
             estimated_distance: 0,
-            payment_due_date: receivable.paymentDueDate ?? null,
-            amount_received: receivable.amountReceived,
-            advance_amount: receivable.advanceAmount,
-            payer_name: receivable.payerName ?? null,
-            delivery_proof_status: receivable.deliveryProofStatus,
-            balance_release_mode: receivable.balanceReleaseMode,
-            balance_adjustments: receivable.balanceAdjustments,
+            ...buildReceivablePayload(receivable),
           },
         });
         if (freightFeedback.variant === "notice") {
@@ -295,13 +347,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_value: commissionValue,
           status: freightStatus,
           estimated_distance: estimatedDistance,
-          payment_due_date: receivable.paymentDueDate ?? null,
-          amount_received: receivable.amountReceived,
-          advance_amount: receivable.advanceAmount,
-          payer_name: receivable.payerName ?? null,
-          delivery_proof_status: receivable.deliveryProofStatus,
-          balance_release_mode: receivable.balanceReleaseMode,
-          balance_adjustments: receivable.balanceAdjustments,
+          ...buildReceivablePayload(receivable),
         });
       if (freightInsertError)
         throw new Error(
@@ -485,16 +531,19 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         "KM inicial",
         true,
       );
-      let receivable: { amountReceived: number; paymentDueDate?: string };
+      const trip = data.trips.find((t) => t.id === tripId);
+      const currentFreightFromState =
+        trip?.freights.find((freight) => freight.id === freightId) ?? null;
+      let receivable: NormalizedReceivableInput;
       try {
-        receivable = normalizeReceivableInput({
-          amountReceived: f.amountReceived,
-          advanceAmount: f.advanceAmount,
-          payerName: f.payerName,
-          deliveryProofStatus: f.deliveryProofStatus,
-          balanceReleaseMode: f.balanceReleaseMode,
-          balanceAdjustments: f.balanceAdjustments,
-          paymentDueDate: f.paymentDueDate,
+        receivable = resolveReceivableInput(f, {
+          paymentDueDate: currentFreightFromState?.paymentDueDate,
+          amountReceived: currentFreightFromState?.amountReceived,
+          advanceAmount: currentFreightFromState?.advanceAmount,
+          payerName: currentFreightFromState?.payerName,
+          deliveryProofStatus: currentFreightFromState?.deliveryProofStatus,
+          balanceReleaseMode: currentFreightFromState?.balanceReleaseMode,
+          balanceAdjustments: currentFreightFromState?.balanceAdjustments,
         });
       } catch (error) {
         const message =
@@ -531,7 +580,6 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         };
       }
 
-      const trip = data.trips.find((t) => t.id === tripId);
       const vehicleId = trip?.vehicleId;
 
       if (vehicleId) {
@@ -572,13 +620,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             gross_value: f.grossValue,
             commission_percent: f.commissionPercent,
             commission_value: commissionValue,
-            payment_due_date: receivable.paymentDueDate ?? null,
-            amount_received: receivable.amountReceived,
-            advance_amount: receivable.advanceAmount,
-            payer_name: receivable.payerName ?? null,
-            delivery_proof_status: receivable.deliveryProofStatus,
-            balance_release_mode: receivable.balanceReleaseMode,
-            balance_adjustments: receivable.balanceAdjustments,
+            ...buildReceivablePayload(receivable),
             forceRouteRefresh: options?.forceRouteRefresh || false,
           },
         });
@@ -601,6 +643,16 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
             "Falha ao carregar dados atuais do frete.",
         );
       }
+
+      receivable = resolveReceivableInput(f, {
+        paymentDueDate: currentFreight.payment_due_date,
+        amountReceived: currentFreight.amount_received,
+        advanceAmount: currentFreight.advance_amount,
+        payerName: currentFreight.payer_name,
+        deliveryProofStatus: currentFreight.delivery_proof_status,
+        balanceReleaseMode: currentFreight.balance_release_mode,
+        balanceAdjustments: currentFreight.balance_adjustments,
+      });
 
       if (
         currentFreight.status === "completed" &&
@@ -651,13 +703,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
               commission_percent: f.commissionPercent,
               commission_value: commissionValue,
               estimated_distance: nextEstimatedDistance,
-              payment_due_date: receivable.paymentDueDate ?? null,
-              amount_received: receivable.amountReceived,
-              advance_amount: receivable.advanceAmount,
-              payer_name: receivable.payerName ?? null,
-              delivery_proof_status: receivable.deliveryProofStatus,
-              balance_release_mode: receivable.balanceReleaseMode,
-              balance_adjustments: receivable.balanceAdjustments,
+              ...buildReceivablePayload(receivable),
             })
             .eq("id", freightId);
           assertFreightUpdateSucceeded(
@@ -689,13 +735,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
           commission_percent: f.commissionPercent,
           commission_value: commissionValue,
           estimated_distance: nextEstimatedDistance,
-          payment_due_date: receivable.paymentDueDate ?? null,
-          amount_received: receivable.amountReceived,
-          advance_amount: receivable.advanceAmount,
-          payer_name: receivable.payerName ?? null,
-          delivery_proof_status: receivable.deliveryProofStatus,
-          balance_release_mode: receivable.balanceReleaseMode,
-          balance_adjustments: receivable.balanceAdjustments,
+          ...buildReceivablePayload(receivable),
         })
         .eq("id", freightId);
       assertFreightUpdateSucceeded(

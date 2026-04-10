@@ -161,9 +161,37 @@ describe("freightReceivables", () => {
     ).toBe(false);
   });
 
+  it("mantém fail-closed quando depende de canhoto e status documental está ausente", () => {
+    expect(
+      isFreightLockedByProof({
+        deliveryProofStatus: undefined,
+        balanceReleaseMode: "proof_photo",
+      }),
+    ).toBe(true);
+  });
+
   it("reconhece frete quitado", () => {
     expect(isFreightSettled({ grossValue: 1500, amountReceived: 1500 })).toBe(true);
     expect(isFreightSettled({ grossValue: 1500, amountReceived: 1499.99 })).toBe(false);
+  });
+
+  it("considera balanceAdjustments na meta real de quitação e status", () => {
+    const freight = {
+      grossValue: 1000,
+      amountReceived: 930,
+      balanceAdjustments: [
+        { type: "increase" as const, amount: 80 },
+        { type: "discount" as const, amount: 50 },
+      ],
+      paymentDueDate: "2026-04-30",
+    };
+
+    expect(isFreightSettled(freight)).toBe(false);
+    expect(getFreightReceivableStatus(freight, new Date("2026-04-20T12:00:00.000Z"))).toBe("partial");
+
+    const settledFreight = { ...freight, amountReceived: 1030 };
+    expect(isFreightSettled(settledFreight)).toBe(true);
+    expect(getFreightReceivableStatus(settledFreight, new Date("2026-04-20T12:00:00.000Z"))).toBe("received");
   });
 
   it("status principal permanece pendente quando saldo está travado por canhoto", () => {
