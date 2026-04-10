@@ -78,6 +78,7 @@ const trip: Trip = {
       status: "in_progress",
       estimatedDistance: 1138,
       createdAt: "2026-03-18T00:00:00.000Z",
+    amountReceived: 0,
     },
     {
       id: "freight-2",
@@ -91,6 +92,7 @@ const trip: Trip = {
       status: "planned",
       estimatedDistance: 3039,
       createdAt: "2026-03-18T00:00:00.000Z",
+    amountReceived: 0,
     },
   ],
 };

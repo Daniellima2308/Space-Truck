@@ -105,6 +105,7 @@ const makeFreight = (kmInitial: number, status: FreightStatus) => ({
   status,
   estimatedDistance: 200,
   createdAt: "2026-01-01",
+  amountReceived: 0,
 });
 
 describe("round2", () => {

@@ -67,6 +67,7 @@ const finishedTrip: Trip = {
       status: "completed",
       estimatedDistance: 1138,
       createdAt: "2026-03-18T00:00:00.000Z",
+    amountReceived: 0,
     },
     {
       id: "freight-2",

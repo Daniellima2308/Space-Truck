@@ -356,6 +356,7 @@ describe("AppContext route cache flows", () => {
         kmInitial: 150,
         grossValue: 2000,
         commissionPercent: 12,
+      amountReceived: 0,
       },
       { forceRouteRefresh: true },
     );
@@ -391,6 +392,7 @@ describe("AppContext route cache flows", () => {
       kmInitial: 150,
       grossValue: 2000,
       commissionPercent: 12,
+    amountReceived: 0,
     });
 
     expect(dbState.freights[0]).toMatchObject({
@@ -429,6 +431,7 @@ describe("AppContext route cache flows", () => {
       kmInitial: 100,
       grossValue: 2400,
       commissionPercent: 10,
+    amountReceived: 0,
     });
 
     expect(offlineState.queue).toHaveLength(1);
@@ -478,6 +481,7 @@ describe("AppContext route cache flows", () => {
       kmInitial: 200,
       grossValue: 1800,
       commissionPercent: 10,
+    amountReceived: 0,
     });
 
     expect(
@@ -515,6 +519,7 @@ describe("AppContext route cache flows", () => {
       kmInitial: 220,
       grossValue: 1700,
       commissionPercent: 10,
+    amountReceived: 0,
     });
 
     expect(dbState.freights).toEqual(
