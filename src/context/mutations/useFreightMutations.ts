@@ -97,7 +97,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       tripId: string,
       f: Omit<
         Freight,
-        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
+        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt" | "amountReceived"
       >,
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
