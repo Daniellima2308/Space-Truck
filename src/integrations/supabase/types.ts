@@ -71,10 +71,15 @@ export type Database = {
       freights: {
         Row: {
           amount_received: number
+          advance_amount: number
           commission_percent: number
           commission_value: number
           created_at: string
           destination: string
+          payer_name: string | null
+          delivery_proof_status: string
+          balance_release_mode: string
+          balance_adjustments: Json
           estimated_distance: number
           gross_value: number
           id: string
@@ -88,10 +93,15 @@ export type Database = {
         }
         Insert: {
           amount_received?: number
+          advance_amount?: number
           commission_percent?: number
           commission_value?: number
           created_at?: string
           destination: string
+          payer_name?: string | null
+          delivery_proof_status?: string
+          balance_release_mode?: string
+          balance_adjustments?: Json
           estimated_distance?: number
           gross_value?: number
           id?: string
@@ -105,10 +115,15 @@ export type Database = {
         }
         Update: {
           amount_received?: number
+          advance_amount?: number
           commission_percent?: number
           commission_value?: number
           created_at?: string
           destination?: string
+          payer_name?: string | null
+          delivery_proof_status?: string
+          balance_release_mode?: string
+          balance_adjustments?: Json
           estimated_distance?: number
           gross_value?: number
           id?: string

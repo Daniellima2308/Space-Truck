@@ -250,6 +250,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                 ...action.payload,
                 user_id: user.id,
                 estimated_distance: estimatedDistance,
+                advance_amount: action.payload.advance_amount ?? 0,
+                payer_name: action.payload.payer_name ?? null,
+                delivery_proof_status: action.payload.delivery_proof_status ?? "not_required",
+                balance_release_mode: action.payload.balance_release_mode ?? "none",
+                balance_adjustments: action.payload.balance_adjustments ?? [],
               });
 
               affectedTripIds.add(action.payload.trip_id);
@@ -386,6 +391,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   estimated_distance: nextEstimatedDistance,
                   payment_due_date: action.payload.payment_due_date ?? null,
                   amount_received: action.payload.amount_received ?? 0,
+                  advance_amount: action.payload.advance_amount ?? 0,
+                  payer_name: action.payload.payer_name ?? null,
+                  delivery_proof_status: action.payload.delivery_proof_status ?? "not_required",
+                  balance_release_mode: action.payload.balance_release_mode ?? "none",
+                  balance_adjustments: action.payload.balance_adjustments ?? [],
                 })
                 .eq("id", action.payload.freightId);
 

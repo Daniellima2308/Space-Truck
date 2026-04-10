@@ -12,6 +12,9 @@ import {
   type PersonalExpenseCategory,
   EXPENSE_CATEGORY_LABELS,
   PERSONAL_EXPENSE_LABELS,
+  type DeliveryProofStatus,
+  type BalanceReleaseMode,
+  type BalanceAdjustment,
 } from "@/types";
 import { isDriverBond, isVehicleOperationProfile } from "@/lib/vehicleOperation";
 import { normalizeTripFreights } from "@/lib/freightStatus";
@@ -48,6 +51,11 @@ export interface FreightRow {
   estimated_distance: number | null;
   payment_due_date: string | null;
   amount_received: number | null;
+  advance_amount: number | null;
+  payer_name: string | null;
+  delivery_proof_status: string | null;
+  balance_release_mode: string | null;
+  balance_adjustments: BalanceAdjustment[] | null;
   created_at: string;
 }
 
@@ -127,6 +135,19 @@ export function mapVehicleRow(v: VehicleRow): Vehicle {
 }
 
 const FREIGHT_STATUSES: ReadonlySet<string> = new Set<FreightStatus>(["planned", "in_progress", "completed"]);
+const DELIVERY_PROOF_STATUSES: ReadonlySet<DeliveryProofStatus> = new Set<DeliveryProofStatus>([
+  "not_required",
+  "pending_send",
+  "sent",
+  "confirmed",
+]);
+const BALANCE_RELEASE_MODES: ReadonlySet<BalanceReleaseMode> = new Set<BalanceReleaseMode>([
+  "none",
+  "proof_photo",
+  "physical_proof",
+  "agreed_deadline",
+  "direct_delivery",
+]);
 
 export function mapFreightRow(f: FreightRow): Freight {
   return {
@@ -142,6 +163,15 @@ export function mapFreightRow(f: FreightRow): Freight {
     estimatedDistance: f.estimated_distance || 0,
     paymentDueDate: f.payment_due_date || undefined,
     amountReceived: f.amount_received ?? 0,
+    advanceAmount: f.advance_amount ?? 0,
+    payerName: f.payer_name || undefined,
+    deliveryProofStatus: DELIVERY_PROOF_STATUSES.has((f.delivery_proof_status ?? "") as DeliveryProofStatus)
+      ? (f.delivery_proof_status as DeliveryProofStatus)
+      : "not_required",
+    balanceReleaseMode: BALANCE_RELEASE_MODES.has((f.balance_release_mode ?? "") as BalanceReleaseMode)
+      ? (f.balance_release_mode as BalanceReleaseMode)
+      : "none",
+    balanceAdjustments: Array.isArray(f.balance_adjustments) ? f.balance_adjustments : [],
     createdAt: f.created_at,
   };
 }

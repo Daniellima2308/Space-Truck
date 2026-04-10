@@ -104,6 +104,13 @@ describe("mapFreightRow", () => {
     commission_value: 500,
     status: "planned",
     estimated_distance: 430,
+    payment_due_date: null,
+    amount_received: 0,
+    advance_amount: 0,
+    payer_name: null,
+    delivery_proof_status: "not_required",
+    balance_release_mode: "none",
+    balance_adjustments: [],
     created_at: "2026-01-01T10:00:00.000Z",
   };
 
