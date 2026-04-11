@@ -858,7 +858,7 @@ describe("AppContext freight mutations", () => {
     });
 
     expect(result.status).toBe("blocked");
-    expect(result.userMessage).toMatch(/Vencimento previsto inválido/);
+    expect(result.userMessage).toMatch(/Previsão de pagamento inválida/);
 
     unmount();
   });

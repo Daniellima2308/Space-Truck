@@ -1,6 +1,13 @@
 import { Freight } from "@/types";
 
 export type FreightReceivableStatus = "received" | "partial" | "overdue" | "pending";
+export type FreightPaymentForecastState =
+  | "no_forecast"
+  | "on_track"
+  | "approaching"
+  | "due_today"
+  | "overdue"
+  | "settled";
 
 function normalizeAmount(value: number | null | undefined): number {
   if (typeof value !== "number" || Number.isNaN(value)) return 0;
@@ -156,4 +163,28 @@ export function getFreightReceivableStatus(
   if (isFreightOverdue(freight, referenceDate)) return "overdue";
   if (amountReceived > 0 && amountReceived < target) return "partial";
   return "pending";
+}
+
+function startOfDay(date: Date): Date {
+  return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+}
+
+export function getFreightPaymentForecastState(
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "paymentDueDate" | "balanceAdjustments">,
+  referenceDate = new Date(),
+): FreightPaymentForecastState {
+  if (isFreightSettled(freight)) return "settled";
+  const dueMs = getDueDateTimestamp(freight.paymentDueDate);
+  if (dueMs === null) return "no_forecast";
+
+  const dueDate = new Date(dueMs);
+  const refStart = startOfDay(referenceDate).getTime();
+  const dueStart = startOfDay(dueDate).getTime();
+  const dayMs = 24 * 60 * 60 * 1000;
+  const diffDays = Math.round((dueStart - refStart) / dayMs);
+
+  if (diffDays < 0) return "overdue";
+  if (diffDays === 0) return "due_today";
+  if (diffDays === 1) return "approaching";
+  return "on_track";
 }

@@ -15,6 +15,7 @@ import {
   type DeliveryProofStatus,
   type BalanceReleaseMode,
   type BalanceAdjustment,
+  type ReceivableMode,
 } from "@/types";
 import { isDriverBond, isVehicleOperationProfile } from "@/lib/vehicleOperation";
 import { normalizeTripFreights } from "@/lib/freightStatus";
@@ -50,6 +51,7 @@ export interface FreightRow {
   status: string | null;
   estimated_distance: number | null;
   payment_due_date: string | null;
+  receivable_mode?: string | null;
   amount_received: number | null;
   advance_amount: number | null;
   payer_name: string | null;
@@ -148,6 +150,11 @@ const BALANCE_RELEASE_MODES: ReadonlySet<BalanceReleaseMode> = new Set<BalanceRe
   "agreed_deadline",
   "direct_delivery",
 ]);
+const RECEIVABLE_MODES: ReadonlySet<ReceivableMode> = new Set<ReceivableMode>([
+  "off",
+  "basic",
+  "complete",
+]);
 
 export function mapFreightRow(f: FreightRow): Freight {
   return {
@@ -162,6 +169,9 @@ export function mapFreightRow(f: FreightRow): Freight {
     status: FREIGHT_STATUSES.has(f.status ?? "") ? (f.status as FreightStatus) : "planned",
     estimatedDistance: f.estimated_distance || 0,
     paymentDueDate: f.payment_due_date || undefined,
+    receivableMode: RECEIVABLE_MODES.has((f.receivable_mode ?? "") as ReceivableMode)
+      ? (f.receivable_mode as ReceivableMode)
+      : "complete",
     amountReceived: f.amount_received ?? 0,
     advanceAmount: f.advance_amount ?? 0,
     payerName: f.payer_name || undefined,

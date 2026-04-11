@@ -6,6 +6,7 @@ import {
   getFreightReceivedPercentage,
   getFreightTotalReceived,
   getFreightRemainingBalance,
+  getFreightPaymentForecastState,
   isFreightLockedByProof,
   isFreightSettled,
   isFreightOverdue,
@@ -208,5 +209,50 @@ describe("freightReceivables", () => {
         referenceDate,
       ),
     ).toBe("pending");
+  });
+
+  it("deriva estados visuais da previsão de pagamento", () => {
+    const base = {
+      grossValue: 1000,
+      amountReceived: 200,
+      balanceAdjustments: [],
+    };
+
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, paymentDueDate: undefined },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("no_forecast");
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, paymentDueDate: "2026-04-15" },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("on_track");
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, paymentDueDate: "2026-04-12" },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("approaching");
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, paymentDueDate: "2026-04-11" },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("due_today");
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, paymentDueDate: "2026-04-10" },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("overdue");
+    expect(
+      getFreightPaymentForecastState(
+        { ...base, amountReceived: 1000, paymentDueDate: "2026-04-10" },
+        new Date("2026-04-11T09:00:00.000Z"),
+      ),
+    ).toBe("settled");
   });
 });

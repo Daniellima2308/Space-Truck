@@ -77,6 +77,7 @@ function makeFreight(
     commissionValue: 100,
     status,
     estimatedDistance: 450,
+    receivableMode: "complete" as const,
     amountReceived: 0,
     createdAt,
   };
@@ -170,16 +171,17 @@ describe("FreightTab", () => {
     expect(screen.getByPlaceholderText("Destino")).toHaveValue("RJ");
   });
 
-  it("mostra erro quando o valor recebido é inválido no cadastro", async () => {
+  it("abre escolha de modo após salvar frete", async () => {
     const addFreight = vi.fn().mockResolvedValue(undefined);
+    const setShowForm = vi.fn();
 
-    const { container } = render(
+    render(
       <FreightTab
         trip={tripBase}
         vehicle={driverOwnerVehicle}
         isOpen
         showForm
-        setShowForm={vi.fn()}
+        setShowForm={setShowForm}
         addFreight={addFreight}
         {...getDefaultProps()}
       />,
@@ -197,17 +199,11 @@ describe("FreightTab", () => {
     fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), {
       target: { value: "1000" },
     });
-    fireEvent.change(screen.getByPlaceholderText("Valor recebido (R$)"), {
-      target: { value: "-7" },
-    });
-
-    fireEvent.submit(container.querySelector("form")!);
+    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
 
     await waitFor(() => {
-      expect(addFreight).not.toHaveBeenCalled();
-      expect(toastMock).toHaveBeenCalledWith(
-        expect.objectContaining({ title: "Valor recebido inválido" }),
-      );
+      expect(addFreight).toHaveBeenCalledTimes(1);
+      expect(setShowForm).toHaveBeenCalledWith(false);
     });
   });
 
@@ -276,7 +272,7 @@ describe("FreightTab", () => {
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledTimes(1);
-      expect(screen.getByText("Atualizar recebimento do frete")).toBeInTheDocument();
+      expect(screen.getByText("Painel de recebimento")).toBeInTheDocument();
     });
   });
 
@@ -400,48 +396,7 @@ describe("FreightTab", () => {
     expect(screen.queryByText("Canhoto pendente")).not.toBeInTheDocument();
   });
 
-  it("quick settle usa meta real de recebimento (target - totalReceived) e não grossValue", async () => {
-    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
-    const freight = {
-      ...makeFreight("f-1", "in_progress", new Date().toISOString()),
-      grossValue: 1000,
-      amountReceived: 100,
-      advanceAmount: 200,
-      balanceAdjustments: [
-        { type: "discount" as const, amount: 100 },
-        { type: "increase" as const, amount: 50 },
-      ],
-    };
-
-    render(
-      <FreightTab
-        trip={{ ...tripBase, freights: [freight] }}
-        vehicle={driverOwnerVehicle}
-        isOpen
-        showForm={false}
-        setShowForm={vi.fn()}
-        addFreight={vi.fn().mockResolvedValue(undefined)}
-        updateFreight={updateFreight}
-        deleteFreight={vi.fn().mockResolvedValue(undefined)}
-        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
-        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
-      />,
-    );
-
-    fireEvent.click(screen.getByRole("button", { name: "Quitar frete" }));
-
-    await waitFor(() => {
-      expect(updateFreight).toHaveBeenCalledWith(
-        "trip-1",
-        "f-1",
-        expect.objectContaining({
-          amountReceived: 950,
-        }),
-      );
-    });
-  });
-
-  it("esconde ação Canhoto enviado quando frete já está confirmado", () => {
+  it("modo não usar remove ação e resumo de recebimento do card", () => {
     render(
       <FreightTab
         trip={{
@@ -449,7 +404,7 @@ describe("FreightTab", () => {
           freights: [
             {
               ...makeFreight("f-1", "in_progress", new Date().toISOString()),
-              deliveryProofStatus: "confirmed",
+              receivableMode: "off",
             },
           ],
         }}
@@ -462,49 +417,27 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.queryByRole("button", { name: "Canhoto enviado" })).not.toBeInTheDocument();
+    expect(screen.queryByText("Recebimento")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /painel de recebimento/i })).not.toBeInTheDocument();
   });
 
-  it("quick action usa snapshot mais atual para evitar regressão de campos de recebimento", async () => {
-    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
-    const tripMutable: Trip = {
-      ...tripBase,
-      freights: [
-        {
-          ...makeFreight("f-1", "in_progress", new Date().toISOString()),
-          payerName: "Transportadora A",
-        },
-      ],
-    };
-
+  it("modo básico mostra ação única de registrar recebimento", () => {
     render(
       <FreightTab
-        trip={tripMutable}
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "in_progress", new Date().toISOString()), receivableMode: "basic" }],
+        }}
         vehicle={driverOwnerVehicle}
         isOpen
         showForm={false}
         setShowForm={vi.fn()}
         addFreight={vi.fn().mockResolvedValue(undefined)}
-        updateFreight={updateFreight}
-        deleteFreight={vi.fn().mockResolvedValue(undefined)}
-        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
-        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+        {...getDefaultProps()}
       />,
     );
 
-    tripMutable.freights[0].payerName = "Transportadora B";
-    fireEvent.click(screen.getByRole("button", { name: "Canhoto confirmado" }));
-
-    await waitFor(() => {
-      expect(updateFreight).toHaveBeenCalledWith(
-        "trip-1",
-        "f-1",
-        expect.objectContaining({
-          payerName: "Transportadora B",
-          deliveryProofStatus: "confirmed",
-        }),
-      );
-    });
+    expect(screen.getByRole("button", { name: /Registrar recebimento/i })).toBeInTheDocument();
   });
 
   it("não envia createdAt nos payloads de UI ao criar frete", async () => {
@@ -545,7 +478,7 @@ describe("FreightTab", () => {
     expect(payload).not.toHaveProperty("createdAt");
   });
 
-  it("quick adjustment expõe labels acessíveis nos 3 controles", () => {
+  it("painel completo mantém seção de ajuste acessível", () => {
     render(
       <FreightTab
         trip={{
@@ -603,6 +536,39 @@ describe("FreightTab", () => {
         "f-1",
         "complete_only",
       );
+    });
+  });
+
+  it("ao concluir com saldo em aberto pergunta previsão de pagamento", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              amountReceived: 100,
+              grossValue: 1000,
+              receivableMode: "basic",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+
+    await waitFor(() => {
+      expect(screen.getByText("Ainda falta receber o saldo")).toBeInTheDocument();
     });
   });
 

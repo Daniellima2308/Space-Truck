@@ -262,7 +262,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   ...action.payload,
                   user_id: user.id,
                   estimated_distance: estimatedDistance,
-                }) as any,
+                }),
               );
 
               affectedTripIds.add(action.payload.trip_id);
@@ -404,7 +404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   delivery_proof_status: action.payload.delivery_proof_status,
                   balance_release_mode: action.payload.balance_release_mode,
                   balance_adjustments: action.payload.balance_adjustments,
-                }) as any)
+                }))
                 .eq("id", action.payload.freightId);
 
               affectedTripIds.add(currentFreight.trip_id);

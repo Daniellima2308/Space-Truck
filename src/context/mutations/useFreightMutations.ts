@@ -59,6 +59,7 @@ function normalizeReceivableInput(params: {
   balanceReleaseMode?: unknown;
   balanceAdjustments?: unknown;
   paymentDueDate?: unknown;
+  receivableMode?: unknown;
 }): {
   amountReceived: number;
   advanceAmount: number;
@@ -67,6 +68,7 @@ function normalizeReceivableInput(params: {
   balanceReleaseMode: "none" | "proof_photo" | "physical_proof" | "agreed_deadline" | "direct_delivery";
   balanceAdjustments: Array<{ type: "discount" | "increase"; amount: number; note?: string }>;
   paymentDueDate?: string;
+  receivableMode: "off" | "basic" | "complete";
 } {
   const parsedAmount =
     typeof params.amountReceived === "number"
@@ -144,12 +146,12 @@ function normalizeReceivableInput(params: {
 
   if (params.paymentDueDate != null && params.paymentDueDate !== "") {
     if (typeof params.paymentDueDate !== "string") {
-      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+      throw new Error("Previsão de pagamento inválida. Use o formato AAAA-MM-DD.");
     }
 
     const dateMatch = params.paymentDueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!dateMatch) {
-      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+      throw new Error("Previsão de pagamento inválida. Use o formato AAAA-MM-DD.");
     }
 
     const [, yearRaw, monthRaw, dayRaw] = dateMatch;
@@ -163,9 +165,15 @@ function normalizeReceivableInput(params: {
       parsed.getDate() === day;
 
     if (!isSameDate) {
-      throw new Error("Vencimento previsto inválido. Informe uma data existente.");
+      throw new Error("Previsão de pagamento inválida. Informe uma data existente.");
     }
   }
+
+  const validReceivableModes = new Set(["off", "basic", "complete"]);
+  const receivableMode =
+    typeof params.receivableMode === "string" && validReceivableModes.has(params.receivableMode)
+      ? (params.receivableMode as "off" | "basic" | "complete")
+      : "off";
 
   return {
     amountReceived: parsedAmount,
@@ -178,6 +186,7 @@ function normalizeReceivableInput(params: {
       typeof params.paymentDueDate === "string" && params.paymentDueDate !== ""
         ? params.paymentDueDate
         : undefined,
+    receivableMode,
   };
 }
 
@@ -190,6 +199,7 @@ function buildReceivablePayload(receivable: NormalizedReceivableInput) {
     delivery_proof_status: receivable.deliveryProofStatus,
     balance_release_mode: receivable.balanceReleaseMode,
     balance_adjustments: receivable.balanceAdjustments,
+    receivable_mode: receivable.receivableMode,
   };
 }
 
@@ -201,6 +211,7 @@ function resolveReceivableInput(
   freightInput: FreightEditableInput,
   fallback?: {
     paymentDueDate?: string | null;
+    receivableMode?: string | null;
     amountReceived?: number | null;
     advanceAmount?: number | null;
     payerName?: string | null;
@@ -231,6 +242,9 @@ function resolveReceivableInput(
     paymentDueDate: hasOwnField(freightInput, "paymentDueDate")
       ? freightInput.paymentDueDate
       : fallback?.paymentDueDate,
+    receivableMode: hasOwnField(freightInput, "receivableMode")
+      ? freightInput.receivableMode
+      : fallback?.receivableMode,
   });
 }
 
@@ -250,6 +264,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         balanceReleaseMode: f.balanceReleaseMode,
         balanceAdjustments: f.balanceAdjustments,
         paymentDueDate: f.paymentDueDate,
+        receivableMode: f.receivableMode,
       });
 
       const kmValidation = validatePositiveNumber(
@@ -548,6 +563,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       try {
         receivable = resolveReceivableInput(f, {
           paymentDueDate: currentFreightFromState?.paymentDueDate,
+          receivableMode: currentFreightFromState?.receivableMode,
           amountReceived: currentFreightFromState?.amountReceived,
           advanceAmount: currentFreightFromState?.advanceAmount,
           payerName: currentFreightFromState?.payerName,
@@ -657,6 +673,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       try {
         receivable = resolveReceivableInput(f, {
           paymentDueDate: currentFreight.payment_due_date,
+          receivableMode: currentFreight.receivable_mode,
           amountReceived: currentFreight.amount_received,
           advanceAmount: currentFreight.advance_amount,
           payerName: currentFreight.payer_name,
