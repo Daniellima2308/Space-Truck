@@ -205,6 +205,9 @@ describe("FreightTab", () => {
       expect(addFreight).toHaveBeenCalledTimes(1);
       expect(setShowForm).toHaveBeenCalledWith(false);
       expect(screen.getByText("Quer controlar o recebimento deste frete?")).toBeInTheDocument();
+      expect(screen.getByText("Deixa o frete limpo, sem controle de recebimento.")).toBeInTheDocument();
+      expect(screen.getByText("Mostra recebido, saldo e previsão de pagamento.")).toBeInTheDocument();
+      expect(screen.getByText("Libera recebimentos, comprovante, ajustes e controle completo.")).toBeInTheDocument();
     });
   });
 
@@ -234,7 +237,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
 
     await screen.findByText("Quer controlar o recebimento deste frete?");
-    fireEvent.click(screen.getByRole("button", { name: "Não usar" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Não usar\b/i }));
 
     await waitFor(() => {
       expect(updateFreight).not.toHaveBeenCalled();
@@ -267,7 +270,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
     await screen.findByText("Quer controlar o recebimento deste frete?");
 
-    fireEvent.click(screen.getByRole("button", { name: "Básico" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Básico\b/i }));
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
         "trip-1",
@@ -302,7 +305,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
     await screen.findByText("Quer controlar o recebimento deste frete?");
 
-    fireEvent.click(screen.getByRole("button", { name: "Completo" }));
+    fireEvent.click(screen.getByRole("button", { name: /^Completo\b/i }));
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
         "trip-1",
@@ -524,6 +527,26 @@ describe("FreightTab", () => {
 
     expect(screen.queryByText("Recebimento")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: /painel de recebimento/i })).not.toBeInTheDocument();
+  });
+
+  it("fallback ausente de receivableMode mantém card sem recebimento (off)", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "in_progress", new Date().toISOString()), receivableMode: undefined }],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.queryByText("Recebimento")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: /Registrar recebimento/i })).not.toBeInTheDocument();
   });
 
   it("modo básico mostra ação única de registrar recebimento", () => {

@@ -385,7 +385,7 @@ export function FreightTab({
       }
 
       const latestFreight = getLatestFreight(finishingFreight.id) ?? finishingFreight;
-      const isReceivableActive = (latestFreight.receivableMode ?? "complete") !== "off";
+      const isReceivableActive = (latestFreight.receivableMode ?? "off") !== "off";
       const hasPendingBalance = !isFreightSettled(latestFreight);
       if (isReceivableActive && hasPendingBalance && !latestFreight.paymentDueDate) {
         setCompletionForecastDate("");
@@ -755,7 +755,7 @@ export function FreightTab({
         )}
 
         {sortedFreights.map((f: Freight) => {
-          const receivableMode = f.receivableMode ?? "complete";
+          const receivableMode = f.receivableMode ?? "off";
           const receivableEnabled = receivableMode !== "off";
           const receivableStatus = getFreightReceivableStatus(f);
           const remainingBalance = getFreightRemainingBalance(f);
@@ -1122,7 +1122,7 @@ export function FreightTab({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>{(editingReceivableFreight?.receivableMode ?? "complete") === "basic" ? "Registrar recebimento" : "Painel de recebimento"}</DialogTitle>
+            <DialogTitle>{(editingReceivableFreight?.receivableMode ?? "off") === "basic" ? "Registrar recebimento" : "Painel de recebimento"}</DialogTitle>
             <DialogDescription>
               Área separada para organizar previsão, recebimentos e ajustes sem poluir o card principal.
             </DialogDescription>
@@ -1143,7 +1143,7 @@ export function FreightTab({
               />
             </label>
 
-            {(editingReceivableFreight?.receivableMode ?? "complete") === "complete" && (
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && (
               <>
                 <label className="space-y-1 text-sm text-foreground">
                   <span className="text-xs font-medium text-muted-foreground">Adiantamento</span>
@@ -1171,7 +1171,7 @@ export function FreightTab({
               </>
             )}
 
-            {(editingReceivableFreight?.receivableMode ?? "complete") === "complete" && <label className="space-y-1 text-sm text-foreground">
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Status do canhoto</span>
               <select
                 value={editDeliveryProofStatus}
@@ -1186,7 +1186,7 @@ export function FreightTab({
               </select>
             </label>}
 
-            {(editingReceivableFreight?.receivableMode ?? "complete") === "complete" && <label className="space-y-1 text-sm text-foreground">
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Liberação do saldo</span>
               <select
                 value={editBalanceReleaseMode}
@@ -1202,7 +1202,7 @@ export function FreightTab({
               </select>
             </label>}
 
-            {(editingReceivableFreight?.receivableMode ?? "complete") === "complete" && <div className="rounded-md border border-border/70 p-2 space-y-2">
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && <div className="rounded-md border border-border/70 p-2 space-y-2">
               <p className="text-xs font-medium text-muted-foreground">Ajuste no saldo (rápido)</p>
               <div className="grid grid-cols-2 gap-2">
                 <select
@@ -1285,12 +1285,21 @@ export function FreightTab({
           <div className="grid gap-2">
             <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("off")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
               Não usar
+              <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                Deixa o frete limpo, sem controle de recebimento.
+              </span>
             </button>
             <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("basic")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
               Básico
+              <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                Mostra recebido, saldo e previsão de pagamento.
+              </span>
             </button>
             <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("complete")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
               Completo
+              <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                Libera recebimentos, comprovante, ajustes e controle completo.
+              </span>
             </button>
           </div>
         </DialogContent>
