@@ -877,6 +877,39 @@ describe("AppContext freight mutations", () => {
     unmount();
   });
 
+  it("updateFreight descarta balanceAdjustments com amount vazio e emite warning dev-only", async () => {
+    const warnSpy = vi.spyOn(console, "warn").mockImplementation(() => undefined);
+    const { app, unmount } = await renderApp();
+
+    const result = await app.updateFreight(
+      "trip-1",
+      "freight-in-progress",
+      {
+        ...freightPayload(),
+        balanceAdjustments: [
+          { type: "discount", amount: 40, note: "desconto válido" },
+          { type: "increase", amount: "", note: "valor vazio" },
+          { type: "discount", amount: null, note: "valor ausente" },
+        ],
+      } as unknown as ReturnType<typeof freightPayload>,
+    );
+
+    expect(result.status).toBe("route_refreshed");
+    const updated = dbState.freights.find((f) => f.id === "freight-in-progress");
+    expect(updated?.balance_adjustments).toEqual([
+      { type: "discount", amount: 40, note: "desconto válido" },
+    ]);
+    expect(warnSpy).toHaveBeenCalledWith(
+      "[freight-receivable] balanceAdjustments inválidos foram descartados durante a normalização.",
+      expect.objectContaining({
+        accepted: [{ type: "discount", amount: 40, note: "desconto válido" }],
+      }),
+    );
+
+    warnSpy.mockRestore();
+    unmount();
+  });
+
   it("updateFreight com frete completed e KM alterado retorna blocked", async () => {
     // current freight is completed with km_initial=100, trying to change to 200
     dbState.freights = [

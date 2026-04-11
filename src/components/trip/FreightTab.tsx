@@ -160,7 +160,7 @@ export function FreightTab({
     received: "bg-profit/15 text-profit border-profit/30",
   };
   const receivableStatusLabel: Record<FreightReceivableStatus, string> = {
-    pending: "Canhoto pendente",
+    pending: "Saldo pendente",
     partial: "Recebendo",
     overdue: "Saldo vencido",
     received: "Frete quitado",
@@ -1200,6 +1200,7 @@ export function FreightTab({
                   value={quickAdjustmentType}
                   onChange={(e) => setQuickAdjustmentType(e.target.value as "discount" | "increase")}
                   className="input-field"
+                  aria-label="Tipo do ajuste"
                   disabled={isSavingReceivable}
                 >
                   <option value="discount">Desconto</option>
@@ -1213,6 +1214,7 @@ export function FreightTab({
                   value={quickAdjustmentAmount}
                   onChange={(e) => setQuickAdjustmentAmount(e.target.value)}
                   className="input-field"
+                  aria-label="Valor do ajuste"
                   disabled={isSavingReceivable}
                 />
               </div>
@@ -1223,6 +1225,7 @@ export function FreightTab({
                 value={quickAdjustmentNote}
                 onChange={(e) => setQuickAdjustmentNote(e.target.value)}
                 className="input-field"
+                aria-label="Observação do ajuste"
                 disabled={isSavingReceivable}
               />
             </div>

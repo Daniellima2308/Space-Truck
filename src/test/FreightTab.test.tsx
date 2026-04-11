@@ -380,6 +380,26 @@ describe("FreightTab", () => {
     expect(screen.queryByText("Comissão")).not.toBeInTheDocument();
   });
 
+  it("badge financeiro pending usa rótulo financeiro", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.getByText("Saldo pendente")).toBeInTheDocument();
+    expect(screen.queryByText("Canhoto pendente")).not.toBeInTheDocument();
+  });
+
   it("quick settle usa meta real de recebimento (target - totalReceived) e não grossValue", async () => {
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
     const freight = {
@@ -523,6 +543,30 @@ describe("FreightTab", () => {
 
     const payload = addFreight.mock.calls[0][1];
     expect(payload).not.toHaveProperty("createdAt");
+  });
+
+  it("quick adjustment expõe labels acessíveis nos 3 controles", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+
+    expect(within(dialog).getByLabelText("Tipo do ajuste")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Valor do ajuste")).toBeInTheDocument();
+    expect(within(dialog).getByLabelText("Observação do ajuste")).toBeInTheDocument();
   });
 
   it("abre modal ao tocar em Concluir e permite só concluir", async () => {

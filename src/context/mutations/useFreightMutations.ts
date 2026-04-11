@@ -116,6 +116,7 @@ function normalizeReceivableInput(params: {
         const rawType = item && typeof item === "object" ? (item as { type?: unknown }).type : undefined;
         const rawAmount = item && typeof item === "object" ? (item as { amount?: unknown }).amount : undefined;
         const rawNote = item && typeof item === "object" ? (item as { note?: unknown }).note : undefined;
+        if (rawAmount == null || rawAmount === "") return null;
         const amount = typeof rawAmount === "number" ? rawAmount : Number(rawAmount ?? 0);
         if (!Number.isFinite(amount) || amount < 0) return null;
         if (rawType !== "discount" && rawType !== "increase") return null;
