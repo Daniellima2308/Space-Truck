@@ -274,7 +274,7 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
 
   const freightsByTrip = new Map<string, Freight[]>();
   (freights || []).forEach((freight) => {
-    const normalized = mapFreightRow(freight);
+    const normalized = mapFreightRow(freight as unknown as FreightRow);
     const existing = freightsByTrip.get(freight.trip_id);
     if (existing) {
       existing.push(normalized);
