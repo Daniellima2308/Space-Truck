@@ -7,6 +7,11 @@ import {
   getFreightReceivableStatus,
   getFreightReceivedPercentage,
   getFreightRemainingBalance,
+  getFreightAdvanceReceived,
+  getFreightAdjustedBalance,
+  getFreightTotalReceived,
+  getFreightReceivableTarget,
+  isFreightSettled,
   type FreightReceivableStatus,
 } from "@/lib/freightReceivables";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
@@ -27,6 +32,7 @@ import {
 } from "@/lib/vehicleOperation";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
+import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
 import { FontAwesomeIcon, iconCheckCircle2, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface FreightTabProps {
@@ -37,18 +43,12 @@ interface FreightTabProps {
   setShowForm: (v: boolean) => void;
   addFreight: (
     tripId: string,
-    f: Omit<
-      Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
-    >,
+    f: FreightEditableInput,
   ) => Promise<void>;
   updateFreight: (
     tripId: string,
     freightId: string,
-    f: Omit<
-      Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
-    >,
+    f: FreightEditableInput,
     options?: { forceRouteRefresh?: boolean; suppressSuccessToast?: boolean },
   ) => Promise<FreightUpdateResult>;
   deleteFreight: (tripId: string, freightId: string) => Promise<void>;
@@ -97,6 +97,13 @@ export function FreightTab({
   const [editingReceivableFreight, setEditingReceivableFreight] = useState<Freight | null>(null);
   const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
   const [editAmountReceived, setEditAmountReceived] = useState("");
+  const [editAdvanceAmount, setEditAdvanceAmount] = useState("");
+  const [editPayerName, setEditPayerName] = useState("");
+  const [editDeliveryProofStatus, setEditDeliveryProofStatus] = useState<Freight["deliveryProofStatus"]>("not_required");
+  const [editBalanceReleaseMode, setEditBalanceReleaseMode] = useState<Freight["balanceReleaseMode"]>("none");
+  const [quickAdjustmentType, setQuickAdjustmentType] = useState<"discount" | "increase">("discount");
+  const [quickAdjustmentAmount, setQuickAdjustmentAmount] = useState("");
+  const [quickAdjustmentNote, setQuickAdjustmentNote] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishingFreight, setIsFinishingFreight] = useState(false);
   const [isSavingKm, setIsSavingKm] = useState(false);
@@ -153,10 +160,23 @@ export function FreightTab({
     received: "bg-profit/15 text-profit border-profit/30",
   };
   const receivableStatusLabel: Record<FreightReceivableStatus, string> = {
-    pending: "Pendente",
-    partial: "Parcial",
-    overdue: "Vencido",
-    received: "Recebido",
+    pending: "Saldo pendente",
+    partial: "Recebendo",
+    overdue: "Saldo vencido",
+    received: "Frete quitado",
+  };
+  const deliveryProofStatusLabel: Record<NonNullable<Freight["deliveryProofStatus"]>, string> = {
+    not_required: "Canhoto não obrigatório",
+    pending_send: "Canhoto pendente",
+    sent: "Canhoto enviado",
+    confirmed: "Canhoto confirmado",
+  };
+  const balanceReleaseModeLabel: Record<NonNullable<Freight["balanceReleaseMode"]>, string> = {
+    none: "Sem trava de canhoto",
+    proof_photo: "Libera com foto do canhoto",
+    physical_proof: "Libera com canhoto físico",
+    agreed_deadline: "Libera por prazo combinado",
+    direct_delivery: "Liberação direta",
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -185,7 +205,6 @@ export function FreightTab({
         paymentDueDate: paymentDueDate || undefined,
         amountReceived: parsedAmountReceived,
         commissionPercent,
-        createdAt: new Date().toISOString(),
       });
       setOrigin("");
       setDest("");
@@ -340,7 +359,6 @@ export function FreightTab({
         paymentDueDate: latestFreight.paymentDueDate,
         amountReceived: latestFreight.amountReceived,
         commissionPercent: latestFreight.commissionPercent,
-        createdAt: latestFreight.createdAt,
       });
 
       setEditingKmFreight(null);
@@ -375,7 +393,6 @@ export function FreightTab({
           paymentDueDate: latestFreight.paymentDueDate,
           amountReceived: latestFreight.amountReceived,
           commissionPercent: latestFreight.commissionPercent,
-          createdAt: latestFreight.createdAt,
         },
         { forceRouteRefresh: true, suppressSuccessToast: true },
       );
@@ -426,6 +443,13 @@ export function FreightTab({
     setEditingReceivableFreight(freight);
     setEditPaymentDueDate(freight.paymentDueDate ?? "");
     setEditAmountReceived(String(freight.amountReceived ?? 0));
+    setEditAdvanceAmount(String(freight.advanceAmount ?? 0));
+    setEditPayerName(freight.payerName ?? "");
+    setEditDeliveryProofStatus(freight.deliveryProofStatus ?? "not_required");
+    setEditBalanceReleaseMode(freight.balanceReleaseMode ?? "none");
+    setQuickAdjustmentType("discount");
+    setQuickAdjustmentAmount("");
+    setQuickAdjustmentNote("");
   };
 
   const handleSaveReceivable = async () => {
@@ -433,6 +457,8 @@ export function FreightTab({
     const latestFreight =
       getLatestFreight(editingReceivableFreight.id) ?? editingReceivableFreight;
     const parsedAmountReceived = Number(editAmountReceived || 0);
+    const parsedAdvanceAmount = Number(editAdvanceAmount || 0);
+    const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
     if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) {
       toast({
         title: "Valor recebido inválido",
@@ -440,6 +466,37 @@ export function FreightTab({
         variant: "destructive",
       });
       return;
+    }
+    if (!Number.isFinite(parsedAdvanceAmount) || parsedAdvanceAmount < 0) {
+      toast({
+        title: "Adiantamento inválido",
+        description: "Informe um adiantamento maior ou igual a zero.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      quickAdjustmentAmount.trim() &&
+      (!Number.isFinite(parsedQuickAdjustmentAmount) ||
+        parsedQuickAdjustmentAmount <= 0)
+    ) {
+      toast({
+        title: "Ajuste no saldo inválido",
+        description: "Use um valor maior que zero para desconto ou acréscimo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const nextAdjustments = Array.isArray(latestFreight.balanceAdjustments)
+      ? [...latestFreight.balanceAdjustments]
+      : [];
+    if (quickAdjustmentAmount.trim() && parsedQuickAdjustmentAmount > 0) {
+      nextAdjustments.push({
+        type: quickAdjustmentType,
+        amount: parsedQuickAdjustmentAmount,
+        note: quickAdjustmentNote.trim() || undefined,
+      });
     }
 
     try {
@@ -451,8 +508,12 @@ export function FreightTab({
         grossValue: latestFreight.grossValue,
         paymentDueDate: editPaymentDueDate || undefined,
         amountReceived: parsedAmountReceived,
+        advanceAmount: parsedAdvanceAmount,
+        payerName: editPayerName.trim() || undefined,
+        deliveryProofStatus: editDeliveryProofStatus,
+        balanceReleaseMode: editBalanceReleaseMode,
+        balanceAdjustments: nextAdjustments,
         commissionPercent: latestFreight.commissionPercent,
-        createdAt: latestFreight.createdAt,
       });
 
       if (result.status === "blocked") {
@@ -549,6 +610,47 @@ export function FreightTab({
     }
   };
 
+  const handleQuickReceivableUpdate = async (
+    freight: Freight,
+    patch: Partial<
+      Pick<
+        Freight,
+        | "amountReceived"
+        | "advanceAmount"
+        | "deliveryProofStatus"
+        | "balanceReleaseMode"
+        | "balanceAdjustments"
+        | "payerName"
+        | "paymentDueDate"
+      >
+    >,
+  ) => {
+    try {
+      const latestFreight = getLatestFreight(freight.id) ?? freight;
+      await updateFreight(trip.id, latestFreight.id, {
+        origin: latestFreight.origin,
+        destination: latestFreight.destination,
+        kmInitial: latestFreight.kmInitial,
+        grossValue: latestFreight.grossValue,
+        paymentDueDate: patch.paymentDueDate ?? latestFreight.paymentDueDate,
+        amountReceived: patch.amountReceived ?? latestFreight.amountReceived,
+        advanceAmount: patch.advanceAmount ?? latestFreight.advanceAmount,
+        payerName: patch.payerName ?? latestFreight.payerName,
+        deliveryProofStatus: patch.deliveryProofStatus ?? latestFreight.deliveryProofStatus,
+        balanceReleaseMode: patch.balanceReleaseMode ?? latestFreight.balanceReleaseMode,
+        balanceAdjustments: patch.balanceAdjustments ?? latestFreight.balanceAdjustments,
+        commissionPercent: latestFreight.commissionPercent,
+      });
+    } catch (error) {
+      toast({
+        title: "Não foi possível atualizar agora",
+        description:
+          error instanceof Error ? error.message : "Tente novamente em instantes.",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <>
       <div className="space-y-2">
@@ -582,6 +684,12 @@ export function FreightTab({
           const receivableStatus = getFreightReceivableStatus(f);
           const remainingBalance = getFreightRemainingBalance(f);
           const receivedPercentage = getFreightReceivedPercentage(f);
+          const advanceAmount = getFreightAdvanceReceived(f);
+          const adjustedBalance = getFreightAdjustedBalance(f);
+          const totalReceived = getFreightTotalReceived(f);
+          const receivableTarget = getFreightReceivableTarget(f);
+          const freightIsSettled = isFreightSettled(f);
+          const hasAdjustments = Array.isArray(f.balanceAdjustments) && f.balanceAdjustments.length > 0;
 
           return (
           <div key={f.id} className="gradient-card rounded-xl p-3 space-y-2">
@@ -683,10 +791,43 @@ export function FreightTab({
               </span>
             </div>
             <p className="text-xs text-foreground">
-              Saldo restante:{" "}
+              Saldo:{" "}
               <span className="font-mono font-semibold">
                 {formatCurrency(remainingBalance)}
               </span>
+            </p>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <p className="text-muted-foreground">
+                Adiantamento:{" "}
+                <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span>
+              </p>
+              <p className="text-muted-foreground">
+                Total recebido:{" "}
+                <span className="font-mono text-foreground">{formatCurrency(totalReceived)}</span>
+              </p>
+              <p className="text-muted-foreground">
+                Saldo ajustado:{" "}
+                <span className="font-mono text-foreground">{formatCurrency(adjustedBalance)}</span>
+              </p>
+              <p className="text-muted-foreground">
+                Meta de quitação:{" "}
+                <span className="font-mono text-foreground">{formatCurrency(receivableTarget)}</span>
+              </p>
+            </div>
+            {f.payerName && (
+              <p className="text-xs text-muted-foreground">
+                Quem paga: <span className="text-foreground">{f.payerName}</span>
+              </p>
+            )}
+            <p className="text-xs text-muted-foreground">{deliveryProofStatusLabel[f.deliveryProofStatus ?? "not_required"]}</p>
+            <p className="text-xs text-muted-foreground">{balanceReleaseModeLabel[f.balanceReleaseMode ?? "none"]}</p>
+            {hasAdjustments && (
+              <p className="text-xs text-muted-foreground">
+                Ajustes aplicados: {f.balanceAdjustments?.length ?? 0}
+              </p>
+            )}
+            <p className="text-xs font-medium text-foreground">
+              Situação: {freightIsSettled ? "Frete quitado" : "Saldo em aberto"}
             </p>
             {f.paymentDueDate && (
               <p className="text-xs text-muted-foreground">
@@ -751,6 +892,38 @@ export function FreightTab({
               >
                 <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> Recebimento
               </button>
+              <button
+                onClick={() => {
+                  const latestFreight = getLatestFreight(f.id) ?? f;
+                  const outstanding = Math.max(
+                    0,
+                    getFreightReceivableTarget(latestFreight) -
+                      getFreightTotalReceived(latestFreight),
+                  );
+                  void handleQuickReceivableUpdate(f, {
+                    amountReceived: latestFreight.amountReceived + outstanding,
+                  });
+                }}
+                className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+              >
+                Quitar frete
+              </button>
+              {f.deliveryProofStatus !== "sent" && f.deliveryProofStatus !== "confirmed" && (
+                <button
+                  onClick={() => void handleQuickReceivableUpdate(f, { deliveryProofStatus: "sent" })}
+                  className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+                >
+                  Canhoto enviado
+                </button>
+              )}
+              {f.deliveryProofStatus !== "confirmed" && (
+                <button
+                  onClick={() => void handleQuickReceivableUpdate(f, { deliveryProofStatus: "confirmed" })}
+                  className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
+                >
+                  Canhoto confirmado
+                </button>
+              )}
             </div>
           )}
           </div>
@@ -834,10 +1007,7 @@ export function FreightTab({
 
             {usesFixedCommission && (
               <p className="text-xs text-muted-foreground">
-                {isDriverOwnerProfile
-                  ? "Retirada aplicada"
-                  : "Comissão aplicada"}
-                : {defaultCommission}%
+                {isDriverOwnerProfile ? "Retirada aplicada" : "Comissão aplicada"}: {defaultCommission}%
               </p>
             )}
 
@@ -952,7 +1122,7 @@ export function FreightTab({
           <DialogHeader>
             <DialogTitle>Atualizar recebimento do frete</DialogTitle>
             <DialogDescription>
-              Ajuste vencimento e valor recebido sem alterar os demais dados do trecho.
+              Atualize adiantamento, saldo, canhoto e situação de recebimento sem sair do frete.
             </DialogDescription>
           </DialogHeader>
 
@@ -967,6 +1137,98 @@ export function FreightTab({
                 disabled={isSavingReceivable}
               />
             </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Adiantamento</span>
+              <input
+                type="number"
+                min="0"
+                step="0.01"
+                value={editAdvanceAmount}
+                onChange={(e) => setEditAdvanceAmount(e.target.value)}
+                className="input-field"
+                disabled={isSavingReceivable}
+              />
+            </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Quem paga</span>
+              <input
+                type="text"
+                value={editPayerName}
+                onChange={(e) => setEditPayerName(e.target.value)}
+                className="input-field"
+                disabled={isSavingReceivable}
+              />
+            </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Status do canhoto</span>
+              <select
+                value={editDeliveryProofStatus}
+                onChange={(e) => setEditDeliveryProofStatus(e.target.value as Freight["deliveryProofStatus"])}
+                className="input-field"
+                disabled={isSavingReceivable}
+              >
+                <option value="not_required">Canhoto não obrigatório</option>
+                <option value="pending_send">Canhoto pendente</option>
+                <option value="sent">Canhoto enviado</option>
+                <option value="confirmed">Canhoto confirmado</option>
+              </select>
+            </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Liberação do saldo</span>
+              <select
+                value={editBalanceReleaseMode}
+                onChange={(e) => setEditBalanceReleaseMode(e.target.value as Freight["balanceReleaseMode"])}
+                className="input-field"
+                disabled={isSavingReceivable}
+              >
+                <option value="none">Sem trava de canhoto</option>
+                <option value="proof_photo">Foto do canhoto</option>
+                <option value="physical_proof">Canhoto físico</option>
+                <option value="agreed_deadline">Prazo combinado</option>
+                <option value="direct_delivery">Liberação direta</option>
+              </select>
+            </label>
+
+            <div className="rounded-md border border-border/70 p-2 space-y-2">
+              <p className="text-xs font-medium text-muted-foreground">Ajuste no saldo (rápido)</p>
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={quickAdjustmentType}
+                  onChange={(e) => setQuickAdjustmentType(e.target.value as "discount" | "increase")}
+                  className="input-field"
+                  aria-label="Tipo do ajuste"
+                  disabled={isSavingReceivable}
+                >
+                  <option value="discount">Desconto</option>
+                  <option value="increase">Acréscimo</option>
+                </select>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  placeholder="Valor"
+                  value={quickAdjustmentAmount}
+                  onChange={(e) => setQuickAdjustmentAmount(e.target.value)}
+                  className="input-field"
+                  aria-label="Valor do ajuste"
+                  disabled={isSavingReceivable}
+                />
+              </div>
+              <input
+                type="text"
+                maxLength={120}
+                placeholder="Observação curta"
+                value={quickAdjustmentNote}
+                onChange={(e) => setQuickAdjustmentNote(e.target.value)}
+                className="input-field"
+                aria-label="Observação do ajuste"
+                disabled={isSavingReceivable}
+              />
+            </div>
 
             <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Valor recebido (R$)</span>
