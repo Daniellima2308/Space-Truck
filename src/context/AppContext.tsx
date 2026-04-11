@@ -38,7 +38,7 @@ import { useFuelingMutations } from "@/context/mutations/useFuelingMutations";
 import { useExpenseMutations } from "@/context/mutations/useExpenseMutations";
 import { useMaintenanceMutations } from "@/context/mutations/useMaintenanceMutations";
 
-function withReceivableDefaults(payload: Record<string, unknown>): Record<string, unknown> {
+function withReceivableDefaults<T extends Record<string, unknown>>(payload: T): T {
   return {
     ...payload,
     advance_amount: (payload.advance_amount as number) ?? 0,
