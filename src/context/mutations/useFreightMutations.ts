@@ -194,7 +194,7 @@ function buildReceivablePayload(receivable: NormalizedReceivableInput) {
 }
 
 function hasOwnField<T extends object>(obj: T, key: keyof T): boolean {
-  return Object.hasOwn(obj, key);
+  return key in obj;
 }
 
 function resolveReceivableInput(
