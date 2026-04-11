@@ -105,6 +105,7 @@ describe("mapFreightRow", () => {
     status: "planned",
     estimated_distance: 430,
     payment_due_date: null,
+    receivable_mode: "complete",
     amount_received: 0,
     advance_amount: 0,
     payer_name: null,
@@ -126,7 +127,13 @@ describe("mapFreightRow", () => {
     expect(freight.commissionValue).toBe(500);
     expect(freight.status).toBe("planned");
     expect(freight.estimatedDistance).toBe(430);
+    expect(freight.receivableMode).toBe("complete");
     expect(freight.createdAt).toBe("2026-01-01T10:00:00.000Z");
+  });
+
+  it("usa 'off' quando receivable_mode está ausente ou inválido", () => {
+    expect(mapFreightRow({ ...base, receivable_mode: null }).receivableMode).toBe("off");
+    expect(mapFreightRow({ ...base, receivable_mode: "invalid" }).receivableMode).toBe("off");
   });
 
   it("usa 'planned' como padrão quando status é null", () => {

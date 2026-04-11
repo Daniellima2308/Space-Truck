@@ -59,6 +59,7 @@ function normalizeReceivableInput(params: {
   balanceReleaseMode?: unknown;
   balanceAdjustments?: unknown;
   paymentDueDate?: unknown;
+  receivableMode?: unknown;
 }): {
   amountReceived: number;
   advanceAmount: number;
@@ -67,6 +68,7 @@ function normalizeReceivableInput(params: {
   balanceReleaseMode: "none" | "proof_photo" | "physical_proof" | "agreed_deadline" | "direct_delivery";
   balanceAdjustments: Array<{ type: "discount" | "increase"; amount: number; note?: string }>;
   paymentDueDate?: string;
+  receivableMode: "off" | "basic" | "complete";
 } {
   const parsedAmount =
     typeof params.amountReceived === "number"
@@ -144,12 +146,12 @@ function normalizeReceivableInput(params: {
 
   if (params.paymentDueDate != null && params.paymentDueDate !== "") {
     if (typeof params.paymentDueDate !== "string") {
-      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+      throw new Error("Previsão de pagamento inválida. Use o formato AAAA-MM-DD.");
     }
 
     const dateMatch = params.paymentDueDate.match(/^(\d{4})-(\d{2})-(\d{2})$/);
     if (!dateMatch) {
-      throw new Error("Vencimento previsto inválido. Use o formato AAAA-MM-DD.");
+      throw new Error("Previsão de pagamento inválida. Use o formato AAAA-MM-DD.");
     }
 
     const [, yearRaw, monthRaw, dayRaw] = dateMatch;
@@ -163,9 +165,15 @@ function normalizeReceivableInput(params: {
       parsed.getDate() === day;
 
     if (!isSameDate) {
-      throw new Error("Vencimento previsto inválido. Informe uma data existente.");
+      throw new Error("Previsão de pagamento inválida. Informe uma data existente.");
     }
   }
+
+  const validReceivableModes = new Set(["off", "basic", "complete"]);
+  const receivableMode =
+    typeof params.receivableMode === "string" && validReceivableModes.has(params.receivableMode)
+      ? (params.receivableMode as "off" | "basic" | "complete")
+      : "off";
 
   return {
     amountReceived: parsedAmount,
@@ -178,6 +186,7 @@ function normalizeReceivableInput(params: {
       typeof params.paymentDueDate === "string" && params.paymentDueDate !== ""
         ? params.paymentDueDate
         : undefined,
+    receivableMode,
   };
 }
 
@@ -190,6 +199,7 @@ function buildReceivablePayload(receivable: NormalizedReceivableInput) {
     delivery_proof_status: receivable.deliveryProofStatus,
     balance_release_mode: receivable.balanceReleaseMode,
     balance_adjustments: receivable.balanceAdjustments,
+    receivable_mode: receivable.receivableMode,
   };
 }
 
@@ -201,6 +211,7 @@ function resolveReceivableInput(
   freightInput: FreightEditableInput,
   fallback?: {
     paymentDueDate?: string | null;
+    receivableMode?: string | null;
     amountReceived?: number | null;
     advanceAmount?: number | null;
     payerName?: string | null;
@@ -231,6 +242,9 @@ function resolveReceivableInput(
     paymentDueDate: hasOwnField(freightInput, "paymentDueDate")
       ? freightInput.paymentDueDate
       : fallback?.paymentDueDate,
+    receivableMode: hasOwnField(freightInput, "receivableMode")
+      ? freightInput.receivableMode
+      : fallback?.receivableMode,
   });
 }
 
@@ -239,7 +253,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
     async (
       tripId: string,
       f: FreightEditableInput,
-    ) => {
+    ): Promise<{ freightId?: string }> => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const receivable = normalizeReceivableInput({
@@ -250,6 +264,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         balanceReleaseMode: f.balanceReleaseMode,
         balanceAdjustments: f.balanceAdjustments,
         paymentDueDate: f.paymentDueDate,
+        receivableMode: f.receivableMode,
       });
 
       const kmValidation = validatePositiveNumber(
@@ -328,7 +343,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         } else {
           showOfflineSaved(freightFeedback.title);
         }
-        return;
+        return {};
       }
 
       const { estimatedDistance, diagnostic: distanceDiagnostic } =
@@ -346,26 +361,49 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         showActionNotice("Previsão ainda em ajuste", description);
       }
 
-      const { error: freightInsertError } = await supabase
-        .from("freights")
-        .insert({
-          trip_id: tripId,
-          user_id: user.id,
-          origin: f.origin,
-          destination: f.destination,
-          km_initial: f.kmInitial,
-          km_final: 0,
-          gross_value: f.grossValue,
-          commission_percent: f.commissionPercent,
-          commission_value: commissionValue,
-          status: freightStatus,
-          estimated_distance: estimatedDistance,
-          ...buildReceivablePayload(receivable),
-        });
-      if (freightInsertError)
-        throw new Error(
-          freightInsertError.message || "Falha ao salvar o frete.",
-        );
+      const insertPayload = {
+        trip_id: tripId,
+        user_id: user.id,
+        origin: f.origin,
+        destination: f.destination,
+        km_initial: f.kmInitial,
+        km_final: 0,
+        gross_value: f.grossValue,
+        commission_percent: f.commissionPercent,
+        commission_value: commissionValue,
+        status: freightStatus,
+        estimated_distance: estimatedDistance,
+        ...buildReceivablePayload(receivable),
+      };
+
+      const insertBuilder = supabase.from("freights").insert(insertPayload) as unknown as {
+        select?: (columns: string) => { single: () => Promise<{ data: { id?: string } | null; error: { message?: string } | null }> };
+        then?: (
+          onfulfilled: (value: { error: { message?: string } | null }) => unknown,
+          onrejected?: (reason: unknown) => unknown,
+        ) => Promise<unknown>;
+      };
+      let insertedFreightId: string | undefined;
+      const supportsSelect = typeof insertBuilder.select === "function";
+
+      if (supportsSelect) {
+        const { data: insertedFreight, error: freightInsertError } = await insertBuilder
+          .select("id")
+          .single();
+        if (freightInsertError) {
+          throw new Error(
+            freightInsertError.message || "Falha ao salvar o frete.",
+          );
+        }
+        insertedFreightId = insertedFreight?.id;
+      } else {
+        const { error: freightInsertError } = (await (insertBuilder as unknown as Promise<{ error: { message?: string } | null }>)) ?? { error: null };
+        if (freightInsertError) {
+          throw new Error(
+            freightInsertError.message || "Falha ao salvar o frete.",
+          );
+        }
+      }
       if (vehicleId) {
         await recalculateVehicleKm(vehicleId);
       }
@@ -376,6 +414,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       } else {
         showActionSuccess(freightFeedback.title, freightFeedback.description);
       }
+      return { freightId: insertedFreightId };
     },
     [user, data.trips, fetchData],
   );
@@ -548,6 +587,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       try {
         receivable = resolveReceivableInput(f, {
           paymentDueDate: currentFreightFromState?.paymentDueDate,
+          receivableMode: currentFreightFromState?.receivableMode,
           amountReceived: currentFreightFromState?.amountReceived,
           advanceAmount: currentFreightFromState?.advanceAmount,
           payerName: currentFreightFromState?.payerName,
@@ -643,7 +683,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       const { data: currentFreight, error: currentFreightError } =
         await supabase
           .from("freights")
-          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, amount_received, advance_amount, payer_name, delivery_proof_status, balance_release_mode, balance_adjustments")
+          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, receivable_mode, amount_received, advance_amount, payer_name, delivery_proof_status, balance_release_mode, balance_adjustments")
           .eq("id", freightId)
           .single();
 
@@ -657,6 +697,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       try {
         receivable = resolveReceivableInput(f, {
           paymentDueDate: currentFreight.payment_due_date,
+          receivableMode: currentFreight.receivable_mode,
           amountReceived: currentFreight.amount_received,
           advanceAmount: currentFreight.advance_amount,
           payerName: currentFreight.payer_name,

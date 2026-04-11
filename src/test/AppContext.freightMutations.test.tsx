@@ -150,6 +150,7 @@ function seedDb() {
       status: "in_progress",
       estimated_distance: 200,
       payment_due_date: "2026-04-10",
+      receivable_mode: "complete",
       amount_received: 300,
       advance_amount: 250,
       payer_name: "Pagador Original",
@@ -445,7 +446,8 @@ describe("AppContext freight mutations", () => {
       paymentDueDate: "2026-04-20",
     };
 
-    await app.addFreight("trip-1", payload);
+    const offlineResult = await app.addFreight("trip-1", payload);
+    expect(offlineResult).toEqual({});
 
     expect(offlineState.queue).toHaveLength(1);
     expect(offlineState.queue[0].type).toBe("addFreight");
@@ -501,7 +503,7 @@ describe("AppContext freight mutations", () => {
     };
 
     const { app, unmount } = await renderApp();
-    await app.addFreight("trip-1", payload);
+    const result = await app.addFreight("trip-1", payload);
 
     const insertedFreight = dbState.freights.find((f) => f.origin === "São Paulo - SP");
     expect(insertedFreight).toBeTruthy();
@@ -514,6 +516,7 @@ describe("AppContext freight mutations", () => {
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Frete iniciado" }),
     );
+    expect(result).toHaveProperty("freightId");
     unmount();
   });
 
@@ -825,6 +828,7 @@ describe("AppContext freight mutations", () => {
     const updated = dbState.freights.find((f) => f.id === "freight-in-progress");
     expect(updated).toEqual(
       expect.objectContaining({
+        receivable_mode: "complete",
         advance_amount: 250,
         payer_name: "Pagador Original",
         delivery_proof_status: "pending_send",
@@ -858,7 +862,7 @@ describe("AppContext freight mutations", () => {
     });
 
     expect(result.status).toBe("blocked");
-    expect(result.userMessage).toMatch(/Vencimento previsto inválido/);
+    expect(result.userMessage).toMatch(/Previsão de pagamento inválida/);
 
     unmount();
   });

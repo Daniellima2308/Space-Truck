@@ -49,6 +49,7 @@ export interface Freight {
   status: FreightStatus;
   estimatedDistance: number;
   paymentDueDate?: string;
+  receivableMode?: ReceivableMode;
   amountReceived: number;
   advanceAmount?: number;
   payerName?: string;
@@ -57,6 +58,8 @@ export interface Freight {
   balanceAdjustments?: BalanceAdjustment[];
   createdAt: string;
 }
+
+export type ReceivableMode = "off" | "basic" | "complete";
 
 export type FreightStatus = "planned" | "in_progress" | "completed";
 export type DeliveryProofStatus =
