@@ -110,8 +110,8 @@ function normalizeReceivableInput(params: {
       ? (params.balanceReleaseMode as "none" | "proof_photo" | "physical_proof" | "agreed_deadline" | "direct_delivery")
       : "none";
 
-  const balanceAdjustments = Array.isArray(params.balanceAdjustments)
-    ? params.balanceAdjustments
+  const balanceAdjustments: Array<{ type: "discount" | "increase"; amount: number; note?: string }> = Array.isArray(params.balanceAdjustments)
+    ? (params.balanceAdjustments
       .map((item) => {
         const rawType = item && typeof item === "object" ? (item as { type?: unknown }).type : undefined;
         const rawAmount = item && typeof item === "object" ? (item as { amount?: unknown }).amount : undefined;
@@ -121,12 +121,12 @@ function normalizeReceivableInput(params: {
         if (!Number.isFinite(amount) || amount < 0) return null;
         if (rawType !== "discount" && rawType !== "increase") return null;
         return {
-          type: rawType,
+          type: rawType as "discount" | "increase",
           amount,
-          note: typeof rawNote === "string" && rawNote.trim() !== "" ? rawNote.trim() : undefined,
+          ...(typeof rawNote === "string" && rawNote.trim() !== "" ? { note: rawNote.trim() } : {}),
         };
       })
-      .filter((item): item is { type: "discount" | "increase"; amount: number; note?: string } => item !== null)
+      .filter(Boolean) as Array<{ type: "discount" | "increase"; amount: number; note?: string }>)
     : [];
   if (
     process.env.NODE_ENV !== "production" &&
@@ -194,7 +194,7 @@ function buildReceivablePayload(receivable: NormalizedReceivableInput) {
 }
 
 function hasOwnField<T extends object>(obj: T, key: keyof T): boolean {
-  return Object.hasOwn(obj, key);
+  return key in obj;
 }
 
 function resolveReceivableInput(

@@ -38,13 +38,13 @@ import { useFuelingMutations } from "@/context/mutations/useFuelingMutations";
 import { useExpenseMutations } from "@/context/mutations/useExpenseMutations";
 import { useMaintenanceMutations } from "@/context/mutations/useMaintenanceMutations";
 
-function withReceivableDefaults(payload: Record<string, unknown>) {
+function withReceivableDefaults(payload: Record<string, unknown>): Record<string, unknown> {
   return {
     ...payload,
-    advance_amount: payload.advance_amount ?? 0,
-    payer_name: payload.payer_name ?? null,
-    delivery_proof_status: payload.delivery_proof_status ?? "not_required",
-    balance_release_mode: payload.balance_release_mode ?? "none",
+    advance_amount: (payload.advance_amount as number) ?? 0,
+    payer_name: (payload.payer_name as string) ?? null,
+    delivery_proof_status: (payload.delivery_proof_status as string) ?? "not_required",
+    balance_release_mode: (payload.balance_release_mode as string) ?? "none",
     balance_adjustments: payload.balance_adjustments ?? [],
   };
 }
@@ -154,7 +154,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
         const vehicles = (vehiclesRes.data || []).map(mapVehicleRow);
 
-        const freightsMap = buildFreightsMap(freightsRes.data || []);
+        const freightsMap = buildFreightsMap((freightsRes.data || []) as unknown as import("@/lib/mappers").FreightRow[]);
         const fuelingsMap = buildFuelingsMap(fuelingsRes.data || []);
         const expensesMap = buildExpensesMap(expensesRes.data || []);
         const personalExpMap = buildPersonalExpensesMap(personalExpRes.data || []);
@@ -257,11 +257,13 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   destination: action.payload.destination,
                 });
 
-              await supabase.from("freights").insert({
-                ...withReceivableDefaults(action.payload),
-                user_id: user.id,
-                estimated_distance: estimatedDistance,
-              });
+              await supabase.from("freights").insert(
+                withReceivableDefaults({
+                  ...action.payload,
+                  user_id: user.id,
+                  estimated_distance: estimatedDistance,
+                }) as any,
+              );
 
               affectedTripIds.add(action.payload.trip_id);
 
@@ -402,7 +404,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   delivery_proof_status: action.payload.delivery_proof_status,
                   balance_release_mode: action.payload.balance_release_mode,
                   balance_adjustments: action.payload.balance_adjustments,
-                }))
+                }) as any)
                 .eq("id", action.payload.freightId);
 
               affectedTripIds.add(currentFreight.trip_id);

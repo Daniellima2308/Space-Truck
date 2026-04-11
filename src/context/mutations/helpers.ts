@@ -10,7 +10,7 @@ import {
   calculateFuelingPricePerLiter,
   getFuelingOriginalTotalValue,
 } from "@/lib/fueling";
-import { mapFreightRow } from "@/lib/mappers";
+import { mapFreightRow, type FreightRow } from "@/lib/mappers";
 import { normalizeTripFreights } from "@/lib/freightStatus";
 
 const VALID_TRIP_STATUSES: ReadonlySet<string> = new Set<TripStatus>(["open", "finished"]);
@@ -256,7 +256,7 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
     await Promise.all([
       supabase
         .from("freights")
-        .select("id,trip_id,origin,destination,km_initial,gross_value,commission_percent,commission_value,status,estimated_distance,payment_due_date,amount_received,created_at")
+        .select("id,trip_id,origin,destination,km_initial,gross_value,commission_percent,commission_value,status,estimated_distance,payment_due_date,amount_received,advance_amount,payer_name,delivery_proof_status,balance_release_mode,balance_adjustments,created_at")
         .in("trip_id", tripIds),
       supabase
         .from("fuelings")
@@ -274,7 +274,7 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
 
   const freightsByTrip = new Map<string, Freight[]>();
   (freights || []).forEach((freight) => {
-    const normalized = mapFreightRow(freight);
+    const normalized = mapFreightRow(freight as unknown as FreightRow);
     const existing = freightsByTrip.get(freight.trip_id);
     if (existing) {
       existing.push(normalized);

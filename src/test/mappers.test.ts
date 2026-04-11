@@ -313,6 +313,13 @@ describe("buildFreightsMap", () => {
         status: "planned",
         estimated_distance: 200,
         created_at: "2026-01-01T10:00:00.000Z",
+        payment_due_date: null,
+        amount_received: 0,
+        advance_amount: 0,
+        payer_name: null,
+        delivery_proof_status: null,
+        balance_release_mode: null,
+        balance_adjustments: null,
       },
       {
         id: "f2",
@@ -326,6 +333,13 @@ describe("buildFreightsMap", () => {
         status: "in_progress",
         estimated_distance: 150,
         created_at: "2026-01-02T10:00:00.000Z",
+        payment_due_date: null,
+        amount_received: 0,
+        advance_amount: 0,
+        payer_name: null,
+        delivery_proof_status: null,
+        balance_release_mode: null,
+        balance_adjustments: null,
       },
       {
         id: "f3",
@@ -339,6 +353,13 @@ describe("buildFreightsMap", () => {
         status: "completed",
         estimated_distance: 300,
         created_at: "2026-01-03T10:00:00.000Z",
+        payment_due_date: null,
+        amount_received: 0,
+        advance_amount: 0,
+        payer_name: null,
+        delivery_proof_status: null,
+        balance_release_mode: null,
+        balance_adjustments: null,
       },
     ];
 
@@ -485,6 +506,13 @@ describe("buildTripsFromRows", () => {
     status: "in_progress",
     estimated_distance: 430,
     created_at: "2026-01-01T09:00:00.000Z",
+    payment_due_date: null,
+    amount_received: 0,
+    advance_amount: 0,
+    payer_name: null,
+    delivery_proof_status: null,
+    balance_release_mode: null,
+    balance_adjustments: null,
   };
 
   const fuelingRow: FuelingRow = {

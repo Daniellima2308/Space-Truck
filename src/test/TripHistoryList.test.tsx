@@ -81,6 +81,7 @@ const finishedTrip: Trip = {
       status: "planned",
       estimatedDistance: 3039,
       createdAt: "2026-03-18T01:00:00.000Z",
+      amountReceived: 0,
     },
   ],
 };
