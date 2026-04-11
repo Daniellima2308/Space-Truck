@@ -70,66 +70,66 @@ export type Database = {
       }
       freights: {
         Row: {
-          amount_received: number
           advance_amount: number
+          amount_received: number
+          balance_adjustments: Json
+          balance_release_mode: string
           commission_percent: number
           commission_value: number
           created_at: string
-          destination: string
-          payer_name: string | null
           delivery_proof_status: string
-          balance_release_mode: string
-          balance_adjustments: Json
+          destination: string
           estimated_distance: number
           gross_value: number
           id: string
           km_final: number
           km_initial: number
           origin: string
+          payer_name: string | null
           payment_due_date: string | null
           status: string
           trip_id: string
           user_id: string
         }
         Insert: {
-          amount_received?: number
           advance_amount?: number
+          amount_received?: number
+          balance_adjustments?: Json
+          balance_release_mode?: string
           commission_percent?: number
           commission_value?: number
           created_at?: string
-          destination: string
-          payer_name?: string | null
           delivery_proof_status?: string
-          balance_release_mode?: string
-          balance_adjustments?: Json
+          destination: string
           estimated_distance?: number
           gross_value?: number
           id?: string
           km_final?: number
           km_initial?: number
           origin: string
+          payer_name?: string | null
           payment_due_date?: string | null
           status?: string
           trip_id: string
           user_id: string
         }
         Update: {
-          amount_received?: number
           advance_amount?: number
+          amount_received?: number
+          balance_adjustments?: Json
+          balance_release_mode?: string
           commission_percent?: number
           commission_value?: number
           created_at?: string
-          destination?: string
-          payer_name?: string | null
           delivery_proof_status?: string
-          balance_release_mode?: string
-          balance_adjustments?: Json
+          destination?: string
           estimated_distance?: number
           gross_value?: number
           id?: string
           km_final?: number
           km_initial?: number
           origin?: string
+          payer_name?: string | null
           payment_due_date?: string | null
           status?: string
           trip_id?: string
