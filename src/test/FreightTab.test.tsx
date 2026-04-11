@@ -93,6 +93,39 @@ describe("FreightTab", () => {
     vi.clearAllMocks();
   });
 
+  async function fillAndSubmitForm({
+    trip = tripBase,
+    addFreightResult,
+    updateFreight,
+  }: {
+    trip?: Trip;
+    addFreightResult?: { freightId: string } | undefined;
+    updateFreight: ReturnType<typeof vi.fn>;
+  }) {
+    render(
+      <FreightTab
+        trip={trip}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(addFreightResult)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
+
+    await screen.findByText("Quer controlar o recebimento deste frete?");
+  }
+
   it("fecha formulário apenas quando addFreight tiver sucesso", async () => {
     const addFreight = vi.fn().mockResolvedValue(undefined);
     const setShowForm = vi.fn();
@@ -211,106 +244,34 @@ describe("FreightTab", () => {
     });
   });
 
-  it("escolher Não usar fecha chooser sem disparar updateFreight", async () => {
-    const addFreight = vi.fn().mockResolvedValue(undefined);
+  it.each([
+    { buttonLabel: "Não usar", expectedMode: null },
+    { buttonLabel: "Básico", expectedMode: "basic" as const },
+    { buttonLabel: "Completo", expectedMode: "complete" as const },
+  ])("escolher $buttonLabel mantém comportamento esperado de receivableMode", async ({ buttonLabel, expectedMode }) => {
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
-
-    render(
-      <FreightTab
-        trip={tripBase}
-        vehicle={driverOwnerVehicle}
-        isOpen
-        showForm
-        setShowForm={vi.fn()}
-        addFreight={addFreight}
-        updateFreight={updateFreight}
-        deleteFreight={vi.fn().mockResolvedValue(undefined)}
-        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
-        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
-      />,
-    );
-
-    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
-    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
-    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
-    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
-
-    await screen.findByText("Quer controlar o recebimento deste frete?");
-    fireEvent.click(screen.getByRole("button", { name: /^Não usar\b/i }));
-
-    await waitFor(() => {
-      expect(updateFreight).not.toHaveBeenCalled();
-      expect(screen.queryByText("Quer controlar o recebimento deste frete?")).not.toBeInTheDocument();
-    });
-  });
-
-  it("escolher Básico persiste receivableMode basic", async () => {
-    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    const hasPersistedMode = expectedMode !== null;
     const existing = { ...makeFreight("new-freight-id", "planned", new Date().toISOString()) };
-    render(
-      <FreightTab
-        trip={{ ...tripBase, freights: [existing] }}
-        vehicle={driverOwnerVehicle}
-        isOpen
-        showForm
-        setShowForm={vi.fn()}
-        addFreight={vi.fn().mockResolvedValue({ freightId: "new-freight-id" })}
-        updateFreight={updateFreight}
-        deleteFreight={vi.fn().mockResolvedValue(undefined)}
-        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
-        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
-      />,
-    );
 
-    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
-    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
-    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
-    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
-    await screen.findByText("Quer controlar o recebimento deste frete?");
+    await fillAndSubmitForm({
+      trip: hasPersistedMode ? { ...tripBase, freights: [existing] } : tripBase,
+      addFreightResult: hasPersistedMode ? { freightId: "new-freight-id" } : undefined,
+      updateFreight,
+    });
 
-    fireEvent.click(screen.getByRole("button", { name: /^Básico\b/i }));
+    fireEvent.click(screen.getByRole("button", { name: new RegExp(`^${buttonLabel}\\b`, "i") }));
+
     await waitFor(() => {
+      if (expectedMode === null) {
+        expect(updateFreight).not.toHaveBeenCalled();
+        expect(screen.queryByText("Quer controlar o recebimento deste frete?")).not.toBeInTheDocument();
+        return;
+      }
+
       expect(updateFreight).toHaveBeenCalledWith(
         "trip-1",
         "new-freight-id",
-        expect.objectContaining({ receivableMode: "basic" }),
-      );
-    });
-  });
-
-  it("escolher Completo persiste receivableMode complete", async () => {
-    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
-    const existing = { ...makeFreight("new-freight-id", "planned", new Date().toISOString()) };
-    render(
-      <FreightTab
-        trip={{ ...tripBase, freights: [existing] }}
-        vehicle={driverOwnerVehicle}
-        isOpen
-        showForm
-        setShowForm={vi.fn()}
-        addFreight={vi.fn().mockResolvedValue({ freightId: "new-freight-id" })}
-        updateFreight={updateFreight}
-        deleteFreight={vi.fn().mockResolvedValue(undefined)}
-        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
-        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
-      />,
-    );
-
-    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
-    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
-    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
-    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
-    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
-    await screen.findByText("Quer controlar o recebimento deste frete?");
-
-    fireEvent.click(screen.getByRole("button", { name: /^Completo\b/i }));
-    await waitFor(() => {
-      expect(updateFreight).toHaveBeenCalledWith(
-        "trip-1",
-        "new-freight-id",
-        expect.objectContaining({ receivableMode: "complete" }),
+        expect.objectContaining({ receivableMode: expectedMode }),
       );
     });
   });
