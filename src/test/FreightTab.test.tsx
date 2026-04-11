@@ -234,7 +234,7 @@ describe("FreightTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
     const dialog = screen.getByRole("dialog");
-    fireEvent.change(within(dialog).getByRole("spinbutton"), {
+    fireEvent.change(within(dialog).getByLabelText("Valor recebido (R$)"), {
       target: { value: "-5" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));

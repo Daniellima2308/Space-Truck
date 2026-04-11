@@ -35,6 +35,11 @@ interface FreightMutationsParams {
   fetchData: (options?: { throwOnError?: boolean }) => Promise<void>;
 }
 
+type FreightEditableInput = Omit<
+  Freight,
+  "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
+>;
+
 type NormalizedReceivableInput = ReturnType<typeof normalizeReceivableInput>;
 
 function assertFreightUpdateSucceeded(
@@ -122,6 +127,19 @@ function normalizeReceivableInput(params: {
       })
       .filter((item): item is { type: "discount" | "increase"; amount: number; note?: string } => item !== null)
     : [];
+  if (
+    process.env.NODE_ENV !== "production" &&
+    Array.isArray(params.balanceAdjustments) &&
+    balanceAdjustments.length !== params.balanceAdjustments.length
+  ) {
+    console.warn(
+      "[freight-receivable] balanceAdjustments inválidos foram descartados durante a normalização.",
+      {
+        received: params.balanceAdjustments,
+        accepted: balanceAdjustments,
+      },
+    );
+  }
 
   if (params.paymentDueDate != null && params.paymentDueDate !== "") {
     if (typeof params.paymentDueDate !== "string") {
@@ -175,14 +193,11 @@ function buildReceivablePayload(receivable: NormalizedReceivableInput) {
 }
 
 function hasOwnField<T extends object>(obj: T, key: keyof T): boolean {
-  return Object.prototype.hasOwnProperty.call(obj, key);
+  return Object.hasOwn(obj, key);
 }
 
 function resolveReceivableInput(
-  freightInput: Omit<
-    Freight,
-    "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
-  >,
+  freightInput: FreightEditableInput,
   fallback?: {
     paymentDueDate?: string | null;
     amountReceived?: number | null;
@@ -222,10 +237,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
   const addFreight = useCallback(
     async (
       tripId: string,
-      f: Omit<
-        Freight,
-        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
-      >,
+      f: FreightEditableInput,
     ) => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
@@ -513,10 +525,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
     async (
       tripId: string,
       freightId: string,
-      f: Omit<
-        Freight,
-        "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
-      >,
+      f: FreightEditableInput,
       options?: { forceRouteRefresh?: boolean; suppressSuccessToast?: boolean },
     ): Promise<FreightUpdateResult> => {
       if (!user) {
@@ -644,15 +653,27 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         );
       }
 
-      receivable = resolveReceivableInput(f, {
-        paymentDueDate: currentFreight.payment_due_date,
-        amountReceived: currentFreight.amount_received,
-        advanceAmount: currentFreight.advance_amount,
-        payerName: currentFreight.payer_name,
-        deliveryProofStatus: currentFreight.delivery_proof_status,
-        balanceReleaseMode: currentFreight.balance_release_mode,
-        balanceAdjustments: currentFreight.balance_adjustments,
-      });
+      try {
+        receivable = resolveReceivableInput(f, {
+          paymentDueDate: currentFreight.payment_due_date,
+          amountReceived: currentFreight.amount_received,
+          advanceAmount: currentFreight.advance_amount,
+          payerName: currentFreight.payer_name,
+          deliveryProofStatus: currentFreight.delivery_proof_status,
+          balanceReleaseMode: currentFreight.balance_release_mode,
+          balanceAdjustments: currentFreight.balance_adjustments,
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error
+            ? error.message
+            : "Dados de recebimento inválidos.";
+        showActionError("Não foi possível salvar agora", message);
+        return {
+          status: "blocked",
+          userMessage: message,
+        };
+      }
 
       if (
         currentFreight.status === "completed" &&
