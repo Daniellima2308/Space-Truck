@@ -104,6 +104,13 @@ describe("mapFreightRow", () => {
     commission_value: 500,
     status: "planned",
     estimated_distance: 430,
+    payment_due_date: null,
+    amount_received: 0,
+    advance_amount: 0,
+    payer_name: null,
+    delivery_proof_status: "not_required",
+    balance_release_mode: "none",
+    balance_adjustments: [],
     created_at: "2026-01-01T10:00:00.000Z",
   };
 
@@ -565,16 +572,26 @@ describe("buildTripsFromRows", () => {
       id: "active-1",
       status: "in_progress",
       created_at: "2026-01-01T09:00:00.000Z",
-    payment_due_date: null,
-    amount_received: 0,
+      payment_due_date: "2026-01-10",
+      amount_received: 200,
+      advance_amount: 100,
+      payer_name: "Cliente A",
+      delivery_proof_status: "pending_send",
+      balance_release_mode: "proof_photo",
+      balance_adjustments: [{ type: "discount", amount: 50 }],
     };
     const conflictRow: FreightRow = {
       ...freightRow,
       id: "conflict-1",
       status: "in_progress",
       created_at: "2026-01-01T10:00:00.000Z",
-    payment_due_date: null,
-    amount_received: 0,
+      payment_due_date: null,
+      amount_received: 0,
+      advance_amount: 0,
+      payer_name: "Cliente B",
+      delivery_proof_status: "not_required",
+      balance_release_mode: "none",
+      balance_adjustments: [],
     };
 
     const freightsMap = buildFreightsMap([activeRow, conflictRow]);

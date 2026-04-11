@@ -1,7 +1,13 @@
 import {
+  getFreightAdjustedBalance,
+  getFreightAdvanceReceived,
+  getFreightPlannedBalance,
   getFreightReceivableStatus,
   getFreightReceivedPercentage,
+  getFreightTotalReceived,
   getFreightRemainingBalance,
+  isFreightLockedByProof,
+  isFreightSettled,
   isFreightOverdue,
 } from "@/lib/freightReceivables";
 
@@ -120,5 +126,87 @@ describe("freightReceivables", () => {
         referenceDate,
       ),
     ).toBe(false);
+  });
+
+  it("separa adiantamento, saldo previsto, saldo ajustado e total recebido", () => {
+    const freight = {
+      grossValue: 2000,
+      amountReceived: 950,
+      advanceAmount: 700,
+      balanceAdjustments: [
+        { type: "discount" as const, amount: 100 },
+        { type: "increase" as const, amount: 50 },
+      ],
+    };
+
+    expect(getFreightAdvanceReceived(freight)).toBe(700);
+    expect(getFreightPlannedBalance(freight)).toBe(1300);
+    expect(getFreightAdjustedBalance(freight)).toBe(1250);
+    expect(getFreightTotalReceived(freight)).toBe(950);
+  });
+
+  it("identifica bloqueio por canhoto conforme modo de liberação", () => {
+    expect(
+      isFreightLockedByProof({
+        deliveryProofStatus: "pending_send",
+        balanceReleaseMode: "proof_photo",
+      }),
+    ).toBe(true);
+
+    expect(
+      isFreightLockedByProof({
+        deliveryProofStatus: "confirmed",
+        balanceReleaseMode: "proof_photo",
+      }),
+    ).toBe(false);
+  });
+
+  it("mantém fail-closed quando depende de canhoto e status documental está ausente", () => {
+    expect(
+      isFreightLockedByProof({
+        deliveryProofStatus: undefined,
+        balanceReleaseMode: "proof_photo",
+      }),
+    ).toBe(true);
+  });
+
+  it("reconhece frete quitado", () => {
+    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1500 })).toBe(true);
+    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1499.99 })).toBe(false);
+  });
+
+  it("considera balanceAdjustments na meta real de quitação e status", () => {
+    const freight = {
+      grossValue: 1000,
+      amountReceived: 930,
+      balanceAdjustments: [
+        { type: "increase" as const, amount: 80 },
+        { type: "discount" as const, amount: 50 },
+      ],
+      paymentDueDate: "2026-04-30",
+    };
+
+    expect(isFreightSettled(freight)).toBe(false);
+    expect(getFreightReceivableStatus(freight, new Date("2026-04-20T12:00:00.000Z"))).toBe("partial");
+
+    const settledFreight = { ...freight, amountReceived: 1030 };
+    expect(isFreightSettled(settledFreight)).toBe(true);
+    expect(getFreightReceivableStatus(settledFreight, new Date("2026-04-20T12:00:00.000Z"))).toBe("received");
+  });
+
+  it("status principal permanece pendente quando saldo está travado por canhoto", () => {
+    const referenceDate = new Date("2026-04-20T12:00:00.000Z");
+    expect(
+      getFreightReceivableStatus(
+        {
+          grossValue: 1000,
+          amountReceived: 300,
+          paymentDueDate: "2026-04-01",
+          deliveryProofStatus: "pending_send",
+          balanceReleaseMode: "proof_photo",
+        },
+        referenceDate,
+      ),
+    ).toBe("pending");
   });
 });

@@ -38,6 +38,17 @@ import { useFuelingMutations } from "@/context/mutations/useFuelingMutations";
 import { useExpenseMutations } from "@/context/mutations/useExpenseMutations";
 import { useMaintenanceMutations } from "@/context/mutations/useMaintenanceMutations";
 
+function withReceivableDefaults(payload: Record<string, unknown>) {
+  return {
+    ...payload,
+    advance_amount: payload.advance_amount ?? 0,
+    payer_name: payload.payer_name ?? null,
+    delivery_proof_status: payload.delivery_proof_status ?? "not_required",
+    balance_release_mode: payload.balance_release_mode ?? "none",
+    balance_adjustments: payload.balance_adjustments ?? [],
+  };
+}
+
 export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
@@ -247,7 +258,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                 });
 
               await supabase.from("freights").insert({
-                ...action.payload,
+                ...withReceivableDefaults(action.payload),
                 user_id: user.id,
                 estimated_distance: estimatedDistance,
               });
@@ -376,7 +387,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
 
               await supabase
                 .from("freights")
-                .update({
+                .update(withReceivableDefaults({
                   origin: action.payload.origin,
                   destination: action.payload.destination,
                   km_initial: action.payload.km_initial,
@@ -386,7 +397,12 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   estimated_distance: nextEstimatedDistance,
                   payment_due_date: action.payload.payment_due_date ?? null,
                   amount_received: action.payload.amount_received ?? 0,
-                })
+                  advance_amount: action.payload.advance_amount,
+                  payer_name: action.payload.payer_name,
+                  delivery_proof_status: action.payload.delivery_proof_status,
+                  balance_release_mode: action.payload.balance_release_mode,
+                  balance_adjustments: action.payload.balance_adjustments,
+                }))
                 .eq("id", action.payload.freightId);
 
               affectedTripIds.add(currentFreight.trip_id);

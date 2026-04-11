@@ -50,10 +50,32 @@ export interface Freight {
   estimatedDistance: number;
   paymentDueDate?: string;
   amountReceived: number;
+  advanceAmount?: number;
+  payerName?: string;
+  deliveryProofStatus?: DeliveryProofStatus;
+  balanceReleaseMode?: BalanceReleaseMode;
+  balanceAdjustments?: BalanceAdjustment[];
   createdAt: string;
 }
 
 export type FreightStatus = "planned" | "in_progress" | "completed";
+export type DeliveryProofStatus =
+  | "not_required"
+  | "pending_send"
+  | "sent"
+  | "confirmed";
+export type BalanceReleaseMode =
+  | "none"
+  | "proof_photo"
+  | "physical_proof"
+  | "agreed_deadline"
+  | "direct_delivery";
+
+export interface BalanceAdjustment {
+  type: "discount" | "increase";
+  amount: number;
+  note?: string;
+}
 
 export const FREIGHT_STATUS_LABELS: Record<FreightStatus, string> = {
   planned: "Planejado",
