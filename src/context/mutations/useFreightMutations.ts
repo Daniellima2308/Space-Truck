@@ -35,7 +35,7 @@ interface FreightMutationsParams {
   fetchData: (options?: { throwOnError?: boolean }) => Promise<void>;
 }
 
-type FreightEditableInput = Omit<
+export type FreightEditableInput = Omit<
   Freight,
   "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
 >;

@@ -32,6 +32,7 @@ import {
 } from "@/lib/vehicleOperation";
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
+import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
 import { FontAwesomeIcon, iconCheckCircle2, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface FreightTabProps {
@@ -42,18 +43,12 @@ interface FreightTabProps {
   setShowForm: (v: boolean) => void;
   addFreight: (
     tripId: string,
-    f: Omit<
-      Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
-    >,
+    f: FreightEditableInput,
   ) => Promise<void>;
   updateFreight: (
     tripId: string,
     freightId: string,
-    f: Omit<
-      Freight,
-      "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance"
-    >,
+    f: FreightEditableInput,
     options?: { forceRouteRefresh?: boolean; suppressSuccessToast?: boolean },
   ) => Promise<FreightUpdateResult>;
   deleteFreight: (tripId: string, freightId: string) => Promise<void>;
@@ -210,7 +205,6 @@ export function FreightTab({
         paymentDueDate: paymentDueDate || undefined,
         amountReceived: parsedAmountReceived,
         commissionPercent,
-        createdAt: new Date().toISOString(),
       });
       setOrigin("");
       setDest("");
@@ -365,7 +359,6 @@ export function FreightTab({
         paymentDueDate: latestFreight.paymentDueDate,
         amountReceived: latestFreight.amountReceived,
         commissionPercent: latestFreight.commissionPercent,
-        createdAt: latestFreight.createdAt,
       });
 
       setEditingKmFreight(null);
@@ -400,7 +393,6 @@ export function FreightTab({
           paymentDueDate: latestFreight.paymentDueDate,
           amountReceived: latestFreight.amountReceived,
           commissionPercent: latestFreight.commissionPercent,
-          createdAt: latestFreight.createdAt,
         },
         { forceRouteRefresh: true, suppressSuccessToast: true },
       );
@@ -522,7 +514,6 @@ export function FreightTab({
         balanceReleaseMode: editBalanceReleaseMode,
         balanceAdjustments: nextAdjustments,
         commissionPercent: latestFreight.commissionPercent,
-        createdAt: latestFreight.createdAt,
       });
 
       if (result.status === "blocked") {
@@ -635,20 +626,20 @@ export function FreightTab({
     >,
   ) => {
     try {
-      await updateFreight(trip.id, freight.id, {
-        origin: freight.origin,
-        destination: freight.destination,
-        kmInitial: freight.kmInitial,
-        grossValue: freight.grossValue,
-        paymentDueDate: patch.paymentDueDate ?? freight.paymentDueDate,
-        amountReceived: patch.amountReceived ?? freight.amountReceived,
-        advanceAmount: patch.advanceAmount ?? freight.advanceAmount,
-        payerName: patch.payerName ?? freight.payerName,
-        deliveryProofStatus: patch.deliveryProofStatus ?? freight.deliveryProofStatus,
-        balanceReleaseMode: patch.balanceReleaseMode ?? freight.balanceReleaseMode,
-        balanceAdjustments: patch.balanceAdjustments ?? freight.balanceAdjustments,
-        commissionPercent: freight.commissionPercent,
-        createdAt: freight.createdAt,
+      const latestFreight = getLatestFreight(freight.id) ?? freight;
+      await updateFreight(trip.id, latestFreight.id, {
+        origin: latestFreight.origin,
+        destination: latestFreight.destination,
+        kmInitial: latestFreight.kmInitial,
+        grossValue: latestFreight.grossValue,
+        paymentDueDate: patch.paymentDueDate ?? latestFreight.paymentDueDate,
+        amountReceived: patch.amountReceived ?? latestFreight.amountReceived,
+        advanceAmount: patch.advanceAmount ?? latestFreight.advanceAmount,
+        payerName: patch.payerName ?? latestFreight.payerName,
+        deliveryProofStatus: patch.deliveryProofStatus ?? latestFreight.deliveryProofStatus,
+        balanceReleaseMode: patch.balanceReleaseMode ?? latestFreight.balanceReleaseMode,
+        balanceAdjustments: patch.balanceAdjustments ?? latestFreight.balanceAdjustments,
+        commissionPercent: latestFreight.commissionPercent,
       });
     } catch (error) {
       toast({
@@ -902,12 +893,22 @@ export function FreightTab({
                 <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> Recebimento
               </button>
               <button
-                onClick={() => void handleQuickReceivableUpdate(f, { amountReceived: f.grossValue })}
+                onClick={() => {
+                  const latestFreight = getLatestFreight(f.id) ?? f;
+                  const outstanding = Math.max(
+                    0,
+                    getFreightReceivableTarget(latestFreight) -
+                      getFreightTotalReceived(latestFreight),
+                  );
+                  void handleQuickReceivableUpdate(f, {
+                    amountReceived: latestFreight.amountReceived + outstanding,
+                  });
+                }}
                 className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
               >
                 Quitar frete
               </button>
-              {f.deliveryProofStatus !== "sent" && (
+              {f.deliveryProofStatus !== "sent" && f.deliveryProofStatus !== "confirmed" && (
                 <button
                   onClick={() => void handleQuickReceivableUpdate(f, { deliveryProofStatus: "sent" })}
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
