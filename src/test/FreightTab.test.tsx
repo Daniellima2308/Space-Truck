@@ -242,6 +242,76 @@ describe("FreightTab", () => {
     });
   });
 
+  it("escolher Básico persiste receivableMode basic", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    const existing = { ...makeFreight("new-freight-id", "planned", new Date().toISOString()) };
+    render(
+      <FreightTab
+        trip={{ ...tripBase, freights: [existing] }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue({ freightId: "new-freight-id" })}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
+    await screen.findByText("Quer controlar o recebimento deste frete?");
+
+    fireEvent.click(screen.getByRole("button", { name: "Básico" }));
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "new-freight-id",
+        expect.objectContaining({ receivableMode: "basic" }),
+      );
+    });
+  });
+
+  it("escolher Completo persiste receivableMode complete", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    const existing = { ...makeFreight("new-freight-id", "planned", new Date().toISOString()) };
+    render(
+      <FreightTab
+        trip={{ ...tripBase, freights: [existing] }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue({ freightId: "new-freight-id" })}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
+    await screen.findByText("Quer controlar o recebimento deste frete?");
+
+    fireEvent.click(screen.getByRole("button", { name: "Completo" }));
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "new-freight-id",
+        expect.objectContaining({ receivableMode: "complete" }),
+      );
+    });
+  });
+
   it("mostra erro ao tentar salvar recebimento inválido", async () => {
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
 

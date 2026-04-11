@@ -45,7 +45,7 @@ interface FreightTabProps {
   addFreight: (
     tripId: string,
     f: FreightEditableInput,
-  ) => Promise<void>;
+  ) => Promise<{ freightId?: string }>;
   updateFreight: (
     tripId: string,
     freightId: string,
@@ -79,8 +79,9 @@ export function FreightTab({
   const [dest, setDest] = useState("");
   const [km, setKm] = useState("");
   const [gross, setGross] = useState("");
+  const [isModeChooserOpen, setIsModeChooserOpen] = useState(false);
+  const [postCreateFreightId, setPostCreateFreightId] = useState<string | null>(null);
   const [postCreateModeFreight, setPostCreateModeFreight] = useState<Freight | null>(null);
-  const [pendingModeSelectionSignature, setPendingModeSelectionSignature] = useState<string | null>(null);
   const [isSavingMode, setIsSavingMode] = useState(false);
   const [useCommission, setUseCommission] = useState(false);
   const [comm, setComm] = useState("");
@@ -154,15 +155,10 @@ export function FreightTab({
   }, [showForm, vehicle, defaultCommission]);
 
   useEffect(() => {
-    if (!pendingModeSelectionSignature || postCreateModeFreight) return;
-    const found = [...trip.freights]
-      .sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      .find((freight) => `${freight.origin}|${freight.destination}|${freight.kmInitial}|${freight.grossValue}` === pendingModeSelectionSignature);
-    if (found) {
-      setPostCreateModeFreight(found);
-      setPendingModeSelectionSignature(null);
-    }
-  }, [pendingModeSelectionSignature, postCreateModeFreight, trip.freights]);
+    if (!postCreateFreightId || postCreateModeFreight) return;
+    const found = trip.freights.find((freight) => freight.id === postCreateFreightId);
+    if (found) setPostCreateModeFreight(found);
+  }, [postCreateFreightId, postCreateModeFreight, trip.freights]);
 
   const statusClassByFreight: Record<Freight["status"], string> = {
     planned: "bg-secondary text-muted-foreground border-border",
@@ -216,20 +212,21 @@ export function FreightTab({
     if (!origin || !dest || !km || !gross || isSubmitting) return;
     if (showCommissionInput && !comm) return;
 
-    const commissionPercent = showCommissionInput ? parseFloat(comm) : 0;
+    const commissionPercent = showCommissionInput ? Number.parseFloat(comm) : 0;
     try {
       setIsSubmitting(true);
-      await addFreight(trip.id, {
+      const createdFreight = await addFreight(trip.id, {
         origin,
         destination: dest,
-        kmInitial: parseFloat(km),
-        grossValue: parseFloat(gross),
+        kmInitial: Number.parseFloat(km),
+        grossValue: Number.parseFloat(gross),
         paymentDueDate: undefined,
         amountReceived: 0,
         receivableMode: "off",
         commissionPercent,
       });
-      setPendingModeSelectionSignature(`${origin}|${dest}|${parseFloat(km)}|${parseFloat(gross)}`);
+      setPostCreateFreightId(createdFreight?.freightId ?? null);
+      setIsModeChooserOpen(true);
       setOrigin("");
       setDest("");
       setKm("");
@@ -255,8 +252,9 @@ export function FreightTab({
   const handleSelectReceivableMode = async (mode: "off" | "basic" | "complete") => {
     if (isSavingMode) return;
     if (mode === "off") {
+      setIsModeChooserOpen(false);
+      setPostCreateFreightId(null);
       setPostCreateModeFreight(null);
-      setPendingModeSelectionSignature(null);
       return;
     }
     if (!postCreateModeFreight) {
@@ -284,8 +282,9 @@ export function FreightTab({
         receivableMode: mode,
         commissionPercent: postCreateModeFreight.commissionPercent,
       });
+      setIsModeChooserOpen(false);
       setPostCreateModeFreight(null);
-      setPendingModeSelectionSignature(null);
+      setPostCreateFreightId(null);
     } catch (error) {
       const message =
         error instanceof Error
@@ -1268,11 +1267,12 @@ export function FreightTab({
       </Dialog>
 
       <Dialog
-        open={!!postCreateModeFreight || !!pendingModeSelectionSignature}
+        open={isModeChooserOpen}
         onOpenChange={(open) => {
           if (open || isSavingMode) return;
+          setIsModeChooserOpen(false);
+          setPostCreateFreightId(null);
           setPostCreateModeFreight(null);
-          setPendingModeSelectionSignature(null);
         }}
       >
         <DialogContent className="sm:max-w-md">

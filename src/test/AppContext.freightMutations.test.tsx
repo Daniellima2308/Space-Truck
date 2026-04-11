@@ -446,7 +446,8 @@ describe("AppContext freight mutations", () => {
       paymentDueDate: "2026-04-20",
     };
 
-    await app.addFreight("trip-1", payload);
+    const offlineResult = await app.addFreight("trip-1", payload);
+    expect(offlineResult).toEqual({});
 
     expect(offlineState.queue).toHaveLength(1);
     expect(offlineState.queue[0].type).toBe("addFreight");
@@ -502,7 +503,7 @@ describe("AppContext freight mutations", () => {
     };
 
     const { app, unmount } = await renderApp();
-    await app.addFreight("trip-1", payload);
+    const result = await app.addFreight("trip-1", payload);
 
     const insertedFreight = dbState.freights.find((f) => f.origin === "São Paulo - SP");
     expect(insertedFreight).toBeTruthy();
@@ -515,6 +516,7 @@ describe("AppContext freight mutations", () => {
     expect(sharedMocks.toastMock).toHaveBeenCalledWith(
       expect.objectContaining({ title: "Frete iniciado" }),
     );
+    expect(result).toHaveProperty("freightId");
     unmount();
   });
 

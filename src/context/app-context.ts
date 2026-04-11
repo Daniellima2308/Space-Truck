@@ -48,7 +48,7 @@ export interface AppContextType {
       Freight,
       "id" | "tripId" | "commissionValue" | "status" | "estimatedDistance" | "createdAt"
     >,
-  ) => Promise<void>;
+  ) => Promise<{ freightId?: string }>;
   updateFreight: (
     tripId: string,
     freightId: string,

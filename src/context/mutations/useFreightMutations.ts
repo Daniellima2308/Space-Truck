@@ -253,7 +253,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
     async (
       tripId: string,
       f: FreightEditableInput,
-    ) => {
+    ): Promise<{ freightId?: string }> => {
       if (!user) throw new Error("Usuário não autenticado. Faça login novamente.");
 
       const receivable = normalizeReceivableInput({
@@ -343,7 +343,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         } else {
           showOfflineSaved(freightFeedback.title);
         }
-        return;
+        return {};
       }
 
       const { estimatedDistance, diagnostic: distanceDiagnostic } =
@@ -361,26 +361,49 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
         showActionNotice("Previsão ainda em ajuste", description);
       }
 
-      const { error: freightInsertError } = await supabase
-        .from("freights")
-        .insert({
-          trip_id: tripId,
-          user_id: user.id,
-          origin: f.origin,
-          destination: f.destination,
-          km_initial: f.kmInitial,
-          km_final: 0,
-          gross_value: f.grossValue,
-          commission_percent: f.commissionPercent,
-          commission_value: commissionValue,
-          status: freightStatus,
-          estimated_distance: estimatedDistance,
-          ...buildReceivablePayload(receivable),
-        });
-      if (freightInsertError)
-        throw new Error(
-          freightInsertError.message || "Falha ao salvar o frete.",
-        );
+      const insertPayload = {
+        trip_id: tripId,
+        user_id: user.id,
+        origin: f.origin,
+        destination: f.destination,
+        km_initial: f.kmInitial,
+        km_final: 0,
+        gross_value: f.grossValue,
+        commission_percent: f.commissionPercent,
+        commission_value: commissionValue,
+        status: freightStatus,
+        estimated_distance: estimatedDistance,
+        ...buildReceivablePayload(receivable),
+      };
+
+      const insertBuilder = supabase.from("freights").insert(insertPayload) as unknown as {
+        select?: (columns: string) => { single: () => Promise<{ data: { id?: string } | null; error: { message?: string } | null }> };
+        then?: (
+          onfulfilled: (value: { error: { message?: string } | null }) => unknown,
+          onrejected?: (reason: unknown) => unknown,
+        ) => Promise<unknown>;
+      };
+      let insertedFreightId: string | undefined;
+      const supportsSelect = typeof insertBuilder.select === "function";
+
+      if (supportsSelect) {
+        const { data: insertedFreight, error: freightInsertError } = await insertBuilder
+          .select("id")
+          .single();
+        if (freightInsertError) {
+          throw new Error(
+            freightInsertError.message || "Falha ao salvar o frete.",
+          );
+        }
+        insertedFreightId = insertedFreight?.id;
+      } else {
+        const { error: freightInsertError } = (await (insertBuilder as unknown as Promise<{ error: { message?: string } | null }>)) ?? { error: null };
+        if (freightInsertError) {
+          throw new Error(
+            freightInsertError.message || "Falha ao salvar o frete.",
+          );
+        }
+      }
       if (vehicleId) {
         await recalculateVehicleKm(vehicleId);
       }
@@ -391,6 +414,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       } else {
         showActionSuccess(freightFeedback.title, freightFeedback.description);
       }
+      return { freightId: insertedFreightId };
     },
     [user, data.trips, fetchData],
   );
