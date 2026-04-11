@@ -659,7 +659,7 @@ export function useFreightMutations({ user, data, fetchData }: FreightMutationsP
       const { data: currentFreight, error: currentFreightError } =
         await supabase
           .from("freights")
-          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, amount_received, advance_amount, payer_name, delivery_proof_status, balance_release_mode, balance_adjustments")
+          .select("origin, destination, estimated_distance, status, km_initial, payment_due_date, receivable_mode, amount_received, advance_amount, payer_name, delivery_proof_status, balance_release_mode, balance_adjustments")
           .eq("id", freightId)
           .single();
 

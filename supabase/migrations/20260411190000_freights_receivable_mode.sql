@@ -1,9 +1,15 @@
 ALTER TABLE public.freights
-  ADD COLUMN IF NOT EXISTS receivable_mode text NOT NULL DEFAULT 'off';
+  ADD COLUMN IF NOT EXISTS receivable_mode text;
 
 UPDATE public.freights
 SET receivable_mode = 'complete'
 WHERE receivable_mode IS NULL;
+
+ALTER TABLE public.freights
+  ALTER COLUMN receivable_mode SET DEFAULT 'off';
+
+ALTER TABLE public.freights
+  ALTER COLUMN receivable_mode SET NOT NULL;
 
 DO $$
 BEGIN

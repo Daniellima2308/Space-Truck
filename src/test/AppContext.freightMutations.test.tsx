@@ -150,6 +150,7 @@ function seedDb() {
       status: "in_progress",
       estimated_distance: 200,
       payment_due_date: "2026-04-10",
+      receivable_mode: "complete",
       amount_received: 300,
       advance_amount: 250,
       payer_name: "Pagador Original",
@@ -825,6 +826,7 @@ describe("AppContext freight mutations", () => {
     const updated = dbState.freights.find((f) => f.id === "freight-in-progress");
     expect(updated).toEqual(
       expect.objectContaining({
+        receivable_mode: "complete",
         advance_amount: 250,
         payer_name: "Pagador Original",
         delivery_proof_status: "pending_send",

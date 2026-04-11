@@ -204,6 +204,41 @@ describe("FreightTab", () => {
     await waitFor(() => {
       expect(addFreight).toHaveBeenCalledTimes(1);
       expect(setShowForm).toHaveBeenCalledWith(false);
+      expect(screen.getByText("Quer controlar o recebimento deste frete?")).toBeInTheDocument();
+    });
+  });
+
+  it("escolher Não usar fecha chooser sem disparar updateFreight", async () => {
+    const addFreight = vi.fn().mockResolvedValue(undefined);
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={addFreight}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.change(screen.getByPlaceholderText("Origem"), { target: { value: "SP" } });
+    fireEvent.change(screen.getByPlaceholderText("Destino"), { target: { value: "RJ" } });
+    fireEvent.change(screen.getByPlaceholderText("KM Inicial"), { target: { value: "100" } });
+    fireEvent.change(screen.getByPlaceholderText("Valor Bruto (R$)"), { target: { value: "1000" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar frete" }));
+
+    await screen.findByText("Quer controlar o recebimento deste frete?");
+    fireEvent.click(screen.getByRole("button", { name: "Não usar" }));
+
+    await waitFor(() => {
+      expect(updateFreight).not.toHaveBeenCalled();
+      expect(screen.queryByText("Quer controlar o recebimento deste frete?")).not.toBeInTheDocument();
     });
   });
 
@@ -570,6 +605,86 @@ describe("FreightTab", () => {
     await waitFor(() => {
       expect(screen.getByText("Ainda falta receber o saldo")).toBeInTheDocument();
     });
+  });
+
+  it("não pergunta previsão quando frete já está quitado com ajustes", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              amountReceived: 950,
+              grossValue: 1000,
+              balanceAdjustments: [{ type: "discount", amount: 50 }],
+              receivableMode: "basic",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+
+    await waitFor(() => {
+      expect(completeFreight).toHaveBeenCalled();
+    });
+    expect(screen.queryByText("Ainda falta receber o saldo")).not.toBeInTheDocument();
+  });
+
+  it("mostra erro e mantém diálogo aberto quando falha ao salvar previsão na conclusão", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockRejectedValue(new Error("falha previsão"));
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              amountReceived: 100,
+              grossValue: 1000,
+              receivableMode: "basic",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Ainda falta receber o saldo");
+
+    fireEvent.change(screen.getByLabelText("Previsão de pagamento"), {
+      target: { value: "2026-05-01" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Informar data agora" }));
+
+    await waitFor(() => {
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Não foi possível salvar agora" }),
+      );
+    });
+    expect(screen.getByText("Ainda falta receber o saldo")).toBeInTheDocument();
   });
 
   it("abre modal de hand-off quando já existe frete em andamento", async () => {

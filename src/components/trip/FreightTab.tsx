@@ -253,7 +253,20 @@ export function FreightTab({
   };
 
   const handleSelectReceivableMode = async (mode: "off" | "basic" | "complete") => {
-    if (!postCreateModeFreight || isSavingMode) return;
+    if (isSavingMode) return;
+    if (mode === "off") {
+      setPostCreateModeFreight(null);
+      setPendingModeSelectionSignature(null);
+      return;
+    }
+    if (!postCreateModeFreight) {
+      toast({
+        title: "Aguarde só um instante",
+        description: "Estamos carregando o frete salvo para aplicar o modo escolhido.",
+        variant: "notice",
+      });
+      return;
+    }
     try {
       setIsSavingMode(true);
       await updateFreight(trip.id, postCreateModeFreight.id, {
@@ -272,6 +285,17 @@ export function FreightTab({
         commissionPercent: postCreateModeFreight.commissionPercent,
       });
       setPostCreateModeFreight(null);
+      setPendingModeSelectionSignature(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível ativar o recebimento agora.";
+      toast({
+        title: "Não foi possível ativar agora",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingMode(false);
     }
@@ -363,7 +387,7 @@ export function FreightTab({
 
       const latestFreight = getLatestFreight(finishingFreight.id) ?? finishingFreight;
       const isReceivableActive = (latestFreight.receivableMode ?? "complete") !== "off";
-      const hasPendingBalance = getFreightRemainingBalance(latestFreight) > 0;
+      const hasPendingBalance = !isFreightSettled(latestFreight);
       if (isReceivableActive && hasPendingBalance && !latestFreight.paymentDueDate) {
         setCompletionForecastDate("");
         setPostCompletionForecastFreight(latestFreight);
@@ -404,6 +428,16 @@ export function FreightTab({
         commissionPercent: latestFreight.commissionPercent,
       });
       setPostCompletionForecastFreight(null);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível salvar a previsão agora.";
+      toast({
+        title: "Não foi possível salvar agora",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
       setIsSavingCompletionForecast(false);
     }
@@ -1234,8 +1268,12 @@ export function FreightTab({
       </Dialog>
 
       <Dialog
-        open={!!postCreateModeFreight}
-        onOpenChange={(open) => !open && !isSavingMode && setPostCreateModeFreight(null)}
+        open={!!postCreateModeFreight || !!pendingModeSelectionSignature}
+        onOpenChange={(open) => {
+          if (open || isSavingMode) return;
+          setPostCreateModeFreight(null);
+          setPendingModeSelectionSignature(null);
+        }}
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>

@@ -171,7 +171,7 @@ export function mapFreightRow(f: FreightRow): Freight {
     paymentDueDate: f.payment_due_date || undefined,
     receivableMode: RECEIVABLE_MODES.has((f.receivable_mode ?? "") as ReceivableMode)
       ? (f.receivable_mode as ReceivableMode)
-      : "complete",
+      : "off",
     amountReceived: f.amount_received ?? 0,
     advanceAmount: f.advance_amount ?? 0,
     payerName: f.payer_name || undefined,
