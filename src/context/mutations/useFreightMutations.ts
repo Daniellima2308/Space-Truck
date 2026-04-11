@@ -126,7 +126,7 @@ function normalizeReceivableInput(params: {
           note: typeof rawNote === "string" && rawNote.trim() !== "" ? rawNote.trim() : undefined,
         };
       })
-      .filter((item): item is { type: "discount" | "increase"; amount: number; note?: string } => item !== null)
+      .filter((item): item is { type: "discount" | "increase"; amount: number; note?: string } => item != null)
     : [];
   if (
     process.env.NODE_ENV !== "production" &&

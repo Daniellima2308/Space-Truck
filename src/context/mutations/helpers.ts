@@ -10,7 +10,7 @@ import {
   calculateFuelingPricePerLiter,
   getFuelingOriginalTotalValue,
 } from "@/lib/fueling";
-import { mapFreightRow } from "@/lib/mappers";
+import { mapFreightRow, type FreightRow } from "@/lib/mappers";
 import { normalizeTripFreights } from "@/lib/freightStatus";
 
 const VALID_TRIP_STATUSES: ReadonlySet<string> = new Set<TripStatus>(["open", "finished"]);
