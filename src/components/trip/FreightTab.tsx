@@ -5,12 +5,7 @@ import { formatCurrency, formatDate, formatNumber } from "@/lib/calculations";
 import { sortFreightsByOperationalPriority } from "@/lib/freightStatus";
 import {
   getFreightReceivedPercentage,
-  getFreightRemainingBalance,
-  getFreightAdvanceReceived,
-  getFreightTotalReceived,
   isFreightSettled,
-  getFreightPaymentForecastState,
-  type FreightPaymentForecastState,
 } from "@/lib/freightReceivables";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import {
@@ -31,7 +26,7 @@ import {
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
 import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
-import { FontAwesomeIcon, iconCheckCircle2, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
+import { FontAwesomeIcon, iconCheckCircle2, iconChevronRight, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface FreightTabProps {
   trip: Trip;
@@ -74,6 +69,7 @@ export function FreightTab({
 }: FreightTabProps) {
   type AdvanceInputMode = "currency" | "percentage";
   type SimplifiedProofRequirement = "none" | "photo" | "physical";
+  type ReceivableScheme = "not_defined" | "value" | "percentage" | "full" | "delivery";
   const [origin, setOrigin] = useState("");
   const [dest, setDest] = useState("");
   const [km, setKm] = useState("");
@@ -103,6 +99,7 @@ export function FreightTab({
   const [editAdvanceInputMode, setEditAdvanceInputMode] = useState<AdvanceInputMode>("currency");
   const [editAdvancePercent, setEditAdvancePercent] = useState("");
   const [editAdvanceCurrencyInput, setEditAdvanceCurrencyInput] = useState("");
+  const [editReceivableScheme, setEditReceivableScheme] = useState<ReceivableScheme>("not_defined");
   const [editPayerName, setEditPayerName] = useState("");
   const [editProofRequirement, setEditProofRequirement] = useState<SimplifiedProofRequirement>("none");
   const [quickAdjustmentType, setQuickAdjustmentType] = useState<"discount" | "increase">("discount");
@@ -116,6 +113,13 @@ export function FreightTab({
   const [isSavingReceivable, setIsSavingReceivable] = useState(false);
   const [postCompletionForecastFreight, setPostCompletionForecastFreight] = useState<Freight | null>(null);
   const [completionForecastDate, setCompletionForecastDate] = useState("");
+  const [postCompletionProofRequirement, setPostCompletionProofRequirement] = useState<SimplifiedProofRequirement>("none");
+  const [postCompletionMailReminderPreset, setPostCompletionMailReminderPreset] = useState<"none" | "tomorrow" | "after_tomorrow" | "custom">("none");
+  const [postCompletionMailReminderDate, setPostCompletionMailReminderDate] = useState("");
+  const [postCompletionShowAdjustment, setPostCompletionShowAdjustment] = useState(false);
+  const [postCompletionAdjustmentType, setPostCompletionAdjustmentType] = useState<"discount" | "increase">("discount");
+  const [postCompletionAdjustmentAmount, setPostCompletionAdjustmentAmount] = useState("");
+  const [postCompletionAdjustmentNote, setPostCompletionAdjustmentNote] = useState("");
   const [isSavingCompletionForecast, setIsSavingCompletionForecast] = useState(false);
   const [pendingStartId, setPendingStartId] = useState<string | null>(null);
   const [startBlockedFreight, setStartBlockedFreight] = useState<Freight | null>(null);
@@ -157,6 +161,27 @@ export function FreightTab({
       maximumFractionDigits: 2,
     });
 
+  const resolveFreightScheme = (freight: Freight): ReceivableScheme =>
+    (freight.receivableScheme as ReceivableScheme | undefined) ?? "not_defined";
+
+  const getReceivableSummary = (freight: Freight): string => {
+    const scheme = resolveFreightScheme(freight);
+    const grossValue = freight.grossValue ?? 0;
+    const advanceValue = freight.advanceAmount ?? 0;
+    const netBalance = Math.max(0, grossValue - advanceValue);
+
+    if (scheme === "not_defined") return "Sem forma de recebimento definida";
+    if (scheme === "full") return "Recebido integralmente";
+    if (scheme === "delivery") {
+      if (freight.status === "completed" && !freight.paymentDueDate) {
+        return "Após entrega: falta definir previsão";
+      }
+      return "Recebe na entrega";
+    }
+
+    return `Adiantamento ${formatCurrency(advanceValue)} • Saldo ${formatCurrency(netBalance)}`;
+  };
+
   useEffect(() => {
     if (!showForm) return;
 
@@ -184,29 +209,6 @@ export function FreightTab({
     in_progress: "bg-warning/15 text-warning border-warning/30",
     completed: "bg-profit/15 text-profit border-profit/30",
   };
-  const forecastStatusLabel: Record<FreightPaymentForecastState, string> = {
-    no_forecast: "Sem previsão",
-    on_track: "No prazo",
-    approaching: "Chegando amanhã",
-    due_today: "Vence hoje",
-    overdue: "Atrasado",
-    settled: "Quitado",
-  };
-  const forecastStatusClass: Record<FreightPaymentForecastState, string> = {
-    no_forecast: "border-border bg-secondary/60 text-muted-foreground",
-    on_track: "border-info/30 bg-info/10 text-info",
-    approaching: "border-warning/30 bg-warning/10 text-warning",
-    due_today: "border-warning/30 bg-warning/15 text-warning",
-    overdue: "border-expense/30 bg-expense/10 text-expense",
-    settled: "border-profit/30 bg-profit/10 text-profit",
-  };
-  const balanceReleaseModeLabel: Record<NonNullable<Freight["balanceReleaseMode"]>, string> = {
-    none: "Não precisa de canhoto",
-    proof_photo: "Precisa enviar foto do canhoto",
-    physical_proof: "Precisa enviar canhoto físico",
-    agreed_deadline: "Não precisa de canhoto",
-    direct_delivery: "Não precisa de canhoto",
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -224,6 +226,7 @@ export function FreightTab({
         paymentDueDate: undefined,
         amountReceived: 0,
         receivableMode: "off",
+        receivableScheme: "not_defined",
         commissionPercent,
       });
       setPostCreateFreightId(createdFreight?.freightId ?? null);
@@ -281,6 +284,7 @@ export function FreightTab({
         balanceReleaseMode: postCreateModeFreight.balanceReleaseMode,
         balanceAdjustments: postCreateModeFreight.balanceAdjustments,
         receivableMode: mode,
+        receivableScheme: "not_defined",
         commissionPercent: postCreateModeFreight.commissionPercent,
       });
       setIsModeChooserOpen(false);
@@ -387,9 +391,21 @@ export function FreightTab({
 
       const latestFreight = getLatestFreight(finishingFreight.id) ?? finishingFreight;
       const isReceivableActive = (latestFreight.receivableMode ?? "off") !== "off";
-      const hasPendingBalance = !isFreightSettled(latestFreight);
-      if (isReceivableActive && hasPendingBalance && !latestFreight.paymentDueDate) {
-        setCompletionForecastDate("");
+      if (isReceivableActive) {
+        setCompletionForecastDate(latestFreight.paymentDueDate ?? "");
+        setPostCompletionProofRequirement(
+          latestFreight.balanceReleaseMode === "proof_photo"
+            ? "photo"
+            : latestFreight.balanceReleaseMode === "physical_proof"
+              ? "physical"
+              : "none",
+        );
+        setPostCompletionMailReminderPreset("none");
+        setPostCompletionMailReminderDate("");
+        setPostCompletionShowAdjustment(false);
+        setPostCompletionAdjustmentType("discount");
+        setPostCompletionAdjustmentAmount("");
+        setPostCompletionAdjustmentNote("");
         setPostCompletionForecastFreight(latestFreight);
       }
     } catch (error) {
@@ -408,8 +424,34 @@ export function FreightTab({
 
   const handleSaveCompletionForecast = async () => {
     if (!postCompletionForecastFreight || isSavingCompletionForecast) return;
-    if (!completionForecastDate) return;
     const latestFreight = getLatestFreight(postCompletionForecastFreight.id) ?? postCompletionForecastFreight;
+    const nextAdjustments = Array.isArray(latestFreight.balanceAdjustments)
+      ? [...latestFreight.balanceAdjustments]
+      : [];
+    const parsedAdjustmentAmount = Number(postCompletionAdjustmentAmount || 0);
+    if (
+      postCompletionShowAdjustment &&
+      postCompletionAdjustmentAmount.trim() &&
+      (!Number.isFinite(parsedAdjustmentAmount) || parsedAdjustmentAmount <= 0)
+    ) {
+      toast({
+        title: "Ajuste no saldo inválido",
+        description: "Use um valor maior que zero para desconto ou acréscimo.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (
+      postCompletionShowAdjustment &&
+      postCompletionAdjustmentAmount.trim() &&
+      parsedAdjustmentAmount > 0
+    ) {
+      nextAdjustments.push({
+        type: postCompletionAdjustmentType,
+        amount: parsedAdjustmentAmount,
+        note: postCompletionAdjustmentNote.trim() || undefined,
+      });
+    }
     try {
       setIsSavingCompletionForecast(true);
       await updateFreight(trip.id, latestFreight.id, {
@@ -417,16 +459,35 @@ export function FreightTab({
         destination: latestFreight.destination,
         kmInitial: latestFreight.kmInitial,
         grossValue: latestFreight.grossValue,
-        paymentDueDate: completionForecastDate,
+        paymentDueDate: completionForecastDate || undefined,
         amountReceived: latestFreight.amountReceived,
         advanceAmount: latestFreight.advanceAmount,
         payerName: latestFreight.payerName,
-        deliveryProofStatus: latestFreight.deliveryProofStatus,
-        balanceReleaseMode: latestFreight.balanceReleaseMode,
-        balanceAdjustments: latestFreight.balanceAdjustments,
+        deliveryProofStatus:
+          postCompletionProofRequirement === "none" ? "not_required" : "pending_send",
+        balanceReleaseMode:
+          postCompletionProofRequirement === "photo"
+            ? "proof_photo"
+            : postCompletionProofRequirement === "physical"
+              ? "physical_proof"
+              : "none",
+        balanceAdjustments: nextAdjustments,
+        receivableScheme: latestFreight.receivableScheme,
         receivableMode: latestFreight.receivableMode,
         commissionPercent: latestFreight.commissionPercent,
       });
+      if (postCompletionProofRequirement === "physical" && postCompletionMailReminderPreset !== "none") {
+        toast({
+          title: "Lembrete de correio configurado",
+          description:
+            postCompletionMailReminderPreset === "custom" && postCompletionMailReminderDate
+              ? `Lembrete in-app para ${formatDate(postCompletionMailReminderDate)}.`
+              : postCompletionMailReminderPreset === "tomorrow"
+                ? "Lembrete in-app para amanhã."
+                : "Lembrete in-app para depois de amanhã.",
+          variant: "notice",
+        });
+      }
       setPostCompletionForecastFreight(null);
     } catch (error) {
       const message =
@@ -557,6 +618,7 @@ export function FreightTab({
 
   const openReceivableDialog = (freight: Freight) => {
     const advanceAmount = freight.advanceAmount ?? 0;
+    const resolvedScheme = resolveFreightScheme(freight);
     setEditingReceivableFreight(freight);
     setEditPaymentDueDate(freight.paymentDueDate ?? "");
     setEditAmountReceived(String(freight.amountReceived ?? 0));
@@ -564,6 +626,13 @@ export function FreightTab({
     setEditAdvanceCurrencyInput(formatCurrencyInput(advanceAmount));
     setEditAdvanceInputMode("currency");
     setEditAdvancePercent("");
+    setEditReceivableScheme(resolvedScheme);
+    if (resolvedScheme === "percentage") {
+      const grossValue = freight.grossValue ?? 0;
+      const percent = grossValue > 0 ? (advanceAmount / grossValue) * 100 : 0;
+      setEditAdvanceInputMode("percentage");
+      setEditAdvancePercent(String(Math.round(percent)));
+    }
     setEditPayerName(freight.payerName ?? "");
     setEditProofRequirement(
       freight.balanceReleaseMode === "proof_photo"
@@ -582,9 +651,16 @@ export function FreightTab({
     if (!editingReceivableFreight || isSavingReceivable) return;
     const latestFreight =
       getLatestFreight(editingReceivableFreight.id) ?? editingReceivableFreight;
-    const parsedAmountReceived = Number(editAmountReceived || 0);
-    const parsedAdvanceAmount = Number(editAdvanceAmount || 0);
+    let parsedAmountReceived = Number(editAmountReceived || 0);
+    let parsedAdvanceAmount = Number(editAdvanceAmount || 0);
     const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
+
+    if (editReceivableScheme === "full") {
+      parsedAmountReceived = latestFreight.grossValue;
+      parsedAdvanceAmount = 0;
+    } else if (editReceivableScheme === "delivery" || editReceivableScheme === "not_defined") {
+      parsedAdvanceAmount = 0;
+    }
     if (!Number.isFinite(parsedAmountReceived) || parsedAmountReceived < 0) {
       toast({
         title: "Valor recebido inválido",
@@ -649,6 +725,7 @@ export function FreightTab({
               ? "physical_proof"
               : "none",
         balanceAdjustments: nextAdjustments,
+        receivableScheme: editReceivableScheme,
         commissionPercent: latestFreight.commissionPercent,
       });
 
@@ -778,13 +855,8 @@ export function FreightTab({
         {sortedFreights.map((f: Freight) => {
           const receivableMode = f.receivableMode ?? "off";
           const receivableEnabled = receivableMode !== "off";
-          const remainingBalance = getFreightRemainingBalance(f);
           const receivedPercentage = getFreightReceivedPercentage(f);
-          const advanceAmount = getFreightAdvanceReceived(f);
-          const totalReceived = getFreightTotalReceived(f);
           const freightIsSettled = isFreightSettled(f);
-          const forecastState = getFreightPaymentForecastState(f);
-          const hasAdjustments = Array.isArray(f.balanceAdjustments) && f.balanceAdjustments.length > 0;
 
           return (
           <div key={f.id} className="gradient-card rounded-xl p-3 space-y-2">
@@ -869,44 +941,23 @@ export function FreightTab({
           </div>
 
           {receivableEnabled && (
-          <div className="rounded-md border border-border/70 bg-background/70 p-3 space-y-1.5">
+          <button
+            type="button"
+            onClick={() => openReceivableDialog(f)}
+            className="w-full rounded-md border border-border/70 bg-background/70 px-3 py-2 text-left transition-colors hover:bg-background"
+          >
             <div className="flex items-center justify-between gap-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Recebimento</p>
+              <FontAwesomeIcon icon={iconChevronRight} className="h-3 w-3 text-muted-foreground" />
             </div>
-            <div className="grid grid-cols-2 gap-2 text-xs">
-              <p className="text-muted-foreground">Recebido: <span className="font-mono text-foreground">{formatCurrency(totalReceived)}</span></p>
-              <p className="text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
-            </div>
-            {f.payerName && <p className="text-xs text-muted-foreground">Quem paga: {f.payerName}</p>}
-            {(f.advanceAmount ?? 0) > 0 && (
-              <p className="text-xs text-muted-foreground">
-                Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span>
-              </p>
+            <p className="mt-1 text-sm font-semibold text-foreground">{getReceivableSummary(f)}</p>
+            {f.status === "completed" && f.paymentDueDate && (
+              <p className="mt-1 text-xs text-muted-foreground">Previsão: {formatDate(f.paymentDueDate)}</p>
             )}
-            {f.status === "completed" && (
-              <>
-                <p className={`inline-flex w-fit rounded-full border px-2 py-0.5 text-[10px] font-semibold ${forecastStatusClass[forecastState]}`}>
-                  {forecastStatusLabel[forecastState]}
-                </p>
-                {f.paymentDueDate ? (
-                  <p className="text-xs text-muted-foreground">Previsão de pagamento: {formatDate(f.paymentDueDate)}</p>
-                ) : (
-                  remainingBalance > 0 && (
-                    <p className="text-xs text-warning">Sem previsão de pagamento informada.</p>
-                  )
-                )}
-                {receivableMode === "complete" && (
-                  <p className="text-xs text-muted-foreground">
-                    {balanceReleaseModeLabel[f.balanceReleaseMode ?? "none"]}
-                    {hasAdjustments ? " · Ajuste no saldo aplicado" : ""}
-                  </p>
-                )}
-                <p className="text-xs font-medium text-foreground">
-                  Situação: {freightIsSettled ? "Frete quitado" : "Saldo em aberto"}
-                </p>
-              </>
+            {f.status === "completed" && !f.paymentDueDate && (resolveFreightScheme(f) === "delivery" || !freightIsSettled) && (
+              <p className="mt-1 text-xs text-warning">Após entrega: falta definir previsão</p>
             )}
-          </div>
+          </button>
           )}
 
           <div className="rounded-md bg-secondary/60 p-2">
@@ -957,14 +1008,6 @@ export function FreightTab({
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
                 >
                   <FontAwesomeIcon icon={iconCheckCircle2} className="w-3.5 h-3.5" /> Concluir
-                </button>
-              )}
-              {receivableEnabled && (
-                <button
-                  onClick={() => openReceivableDialog(f)}
-                  className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
-                >
-                  <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Abrir painel de recebimento"}
                 </button>
               )}
             </div>
@@ -1170,100 +1213,140 @@ export function FreightTab({
               </label>
             )}
 
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && (
-              <>
-                <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Adiantamento</span>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${editAdvanceInputMode === "currency" ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
-                      onClick={() => setEditAdvanceInputMode("currency")}
-                      disabled={isSavingReceivable}
-                    >
-                      Em dinheiro
-                    </button>
-                    <button
-                      type="button"
-                      className={`rounded-full border px-3 py-1 text-xs font-semibold ${editAdvanceInputMode === "percentage" ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
-                      onClick={() => setEditAdvanceInputMode("percentage")}
-                      disabled={isSavingReceivable}
-                    >
-                      Em %
-                    </button>
-                  </div>
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Forma de recebimento</span>
+              <select
+                value={editReceivableScheme}
+                onChange={(e) => {
+                  const nextScheme = e.target.value as ReceivableScheme;
+                  setEditReceivableScheme(nextScheme);
+                  if (nextScheme === "percentage") {
+                    setEditAdvanceInputMode("percentage");
+                  }
+                  if (nextScheme === "value") {
+                    setEditAdvanceInputMode("currency");
+                  }
+                  if (nextScheme === "full") {
+                    setEditAmountReceived(String(editingReceivableFreight?.grossValue ?? 0));
+                    setEditAdvanceAmount("0");
+                    setEditAdvanceCurrencyInput("0,00");
+                  }
+                  if (nextScheme === "delivery" || nextScheme === "not_defined") {
+                    setEditAdvanceAmount("0");
+                    setEditAdvanceCurrencyInput("0,00");
+                  }
+                }}
+                className="input-field"
+                disabled={isSavingReceivable}
+              >
+                <option value="not_defined">Sem forma definida</option>
+                <option value="value">Valor</option>
+                <option value="percentage">% do frete</option>
+                <option value="full">Recebido integralmente</option>
+                <option value="delivery">Recebe na entrega</option>
+              </select>
+            </label>
 
-                  {editAdvanceInputMode === "currency" ? (
+            {(editReceivableScheme === "value" || editReceivableScheme === "percentage") && (
+              <label className="space-y-1 text-sm text-foreground">
+                <span className="text-xs font-medium text-muted-foreground">Adiantamento</span>
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${editAdvanceInputMode === "currency" ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
+                    onClick={() => {
+                      setEditAdvanceInputMode("currency");
+                      setEditReceivableScheme("value");
+                    }}
+                    disabled={isSavingReceivable}
+                  >
+                    Valor
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full border px-3 py-1 text-xs font-semibold ${editAdvanceInputMode === "percentage" ? "border-primary text-primary" : "border-border text-muted-foreground"}`}
+                    onClick={() => {
+                      setEditAdvanceInputMode("percentage");
+                      setEditReceivableScheme("percentage");
+                    }}
+                    disabled={isSavingReceivable}
+                  >
+                    % do frete
+                  </button>
+                </div>
+
+                {editAdvanceInputMode === "currency" ? (
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    placeholder="0,00"
+                    value={editAdvanceCurrencyInput}
+                    onChange={(e) => {
+                      setEditAdvanceCurrencyInput(e.target.value);
+                      setEditAdvanceAmount(String(parseCurrencyInput(e.target.value)));
+                    }}
+                    className="input-field"
+                    disabled={isSavingReceivable}
+                  />
+                ) : (
+                  <div className="space-y-2">
+                    <div className="flex flex-wrap gap-2">
+                      {[80, 70, 50].map((percent) => (
+                        <button
+                          key={percent}
+                          type="button"
+                          className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-foreground"
+                          onClick={() => {
+                            const grossValue = editingReceivableFreight?.grossValue ?? 0;
+                            const amount = (grossValue * percent) / 100;
+                            setEditAdvancePercent(String(percent));
+                            setEditAdvanceAmount(String(amount));
+                            setEditAdvanceCurrencyInput(formatCurrencyInput(amount));
+                            setEditReceivableScheme("percentage");
+                          }}
+                          disabled={isSavingReceivable}
+                        >
+                          {percent}%
+                        </button>
+                      ))}
+                    </div>
                     <input
-                      type="text"
-                      inputMode="decimal"
-                      placeholder="0,00"
-                      value={editAdvanceCurrencyInput}
+                      type="number"
+                      min="0"
+                      max="100"
+                      step="1"
+                      placeholder="Percentual"
+                      value={editAdvancePercent}
                       onChange={(e) => {
-                        setEditAdvanceCurrencyInput(e.target.value);
-                        setEditAdvanceAmount(String(parseCurrencyInput(e.target.value)));
+                        const percent = Number(e.target.value || 0);
+                        const grossValue = editingReceivableFreight?.grossValue ?? 0;
+                        const amount = (grossValue * percent) / 100;
+                        setEditAdvancePercent(e.target.value);
+                        setEditAdvanceAmount(String(amount));
+                        setEditAdvanceCurrencyInput(formatCurrencyInput(amount));
+                        setEditReceivableScheme("percentage");
                       }}
                       className="input-field"
                       disabled={isSavingReceivable}
                     />
-                  ) : (
-                    <div className="space-y-2">
-                      <div className="flex flex-wrap gap-2">
-                        {[80, 70, 50].map((percent) => (
-                          <button
-                            key={percent}
-                            type="button"
-                            className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-foreground"
-                            onClick={() => {
-                              const grossValue = editingReceivableFreight?.grossValue ?? 0;
-                              const amount = (grossValue * percent) / 100;
-                              setEditAdvancePercent(String(percent));
-                              setEditAdvanceAmount(String(amount));
-                              setEditAdvanceCurrencyInput(formatCurrencyInput(amount));
-                            }}
-                            disabled={isSavingReceivable}
-                          >
-                            {percent}%
-                          </button>
-                        ))}
-                      </div>
-                      <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
-                        placeholder="Percentual"
-                        value={editAdvancePercent}
-                        onChange={(e) => {
-                          const percent = Number(e.target.value || 0);
-                          const grossValue = editingReceivableFreight?.grossValue ?? 0;
-                          const amount = (grossValue * percent) / 100;
-                          setEditAdvancePercent(e.target.value);
-                          setEditAdvanceAmount(String(amount));
-                          setEditAdvanceCurrencyInput(formatCurrencyInput(amount));
-                        }}
-                        className="input-field"
-                        disabled={isSavingReceivable}
-                      />
-                      <p className="text-xs text-muted-foreground">
-                        {`${editAdvancePercent || 0}% de ${formatCurrency(editingReceivableFreight?.grossValue ?? 0)} = ${formatCurrency(Number(editAdvanceAmount || 0))}`}
-                      </p>
-                    </div>
-                  )}
-                </label>
-
-                <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Quem paga</span>
-                  <input
-                    type="text"
-                    value={editPayerName}
-                    onChange={(e) => setEditPayerName(e.target.value)}
-                    className="input-field"
-                    disabled={isSavingReceivable}
-                  />
-                </label>
-              </>
+                    <p className="text-xs text-muted-foreground">
+                      {`${editAdvancePercent || 0}% de ${formatCurrency(editingReceivableFreight?.grossValue ?? 0)} = ${formatCurrency(Number(editAdvanceAmount || 0))}`}
+                    </p>
+                  </div>
+                )}
+              </label>
             )}
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Quem paga</span>
+              <input
+                type="text"
+                value={editPayerName}
+                onChange={(e) => setEditPayerName(e.target.value)}
+                className="input-field"
+                disabled={isSavingReceivable}
+              />
+            </label>
 
             {(editingReceivableFreight?.receivableMode ?? "off") === "complete" &&
               editingReceivableFreight?.status === "completed" && (
@@ -1341,7 +1424,7 @@ export function FreightTab({
                 value={editAmountReceived}
                 onChange={(e) => setEditAmountReceived(e.target.value)}
                 className="input-field"
-                disabled={isSavingReceivable}
+                disabled={isSavingReceivable || editReceivableScheme === "full"}
               />
             </label>
           </div>
@@ -1454,18 +1537,69 @@ export function FreightTab({
       >
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
-            <DialogTitle>Ainda falta receber o saldo</DialogTitle>
+            <DialogTitle>Pós-entrega: liberação do saldo</DialogTitle>
             <DialogDescription>
-              Quer registrar a previsão de pagamento agora?
+              Atualize previsão, canhoto e ajustes que surgem depois da descarga.
             </DialogDescription>
           </DialogHeader>
-          <label className="space-y-1 text-sm text-foreground">
-            <span className="text-xs font-medium text-muted-foreground">Previsão de pagamento</span>
-            <input type="date" value={completionForecastDate} onChange={(e) => setCompletionForecastDate(e.target.value)} className="input-field" />
-          </label>
+          <div className="space-y-3">
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Data prevista para recebimento do saldo</span>
+              <input type="date" value={completionForecastDate} onChange={(e) => setCompletionForecastDate(e.target.value)} className="input-field" />
+            </label>
+
+            <label className="space-y-1 text-sm text-foreground">
+              <span className="text-xs font-medium text-muted-foreground">Canhoto para liberar saldo</span>
+              <select
+                value={postCompletionProofRequirement}
+                onChange={(e) => setPostCompletionProofRequirement(e.target.value as SimplifiedProofRequirement)}
+                className="input-field"
+              >
+                <option value="none">Não precisa</option>
+                <option value="photo">Enviar foto</option>
+                <option value="physical">Enviar físico</option>
+              </select>
+            </label>
+
+            {postCompletionProofRequirement === "physical" && (
+              <div className="rounded-md border border-border/70 p-2 space-y-2">
+                <p className="text-xs font-medium text-muted-foreground">Lembrete de correio (opcional)</p>
+                <div className="grid grid-cols-3 gap-2">
+                  <button type="button" className={`rounded-md border px-2 py-1 text-xs ${postCompletionMailReminderPreset === "tomorrow" ? "border-primary text-primary" : "border-border text-muted-foreground"}`} onClick={() => setPostCompletionMailReminderPreset("tomorrow")}>Amanhã</button>
+                  <button type="button" className={`rounded-md border px-2 py-1 text-xs ${postCompletionMailReminderPreset === "after_tomorrow" ? "border-primary text-primary" : "border-border text-muted-foreground"}`} onClick={() => setPostCompletionMailReminderPreset("after_tomorrow")}>Depois de amanhã</button>
+                  <button type="button" className={`rounded-md border px-2 py-1 text-xs ${postCompletionMailReminderPreset === "custom" ? "border-primary text-primary" : "border-border text-muted-foreground"}`} onClick={() => setPostCompletionMailReminderPreset("custom")}>Escolher dia</button>
+                </div>
+                {postCompletionMailReminderPreset === "custom" && (
+                  <input type="date" value={postCompletionMailReminderDate} onChange={(e) => setPostCompletionMailReminderDate(e.target.value)} className="input-field" />
+                )}
+              </div>
+            )}
+
+            <div className="rounded-md border border-border/70 p-2 space-y-2">
+              <button
+                type="button"
+                className="w-full text-left text-xs font-semibold text-foreground"
+                onClick={() => setPostCompletionShowAdjustment((current) => !current)}
+              >
+                {postCompletionShowAdjustment ? "Ocultar desconto/acréscimo" : "Adicionar desconto ou acréscimo"}
+              </button>
+              {postCompletionShowAdjustment && (
+                <>
+                  <div className="grid grid-cols-2 gap-2">
+                    <select value={postCompletionAdjustmentType} onChange={(e) => setPostCompletionAdjustmentType(e.target.value as "discount" | "increase")} className="input-field">
+                      <option value="discount">Desconto</option>
+                      <option value="increase">Acréscimo</option>
+                    </select>
+                    <input type="number" min="0" step="0.01" value={postCompletionAdjustmentAmount} onChange={(e) => setPostCompletionAdjustmentAmount(e.target.value)} className="input-field" placeholder="Valor" />
+                  </div>
+                  <input type="text" maxLength={120} value={postCompletionAdjustmentNote} onChange={(e) => setPostCompletionAdjustmentNote(e.target.value)} className="input-field" placeholder="Observação curta" />
+                </>
+              )}
+            </div>
+          </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
-            <button type="button" onClick={handleSaveCompletionForecast} disabled={!completionForecastDate || isSavingCompletionForecast} className="w-full min-h-[44px] rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
-              Informar data agora
+            <button type="button" onClick={handleSaveCompletionForecast} disabled={isSavingCompletionForecast} className="w-full min-h-[44px] rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
+              Salvar pós-entrega
             </button>
             <button type="button" onClick={() => setPostCompletionForecastFreight(null)} disabled={isSavingCompletionForecast} className="w-full min-h-[44px] rounded-lg border px-3 py-2 text-sm font-semibold">
               Pular por enquanto

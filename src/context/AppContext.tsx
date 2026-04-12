@@ -46,6 +46,7 @@ function withReceivableDefaults<T extends Record<string, unknown>>(payload: T): 
     delivery_proof_status: (payload.delivery_proof_status as string) ?? "not_required",
     balance_release_mode: (payload.balance_release_mode as string) ?? "none",
     balance_adjustments: payload.balance_adjustments ?? [],
+    receivable_scheme: (payload.receivable_scheme as string) ?? "not_defined",
   };
 }
 
@@ -404,6 +405,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   delivery_proof_status: action.payload.delivery_proof_status,
                   balance_release_mode: action.payload.balance_release_mode,
                   balance_adjustments: action.payload.balance_adjustments,
+                  receivable_scheme: action.payload.receivable_scheme,
                 }))
                 .eq("id", action.payload.freightId);
 

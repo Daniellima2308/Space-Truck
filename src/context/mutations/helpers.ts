@@ -256,7 +256,7 @@ export async function getVehicleFuelingSnapshot(vehicleId: string): Promise<Vehi
     await Promise.all([
       supabase
         .from("freights")
-        .select("id,trip_id,origin,destination,km_initial,gross_value,commission_percent,commission_value,status,estimated_distance,payment_due_date,amount_received,advance_amount,payer_name,delivery_proof_status,balance_release_mode,balance_adjustments,created_at")
+        .select("id,trip_id,origin,destination,km_initial,gross_value,commission_percent,commission_value,status,estimated_distance,payment_due_date,amount_received,advance_amount,payer_name,delivery_proof_status,balance_release_mode,balance_adjustments,receivable_scheme,created_at")
         .in("trip_id", tripIds),
       supabase
         .from("fuelings")

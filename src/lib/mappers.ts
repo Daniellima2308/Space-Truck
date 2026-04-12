@@ -16,6 +16,7 @@ import {
   type BalanceReleaseMode,
   type BalanceAdjustment,
   type ReceivableMode,
+  type ReceivableScheme,
 } from "@/types";
 import { isDriverBond, isVehicleOperationProfile } from "@/lib/vehicleOperation";
 import { normalizeTripFreights } from "@/lib/freightStatus";
@@ -52,6 +53,7 @@ export interface FreightRow {
   estimated_distance: number | null;
   payment_due_date: string | null;
   receivable_mode?: string | null;
+  receivable_scheme?: string | null;
   amount_received: number | null;
   advance_amount: number | null;
   payer_name: string | null;
@@ -155,6 +157,13 @@ const RECEIVABLE_MODES: ReadonlySet<ReceivableMode> = new Set<ReceivableMode>([
   "basic",
   "complete",
 ]);
+const RECEIVABLE_SCHEMES: ReadonlySet<ReceivableScheme> = new Set<ReceivableScheme>([
+  "not_defined",
+  "value",
+  "percentage",
+  "full",
+  "delivery",
+]);
 
 export function mapFreightRow(f: FreightRow): Freight {
   return {
@@ -172,6 +181,9 @@ export function mapFreightRow(f: FreightRow): Freight {
     receivableMode: RECEIVABLE_MODES.has((f.receivable_mode ?? "") as ReceivableMode)
       ? (f.receivable_mode as ReceivableMode)
       : "off",
+    receivableScheme: RECEIVABLE_SCHEMES.has((f.receivable_scheme ?? "") as ReceivableScheme)
+      ? (f.receivable_scheme as ReceivableScheme)
+      : "not_defined",
     amountReceived: f.amount_received ?? 0,
     advanceAmount: f.advance_amount ?? 0,
     payerName: f.payer_name || undefined,

@@ -511,7 +511,7 @@ describe("FreightTab", () => {
     expect(screen.queryByRole("button", { name: /Registrar recebimento/i })).not.toBeInTheDocument();
   });
 
-  it("modo básico mostra ação única de registrar recebimento", () => {
+  it("modo básico mostra área compacta de recebimento no card", () => {
     render(
       <FreightTab
         trip={{
@@ -527,7 +527,7 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Registrar recebimento/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Recebimento/i })).toBeInTheDocument();
   });
 
   it("não envia createdAt nos payloads de UI ao criar frete", async () => {
@@ -641,7 +641,9 @@ describe("FreightTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
     const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Em %" }));
+    fireEvent.change(within(dialog).getByLabelText("Forma de recebimento"), {
+      target: { value: "percentage" },
+    });
     fireEvent.click(within(dialog).getByRole("button", { name: "80%" }));
 
     expect(
@@ -707,7 +709,7 @@ describe("FreightTab", () => {
     });
   });
 
-  it("ao concluir com saldo em aberto pergunta previsão de pagamento", async () => {
+  it("ao concluir abre etapa de pós-entrega", async () => {
     const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
     render(
       <FreightTab
@@ -736,11 +738,11 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
 
     await waitFor(() => {
-      expect(screen.getByText("Ainda falta receber o saldo")).toBeInTheDocument();
+      expect(screen.getByText("Pós-entrega: liberação do saldo")).toBeInTheDocument();
     });
   });
 
-  it("não pergunta previsão quando frete já está quitado com ajustes", async () => {
+  it("após concluir exibe pós-entrega mesmo quando frete já está quitado", async () => {
     const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
     render(
       <FreightTab
@@ -772,7 +774,7 @@ describe("FreightTab", () => {
     await waitFor(() => {
       expect(completeFreight).toHaveBeenCalled();
     });
-    expect(screen.queryByText("Ainda falta receber o saldo")).not.toBeInTheDocument();
+    expect(screen.getByText("Pós-entrega: liberação do saldo")).toBeInTheDocument();
   });
 
   it("mostra erro e mantém diálogo aberto quando falha ao salvar previsão na conclusão", async () => {
@@ -805,19 +807,20 @@ describe("FreightTab", () => {
 
     fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
     fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
-    await screen.findByText("Ainda falta receber o saldo");
+    await screen.findByText("Pós-entrega: liberação do saldo");
 
-    fireEvent.change(screen.getByLabelText("Previsão de pagamento"), {
+    const postDialog = screen.getByRole("dialog");
+    fireEvent.change(within(postDialog).getByLabelText("Data prevista para recebimento do saldo"), {
       target: { value: "2026-05-01" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Informar data agora" }));
+    fireEvent.click(within(postDialog).getByRole("button", { name: "Salvar pós-entrega" }));
 
     await waitFor(() => {
       expect(toastMock).toHaveBeenCalledWith(
         expect.objectContaining({ title: "Não foi possível salvar agora" }),
       );
     });
-    expect(screen.getByText("Ainda falta receber o saldo")).toBeInTheDocument();
+    expect(screen.getByText("Pós-entrega: liberação do saldo")).toBeInTheDocument();
   });
 
   it("abre modal de hand-off quando já existe frete em andamento", async () => {
