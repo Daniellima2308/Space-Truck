@@ -642,6 +642,23 @@ export function FreightTab({
     if (!editingReceivableFreight || isSavingReceivable) return;
     const latestFreight =
       getLatestFreight(editingReceivableFreight.id) ?? editingReceivableFreight;
+    if (editReceivablePlanType === "advance_percent") {
+      const rawAdvancePercent = advancePercentage.trim();
+      const parsedAdvancePercent = Number(rawAdvancePercent);
+      if (
+        rawAdvancePercent === "" ||
+        !Number.isFinite(parsedAdvancePercent) ||
+        parsedAdvancePercent < 0 ||
+        parsedAdvancePercent > 100
+      ) {
+        toast({
+          title: "Percentual de adiantamento inválido",
+          description: "Informe um percentual entre 0% e 100%.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     const parsedAmountReceived = Number(editAmountReceived || 0);
     const parsedAdvanceInput = getAdvanceAmountFromInput(latestFreight.grossValue);
     const parsedAdvanceAmount = editReceivablePlanType === "advance_value" || editReceivablePlanType === "advance_percent"

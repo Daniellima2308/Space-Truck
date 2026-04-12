@@ -792,6 +792,89 @@ describe("FreightTab", () => {
     });
   });
 
+  it.each(["abc", "-5", "120"])(
+    "bloqueia salvamento com percentual inválido (%s) sem enviar payload",
+    async (invalidPercent) => {
+      const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+      render(
+        <FreightTab
+          trip={{
+            ...tripBase,
+            freights: [{ ...makeFreight("f-1", "completed", new Date().toISOString()), grossValue: 4500 }],
+          }}
+          vehicle={driverOwnerVehicle}
+          isOpen
+          showForm={false}
+          setShowForm={vi.fn()}
+          addFreight={vi.fn().mockResolvedValue(undefined)}
+          updateFreight={updateFreight}
+          deleteFreight={vi.fn().mockResolvedValue(undefined)}
+          startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+          completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+        />,
+      );
+
+      fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+      const dialog = screen.getByRole("dialog");
+      fireEvent.change(within(dialog).getByLabelText("Forma de recebimento"), {
+        target: { value: "advance_percent" },
+      });
+      fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+        target: { value: invalidPercent },
+      });
+      fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+      await waitFor(() => {
+        expect(updateFreight).not.toHaveBeenCalled();
+        expect(toastMock).toHaveBeenCalledWith(
+          expect.objectContaining({ title: "Percentual de adiantamento inválido" }),
+        );
+      });
+    },
+  );
+
+  it.each([
+    { percent: "0", expectedAdvance: 0 },
+    { percent: "100", expectedAdvance: 4500 },
+  ])("aceita percentual de borda $percent%", async ({ percent, expectedAdvance }) => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "completed", new Date().toISOString()), grossValue: 4500 }],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Forma de recebimento"), {
+      target: { value: "advance_percent" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+      target: { value: percent },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({ advanceAmount: expectedAdvance }),
+      );
+    });
+  });
+
   it("abre modal ao tocar em Concluir e permite só concluir", async () => {
     const completeFreight = vi
       .fn()
