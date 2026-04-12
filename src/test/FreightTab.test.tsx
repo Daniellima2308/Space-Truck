@@ -445,7 +445,7 @@ describe("FreightTab", () => {
     expect(screen.queryByText("Comissão")).not.toBeInTheDocument();
   });
 
-  it("badge financeiro pending usa rótulo financeiro", () => {
+  it("card de recebimento evita rótulos técnicos de status", () => {
     render(
       <FreightTab
         trip={{
@@ -461,7 +461,8 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText("Saldo pendente")).toBeInTheDocument();
+    expect(screen.getByText("Recebimento")).toBeInTheDocument();
+    expect(screen.queryByText("Saldo pendente")).not.toBeInTheDocument();
     expect(screen.queryByText("Canhoto pendente")).not.toBeInTheDocument();
   });
 
@@ -567,7 +568,7 @@ describe("FreightTab", () => {
     expect(payload).not.toHaveProperty("createdAt");
   });
 
-  it("painel completo mantém seção de ajuste acessível", () => {
+  it("durante frete em andamento oculta previsão de pagamento no painel", () => {
     render(
       <FreightTab
         trip={{
@@ -586,9 +587,87 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
     const dialog = screen.getByRole("dialog");
 
+    expect(within(dialog).queryByLabelText("Previsão de pagamento")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Canhoto para liberar saldo")).not.toBeInTheDocument();
+    expect(within(dialog).queryByText("Adicionar desconto ou acréscimo")).not.toBeInTheDocument();
+  });
+
+  it("após concluir frete exibe previsão, canhoto simplificado e ajuste opcional expansível", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "completed", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+
+    expect(within(dialog).getByLabelText("Previsão de pagamento")).toBeInTheDocument();
+    expect(within(dialog).getByText("Canhoto para liberar saldo")).toBeInTheDocument();
+    expect(within(dialog).getByRole("option", { name: "Não precisa de canhoto" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("option", { name: "Precisa enviar foto do canhoto" })).toBeInTheDocument();
+    expect(within(dialog).getByRole("option", { name: "Precisa enviar canhoto físico" })).toBeInTheDocument();
+    expect(within(dialog).queryByLabelText("Tipo do ajuste")).not.toBeInTheDocument();
+    fireEvent.click(within(dialog).getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
     expect(within(dialog).getByLabelText("Tipo do ajuste")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Valor do ajuste")).toBeInTheDocument();
     expect(within(dialog).getByLabelText("Observação do ajuste")).toBeInTheDocument();
+  });
+
+  it("adiantamento aceita chips percentuais e mostra conversão em reais", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [makeFreight("f-1", "completed", new Date().toISOString())],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Em %" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "80%" }));
+
+    expect(
+      within(dialog).getByText("80% de R$ 1.000,00 = R$ 800,00"),
+    ).toBeInTheDocument();
+  });
+
+  it("card não mostra previsão de pagamento enquanto frete está em andamento", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            { ...makeFreight("f-1", "in_progress", new Date().toISOString()), receivableMode: "basic" },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.queryByText(/Previsão de pagamento:/i)).not.toBeInTheDocument();
   });
 
   it("abre modal ao tocar em Concluir e permite só concluir", async () => {
