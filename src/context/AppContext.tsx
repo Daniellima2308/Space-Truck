@@ -46,6 +46,7 @@ function withReceivableDefaults<T extends Record<string, unknown>>(payload: T): 
     delivery_proof_status: (payload.delivery_proof_status as string) ?? "not_required",
     balance_release_mode: (payload.balance_release_mode as string) ?? "none",
     balance_adjustments: payload.balance_adjustments ?? [],
+    receivable_plan_type: (payload.receivable_plan_type as string) ?? "undefined",
   };
 }
 
