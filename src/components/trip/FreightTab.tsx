@@ -222,6 +222,16 @@ export function FreightTab({
     return `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)} • Saldo ${formatCurrency(remainingBalance)}`;
   };
 
+  const getPaymentContextLine = (freight: Freight, remainingBalance: number): string | null => {
+    if (freight.status !== "completed" || remainingBalance <= 0) return null;
+    if (!freight.paymentDueDate) return "Sem previsão informada";
+    const releaseMode = freight.balanceReleaseMode ?? "none";
+    if (releaseMode !== "none" && releaseMode !== "direct_delivery") {
+      return "Canhoto necessário";
+    }
+    return null;
+  };
+
   const resolveDeliveryProofStatus = (
     previousStatus: Freight["deliveryProofStatus"] | undefined,
     nextBalanceReleaseMode: Freight["balanceReleaseMode"],
@@ -871,14 +881,7 @@ export function FreightTab({
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const receivableSummary = buildReceivableSummary(f, remainingBalance);
-          const paymentContextLine =
-            isFreightCompleted && remainingBalance > 0
-              ? !f.paymentDueDate
-                ? "Sem previsão informada"
-                : (f.balanceReleaseMode ?? "none") !== "none"
-                  ? "Canhoto necessário"
-                  : null
-              : null;
+          const paymentContextLine = getPaymentContextLine(f, remainingBalance);
 
           return (
           <div key={f.id} className="gradient-card rounded-xl p-3 space-y-2">

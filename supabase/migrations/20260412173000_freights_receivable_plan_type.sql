@@ -9,7 +9,13 @@ WHERE receivable_mode <> 'off'
 DO $$
 BEGIN
   IF NOT EXISTS (
-    SELECT 1 FROM pg_constraint WHERE conname = 'freights_receivable_plan_type_check'
+    SELECT 1
+    FROM pg_constraint c
+    JOIN pg_class t ON t.oid = c.conrelid
+    JOIN pg_namespace n ON n.oid = t.relnamespace
+    WHERE c.conname = 'freights_receivable_plan_type_check'
+      AND n.nspname = 'public'
+      AND t.relname = 'freights'
   ) THEN
     ALTER TABLE public.freights
       ADD CONSTRAINT freights_receivable_plan_type_check

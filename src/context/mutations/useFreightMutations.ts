@@ -1,7 +1,7 @@
 import { useCallback } from "react";
 import type { User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
-import { AppData, Freight } from "@/types";
+import { AppData, Freight, RECEIVABLE_PLAN_TYPES } from "@/types";
 import {
   isOnline,
   addToOfflineQueue,
@@ -176,13 +176,7 @@ function normalizeReceivableInput(params: {
     typeof params.receivableMode === "string" && validReceivableModes.has(params.receivableMode)
       ? (params.receivableMode as "off" | "basic" | "complete")
       : "off";
-  const validReceivablePlanTypes = new Set([
-    "undefined",
-    "advance_value",
-    "advance_percent",
-    "paid_in_full",
-    "paid_on_delivery",
-  ]);
+  const validReceivablePlanTypes = new Set(RECEIVABLE_PLAN_TYPES);
   const receivablePlanType =
     typeof params.receivablePlanType === "string" &&
     validReceivablePlanTypes.has(params.receivablePlanType)

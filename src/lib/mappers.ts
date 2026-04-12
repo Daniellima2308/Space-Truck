@@ -17,6 +17,7 @@ import {
   type BalanceAdjustment,
   type ReceivableMode,
   type ReceivablePlanType,
+  RECEIVABLE_PLAN_TYPES,
 } from "@/types";
 import { isDriverBond, isVehicleOperationProfile } from "@/lib/vehicleOperation";
 import { normalizeTripFreights } from "@/lib/freightStatus";
@@ -157,13 +158,9 @@ const RECEIVABLE_MODES: ReadonlySet<ReceivableMode> = new Set<ReceivableMode>([
   "basic",
   "complete",
 ]);
-const RECEIVABLE_PLAN_TYPES: ReadonlySet<ReceivablePlanType> = new Set<ReceivablePlanType>([
-  "undefined",
-  "advance_value",
-  "advance_percent",
-  "paid_in_full",
-  "paid_on_delivery",
-]);
+const RECEIVABLE_PLAN_TYPES_SET: ReadonlySet<ReceivablePlanType> = new Set<ReceivablePlanType>(
+  RECEIVABLE_PLAN_TYPES,
+);
 
 export function mapFreightRow(f: FreightRow): Freight {
   return {
@@ -181,7 +178,7 @@ export function mapFreightRow(f: FreightRow): Freight {
     receivableMode: RECEIVABLE_MODES.has((f.receivable_mode ?? "") as ReceivableMode)
       ? (f.receivable_mode as ReceivableMode)
       : "off",
-    receivablePlanType: RECEIVABLE_PLAN_TYPES.has((f.receivable_plan_type ?? "") as ReceivablePlanType)
+    receivablePlanType: RECEIVABLE_PLAN_TYPES_SET.has((f.receivable_plan_type ?? "") as ReceivablePlanType)
       ? (f.receivable_plan_type as ReceivablePlanType)
       : "undefined",
     amountReceived: f.amount_received ?? 0,
