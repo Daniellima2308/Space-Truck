@@ -483,11 +483,11 @@ export function FreightTab({
       });
       if (completionBalanceReleaseMode === "physical_proof" && completionMailReminder !== "off") {
         toast({
-          title: "Lembrete de correio salvo no app",
+          title: "Lembrete visual desta sessão",
           description:
             completionMailReminder === "pick_date" && completionMailReminderDate
-              ? `Lembrete visual programado para ${formatDate(completionMailReminderDate)}.`
-              : "Lembrete visual registrado. Em breve podemos evoluir para notificação push.",
+              ? `Lembrete visual temporário para ${formatDate(completionMailReminderDate)}. Ele não fica salvo após recarregar a página.`
+              : "Lembrete visual temporário ativado nesta sessão. Ele não fica salvo após recarregar a página.",
           variant: "notice",
         });
       }

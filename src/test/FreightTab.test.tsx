@@ -987,6 +987,57 @@ describe("FreightTab", () => {
     });
   });
 
+  it("mostra toast de lembrete como temporário na sessão (sem prometer persistência)", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              balanceReleaseMode: "physical_proof",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Pós-entrega do recebimento");
+
+    fireEvent.change(screen.getByDisplayValue("Enviar físico"), {
+      target: { value: "physical_proof" },
+    });
+    fireEvent.change(screen.getByDisplayValue("Não lembrar"), {
+      target: { value: "tomorrow" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Lembrete visual desta sessão",
+          description: expect.stringContaining("não fica salvo após recarregar a página"),
+        }),
+      );
+    });
+  });
+
   it("abre modal de hand-off quando já existe frete em andamento", async () => {
     const startFreight = vi
       .fn()
