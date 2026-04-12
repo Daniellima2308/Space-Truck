@@ -348,6 +348,47 @@ describe("FreightTab", () => {
     });
   });
 
+  it("preserva deliveryProofStatus avançado ao salvar recebimento sem mudar canhoto", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              balanceReleaseMode: "proof_photo",
+              deliveryProofStatus: "confirmed",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    fireEvent.change(screen.getByLabelText("Valor recebido (R$)"), { target: { value: "100" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({ deliveryProofStatus: "confirmed" }),
+      );
+    });
+  });
+
   it("força nova tentativa de previsão ao revisar rota sem alterar campos", async () => {
     const updateFreight = vi
       .fn()
@@ -899,6 +940,51 @@ describe("FreightTab", () => {
       );
     });
     expect(screen.getByText("Pós-entrega do recebimento")).toBeInTheDocument();
+  });
+
+  it("preserva deliveryProofStatus avançado ao salvar pós-entrega", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              balanceReleaseMode: "proof_photo",
+              deliveryProofStatus: "sent",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Pós-entrega do recebimento");
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({ deliveryProofStatus: "sent" }),
+      );
+    });
   });
 
   it("abre modal de hand-off quando já existe frete em andamento", async () => {

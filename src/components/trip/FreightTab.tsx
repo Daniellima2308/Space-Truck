@@ -222,6 +222,15 @@ export function FreightTab({
     return `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)} • Saldo ${formatCurrency(remainingBalance)}`;
   };
 
+  const resolveDeliveryProofStatus = (
+    previousStatus: Freight["deliveryProofStatus"] | undefined,
+    nextBalanceReleaseMode: Freight["balanceReleaseMode"],
+  ): NonNullable<Freight["deliveryProofStatus"]> => {
+    if (nextBalanceReleaseMode === "none") return "not_required";
+    if (previousStatus === "sent" || previousStatus === "confirmed") return previousStatus;
+    return "pending_send";
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!origin || !dest || !km || !gross || isSubmitting) return;
@@ -462,8 +471,10 @@ export function FreightTab({
         amountReceived: latestFreight.amountReceived,
         advanceAmount: latestFreight.advanceAmount,
         payerName: latestFreight.payerName,
-        deliveryProofStatus:
-          completionBalanceReleaseMode === "none" ? "not_required" : "pending_send",
+        deliveryProofStatus: resolveDeliveryProofStatus(
+          latestFreight.deliveryProofStatus,
+          completionBalanceReleaseMode,
+        ),
         balanceReleaseMode: completionBalanceReleaseMode,
         balanceAdjustments: nextAdjustments,
         receivablePlanType: latestFreight.receivablePlanType,
@@ -699,8 +710,10 @@ export function FreightTab({
         amountReceived: normalizedAmountReceived,
         advanceAmount: parsedAdvanceAmount,
         payerName: editPayerName.trim() || undefined,
-        deliveryProofStatus:
-          editBalanceReleaseMode === "none" ? "not_required" : "pending_send",
+        deliveryProofStatus: resolveDeliveryProofStatus(
+          latestFreight.deliveryProofStatus,
+          editBalanceReleaseMode,
+        ),
         balanceReleaseMode: editBalanceReleaseMode,
         balanceAdjustments: nextAdjustments,
         receivablePlanType: editReceivablePlanType,
