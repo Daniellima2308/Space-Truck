@@ -33,6 +33,86 @@ import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
 import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
 import { FontAwesomeIcon, iconCheckCircle2, iconChevronDown, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconReceipt, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
+interface QuickBalanceAdjustmentSectionProps {
+  expanded: boolean;
+  onExpand: () => void;
+  adjustmentType: "discount" | "increase";
+  onChangeType: (value: "discount" | "increase") => void;
+  adjustmentAmount: string;
+  onChangeAmount: (value: string) => void;
+  adjustmentNote: string;
+  onChangeNote: (value: string) => void;
+  disabled?: boolean;
+  showOptionalTitle?: boolean;
+}
+
+function QuickBalanceAdjustmentSection({
+  expanded,
+  onExpand,
+  adjustmentType,
+  onChangeType,
+  adjustmentAmount,
+  onChangeAmount,
+  adjustmentNote,
+  onChangeNote,
+  disabled = false,
+  showOptionalTitle = false,
+}: QuickBalanceAdjustmentSectionProps) {
+  return (
+    <div className="rounded-md border border-border/70 p-2 space-y-2">
+      {!expanded ? (
+        <button
+          type="button"
+          onClick={onExpand}
+          className="w-full rounded-md border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground min-h-[44px]"
+          disabled={disabled}
+        >
+          Adicionar desconto ou acréscimo
+        </button>
+      ) : (
+        <>
+          {showOptionalTitle && (
+            <p className="text-xs font-medium text-muted-foreground">Ajuste no saldo (opcional)</p>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            <select
+              value={adjustmentType}
+              onChange={(e) => onChangeType(e.target.value as "discount" | "increase")}
+              className="input-field"
+              aria-label="Tipo do ajuste"
+              disabled={disabled}
+            >
+              <option value="discount">Desconto</option>
+              <option value="increase">Acréscimo</option>
+            </select>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              placeholder="Valor"
+              value={adjustmentAmount}
+              onChange={(e) => onChangeAmount(e.target.value)}
+              className="input-field"
+              aria-label="Valor do ajuste"
+              disabled={disabled}
+            />
+          </div>
+          <input
+            type="text"
+            maxLength={120}
+            placeholder="Observação curta"
+            value={adjustmentNote}
+            onChange={(e) => onChangeNote(e.target.value)}
+            className="input-field"
+            aria-label="Observação do ajuste"
+            disabled={disabled}
+          />
+        </>
+      )}
+    </div>
+  );
+}
+
 interface FreightTabProps {
   trip: Trip;
   vehicle?: Vehicle;
@@ -1360,55 +1440,18 @@ export function FreightTab({
             </label>}
 
             {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && (
-              <div className="rounded-md border border-border/70 p-2 space-y-2">
-                {!showQuickAdjustment ? (
-                  <button
-                    type="button"
-                    onClick={() => setShowQuickAdjustment(true)}
-                    className="w-full rounded-md border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground min-h-[44px]"
-                    disabled={isSavingReceivable}
-                  >
-                    Adicionar desconto ou acréscimo
-                  </button>
-                ) : (
-                  <>
-                    <p className="text-xs font-medium text-muted-foreground">Ajuste no saldo (opcional)</p>
-                    <div className="grid grid-cols-2 gap-2">
-                      <select
-                        value={quickAdjustmentType}
-                        onChange={(e) => setQuickAdjustmentType(e.target.value as "discount" | "increase")}
-                        className="input-field"
-                        aria-label="Tipo do ajuste"
-                        disabled={isSavingReceivable}
-                      >
-                        <option value="discount">Desconto</option>
-                        <option value="increase">Acréscimo</option>
-                      </select>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        placeholder="Valor"
-                        value={quickAdjustmentAmount}
-                        onChange={(e) => setQuickAdjustmentAmount(e.target.value)}
-                        className="input-field"
-                        aria-label="Valor do ajuste"
-                        disabled={isSavingReceivable}
-                      />
-                    </div>
-                    <input
-                      type="text"
-                      maxLength={120}
-                      placeholder="Observação curta"
-                      value={quickAdjustmentNote}
-                      onChange={(e) => setQuickAdjustmentNote(e.target.value)}
-                      className="input-field"
-                      aria-label="Observação do ajuste"
-                      disabled={isSavingReceivable}
-                    />
-                  </>
-                )}
-              </div>
+              <QuickBalanceAdjustmentSection
+                expanded={showQuickAdjustment}
+                onExpand={() => setShowQuickAdjustment(true)}
+                adjustmentType={quickAdjustmentType}
+                onChangeType={setQuickAdjustmentType}
+                adjustmentAmount={quickAdjustmentAmount}
+                onChangeAmount={setQuickAdjustmentAmount}
+                adjustmentNote={quickAdjustmentNote}
+                onChangeNote={setQuickAdjustmentNote}
+                disabled={isSavingReceivable}
+                showOptionalTitle
+              />
             )}
 
             {editingReceivableFreight?.status === "completed" && (
@@ -1595,47 +1638,16 @@ export function FreightTab({
               </label>
             )}
 
-            <div className="rounded-md border border-border/70 p-2 space-y-2">
-              {!completionShowQuickAdjustment ? (
-                <button
-                  type="button"
-                  onClick={() => setCompletionShowQuickAdjustment(true)}
-                  className="w-full rounded-md border border-dashed border-border px-3 py-2 text-xs font-semibold text-muted-foreground min-h-[44px]"
-                >
-                  Adicionar desconto ou acréscimo
-                </button>
-              ) : (
-                <>
-                  <div className="grid grid-cols-2 gap-2">
-                    <select
-                      value={completionQuickAdjustmentType}
-                      onChange={(e) => setCompletionQuickAdjustmentType(e.target.value as "discount" | "increase")}
-                      className="input-field"
-                    >
-                      <option value="discount">Desconto</option>
-                      <option value="increase">Acréscimo</option>
-                    </select>
-                    <input
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      placeholder="Valor"
-                      value={completionQuickAdjustmentAmount}
-                      onChange={(e) => setCompletionQuickAdjustmentAmount(e.target.value)}
-                      className="input-field"
-                    />
-                  </div>
-                  <input
-                    type="text"
-                    maxLength={120}
-                    placeholder="Observação curta"
-                    value={completionQuickAdjustmentNote}
-                    onChange={(e) => setCompletionQuickAdjustmentNote(e.target.value)}
-                    className="input-field"
-                  />
-                </>
-              )}
-            </div>
+            <QuickBalanceAdjustmentSection
+              expanded={completionShowQuickAdjustment}
+              onExpand={() => setCompletionShowQuickAdjustment(true)}
+              adjustmentType={completionQuickAdjustmentType}
+              onChangeType={setCompletionQuickAdjustmentType}
+              adjustmentAmount={completionQuickAdjustmentAmount}
+              onChangeAmount={setCompletionQuickAdjustmentAmount}
+              adjustmentNote={completionQuickAdjustmentNote}
+              onChangeNote={setCompletionQuickAdjustmentNote}
+            />
           </div>
           <DialogFooter className="flex-col gap-2 sm:flex-col">
             <button type="button" onClick={handleSaveCompletionForecast} disabled={isSavingCompletionForecast} className="w-full min-h-[44px] rounded-lg bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:opacity-60">
