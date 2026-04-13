@@ -281,13 +281,20 @@ export function FreightTab({
 
   const getAdvanceAmountFromInput = (grossValue: number) => {
     if (editReceivablePlanType === "advance_percent") {
-      const parsedPercentage = Number(advancePercentage || 0);
+      const parsedPercentage = Number(advancePercentage.trim());
       if (!Number.isFinite(parsedPercentage) || parsedPercentage < 0 || parsedPercentage > 100) {
         return { amount: NaN, percentage: parsedPercentage };
       }
       return { amount: (grossValue * parsedPercentage) / 100, percentage: parsedPercentage };
     }
     return { amount: Number(editAdvanceAmount || 0), percentage: null };
+  };
+
+  const formatPercentFromAdvance = (advanceAmount: number, grossValue: number): string => {
+    if (!Number.isFinite(advanceAmount) || !Number.isFinite(grossValue) || grossValue <= 0) return "";
+    const percentage = (advanceAmount / grossValue) * 100;
+    if (!Number.isFinite(percentage)) return "";
+    return Number(percentage.toFixed(2)).toString();
   };
 
   const receivablePlanLabel: Record<ReceivablePlanType, string> = {
@@ -729,7 +736,7 @@ export function FreightTab({
     setEditReceivablePlanType(freight.receivablePlanType ?? "undefined");
     setAdvancePercentage(
       freight.grossValue > 0 && (freight.receivablePlanType ?? "undefined") === "advance_percent"
-        ? String(Math.round(((freight.advanceAmount ?? 0) / freight.grossValue) * 100))
+        ? formatPercentFromAdvance(freight.advanceAmount ?? 0, freight.grossValue)
         : "",
     );
     setEditPayerName(freight.payerName ?? "");
@@ -763,6 +770,24 @@ export function FreightTab({
     }
     const parsedAmountReceived = Number(editAmountReceived || 0);
     const parsedAdvanceInput = getAdvanceAmountFromInput(latestFreight.grossValue);
+    if (editReceivablePlanType === "advance_percent") {
+      const parsedAdvancePercent = parsedAdvanceInput.percentage;
+      if (
+        parsedAdvancePercent === null ||
+        !Number.isFinite(parsedAdvancePercent) ||
+        parsedAdvancePercent < 0 ||
+        parsedAdvancePercent > 100 ||
+        !Number.isFinite(parsedAdvanceInput.amount) ||
+        parsedAdvanceInput.amount < 0
+      ) {
+        toast({
+          title: "Adiantamento inválido",
+          description: "Informe um percentual entre 0% e 100%.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
     const parsedAdvanceAmount = editReceivablePlanType === "advance_value" || editReceivablePlanType === "advance_percent"
       ? parsedAdvanceInput.amount
       : 0;
@@ -1413,12 +1438,25 @@ export function FreightTab({
                           </button>
                         ))}
                       </div>
-                      <p className="text-[11px] text-muted-foreground">
-                        {`${Number(advancePercentage || 0)}% de ${formatCurrency(editingReceivableFreight?.grossValue ?? 0)} = `}
-                        <span className="font-mono text-foreground">
-                          {formatCurrency(((editingReceivableFreight?.grossValue ?? 0) * Number(advancePercentage || 0)) / 100)}
-                        </span>
-                      </p>
+                      {(() => {
+                        const parsedPercentage = Number(advancePercentage.trim());
+                        const grossValue = editingReceivableFreight?.grossValue ?? 0;
+                        const hasValidPreview =
+                          Number.isFinite(parsedPercentage) &&
+                          parsedPercentage >= 0 &&
+                          parsedPercentage <= 100;
+
+                        if (!hasValidPreview) return null;
+
+                        return (
+                          <p className="text-[11px] text-muted-foreground">
+                            {`${parsedPercentage}% de ${formatCurrency(grossValue)} = `}
+                            <span className="font-mono text-foreground">
+                              {formatCurrency((grossValue * parsedPercentage) / 100)}
+                            </span>
+                          </p>
+                        );
+                      })()}
                     </div>
                   )}
                 </label>

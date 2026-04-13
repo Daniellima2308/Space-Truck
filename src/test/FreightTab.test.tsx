@@ -925,9 +925,83 @@ describe("FreightTab", () => {
       expect(updateFreight).toHaveBeenCalledWith(
         "trip-1",
         "f-1",
-        expect.objectContaining({ advanceAmount: expectedAdvance }),
+        expect.objectContaining({
+          advanceAmount: expectedAdvance,
+          receivablePlanType: "advance_percent",
+        }),
       );
     });
+  });
+
+  it("mantém precisão do percentual reconstruído ao reabrir e salvar", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              grossValue: 1000,
+              advanceAmount: 333,
+              receivablePlanType: "advance_percent",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          advanceAmount: 333,
+          receivablePlanType: "advance_percent",
+        }),
+      );
+    });
+  });
+
+  it("não renderiza preview com percentual inválido", async () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "completed", new Date().toISOString()), grossValue: 4500 }],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.change(within(dialog).getByLabelText("Forma de recebimento"), {
+      target: { value: "advance_percent" },
+    });
+    fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+      target: { value: "abc" },
+    });
+
+    expect(screen.queryByText(/NaN/)).not.toBeInTheDocument();
   });
 
   it("abre modal ao tocar em Concluir e permite só concluir", async () => {
@@ -1170,10 +1244,146 @@ describe("FreightTab", () => {
       expect(toastMock).toHaveBeenCalledWith(
         expect.objectContaining({
           title: "Lembrete visual desta sessão",
-          description: expect.stringContaining("não fica salvo após recarregar a página"),
+          description: expect.stringContaining("somente nesta sessão"),
         }),
       );
     });
+  });
+
+  it("salva ajuste válido no pós-entrega em balanceAdjustments", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              balanceAdjustments: [{ type: "discount", amount: 10 }],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Pós-entrega do recebimento");
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
+    fireEvent.change(screen.getByLabelText("Valor do ajuste"), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText("Observação do ajuste"), { target: { value: "Taxa extra" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          balanceAdjustments: [
+            { type: "discount", amount: 10 },
+            expect.objectContaining({ type: "discount", amount: 25, note: "Taxa extra" }),
+          ],
+        }),
+      );
+    });
+  });
+
+  it("bloqueia ajuste inválido no pós-entrega sem salvar", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Pós-entrega do recebimento");
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
+    fireEvent.change(screen.getByLabelText("Valor do ajuste"), { target: { value: "-2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(updateFreight).not.toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({ title: "Ajuste no saldo inválido" }),
+      );
+    });
+  });
+
+  it("não mostra toast de lembrete quando cenário não exige lembrete de correio", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              balanceReleaseMode: "proof_photo",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByText("Pós-entrega do recebimento");
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalled();
+    });
+    expect(toastMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Lembrete visual desta sessão" }),
+    );
   });
 
   it("abre modal de hand-off quando já existe frete em andamento", async () => {

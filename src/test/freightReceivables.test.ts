@@ -2,6 +2,7 @@ import {
   getFreightAdjustedBalance,
   getFreightAdvanceReceived,
   getFreightPlannedBalance,
+  getFreightReceivableTarget,
   getFreightReceivableStatus,
   getFreightReceivedPercentage,
   getFreightTotalReceived,
@@ -19,6 +20,16 @@ describe("freightReceivables", () => {
     ).toBe(750);
     expect(
       getFreightRemainingBalance({ grossValue: 1000, amountReceived: 1200 }),
+    ).toBe(0);
+  });
+
+  it("retorna saldo restante zero quando plano está undefined", () => {
+    expect(
+      getFreightRemainingBalance({
+        grossValue: 1000,
+        amountReceived: 0,
+        receivablePlanType: "undefined",
+      }),
     ).toBe(0);
   });
 
@@ -144,6 +155,47 @@ describe("freightReceivables", () => {
     expect(getFreightPlannedBalance(freight)).toBe(1300);
     expect(getFreightAdjustedBalance(freight)).toBe(1250);
     expect(getFreightTotalReceived(freight)).toBe(950);
+  });
+
+  it("mantém regras de planned/adjusted balance para paid_in_full e paid_on_delivery", () => {
+    expect(
+      getFreightPlannedBalance({
+        grossValue: 1000,
+        advanceAmount: 250,
+        receivablePlanType: "paid_in_full",
+      }),
+    ).toBe(0);
+
+    expect(
+      getFreightPlannedBalance({
+        grossValue: 1000,
+        advanceAmount: 250,
+        receivablePlanType: "paid_on_delivery",
+      }),
+    ).toBe(1000);
+
+    expect(
+      getFreightAdjustedBalance({
+        grossValue: 1000,
+        advanceAmount: 250,
+        receivablePlanType: "paid_on_delivery",
+        balanceAdjustments: [{ type: "discount", amount: 50 }],
+      }),
+    ).toBe(950);
+  });
+
+  it("retorna target zero e status coerente para receivablePlanType undefined", () => {
+    const referenceDate = new Date("2026-04-08T12:00:00.000Z");
+    const freight = {
+      grossValue: 1200,
+      amountReceived: 100,
+      paymentDueDate: "2026-04-01",
+      receivablePlanType: "undefined" as const,
+      balanceAdjustments: [{ type: "increase" as const, amount: 30 }],
+    };
+
+    expect(getFreightReceivableTarget(freight)).toBe(0);
+    expect(getFreightReceivableStatus(freight, referenceDate)).toBe("pending");
   });
 
   it("identifica bloqueio por canhoto conforme modo de liberação", () => {
