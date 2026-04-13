@@ -267,7 +267,15 @@ export function FreightTab({
   const normalizeBalanceReleaseMode = (
     value: Freight["balanceReleaseMode"] | undefined,
   ): Freight["balanceReleaseMode"] => {
-    if (value === "proof_photo" || value === "physical_proof") return value;
+    if (
+      value === "none" ||
+      value === "proof_photo" ||
+      value === "physical_proof" ||
+      value === "agreed_deadline" ||
+      value === "direct_delivery"
+    ) {
+      return value;
+    }
     return "none";
   };
 
@@ -306,6 +314,8 @@ export function FreightTab({
     if (freight.status !== "completed" || remainingBalance <= 0) return null;
     if (!freight.paymentDueDate) return "Sem previsão informada";
     const releaseMode = freight.balanceReleaseMode ?? "none";
+    const deliveryProofStatus = freight.deliveryProofStatus ?? "not_required";
+    if (deliveryProofStatus === "confirmed") return null;
     if (releaseMode !== "none" && releaseMode !== "direct_delivery") {
       return "Canhoto necessário";
     }
@@ -316,8 +326,10 @@ export function FreightTab({
     previousStatus: Freight["deliveryProofStatus"] | undefined,
     nextBalanceReleaseMode: Freight["balanceReleaseMode"],
   ): NonNullable<Freight["deliveryProofStatus"]> => {
-    if (nextBalanceReleaseMode === "none") return "not_required";
     if (previousStatus === "sent" || previousStatus === "confirmed") return previousStatus;
+    if (nextBalanceReleaseMode === "none" || nextBalanceReleaseMode === "direct_delivery") {
+      return "not_required";
+    }
     return "pending_send";
   };
 
@@ -576,8 +588,8 @@ export function FreightTab({
           title: "Lembrete visual desta sessão",
           description:
             completionMailReminder === "pick_date" && completionMailReminderDate
-              ? `Lembrete visual temporário para ${formatDate(completionMailReminderDate)}. Ele não fica salvo após recarregar a página.`
-              : "Lembrete visual temporário ativado nesta sessão. Ele não fica salvo após recarregar a página.",
+              ? `Lembrete visual local para ${formatDate(completionMailReminderDate)} (somente nesta sessão). Ele não fica salvo após recarregar a página.`
+              : "Lembrete visual local ativado (somente nesta sessão). Ele não fica salvo após recarregar a página.",
           variant: "notice",
         });
       }

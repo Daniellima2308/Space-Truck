@@ -650,6 +650,34 @@ describe("FreightTab", () => {
     expect(screen.queryByText("Canhoto necessário")).not.toBeInTheDocument();
   });
 
+  it("não mostra 'Canhoto necessário' quando comprovante já está confirmado", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              paymentDueDate: "2026-06-01",
+              balanceReleaseMode: "physical_proof",
+              deliveryProofStatus: "confirmed",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.queryByText("Canhoto necessário")).not.toBeInTheDocument();
+  });
+
   it("não envia createdAt nos payloads de UI ao criar frete", async () => {
     const addFreight = vi.fn().mockResolvedValue(undefined);
 
