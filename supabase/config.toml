@@ -1,1 +1,9 @@
 project_id = "mjkmgnyxiyyuibrmvuqt"
+[functions.calculate-route]
+verify_jwt = false
+
+[functions.calculate-toll]
+verify_jwt = false
+
+[functions.send-contact-email]
+verify_jwt = false
