@@ -50,6 +50,7 @@ export interface Freight {
   estimatedDistance: number;
   paymentDueDate?: string;
   receivableMode?: ReceivableMode;
+  receivablePlanType?: ReceivablePlanType;
   amountReceived: number;
   advanceAmount?: number;
   payerName?: string;
@@ -60,6 +61,14 @@ export interface Freight {
 }
 
 export type ReceivableMode = "off" | "basic" | "complete";
+export const RECEIVABLE_PLAN_TYPES = [
+  "undefined",
+  "advance_value",
+  "advance_percent",
+  "paid_in_full",
+  "paid_on_delivery",
+] as const;
+export type ReceivablePlanType = (typeof RECEIVABLE_PLAN_TYPES)[number];
 
 export type FreightStatus = "planned" | "in_progress" | "completed";
 export type DeliveryProofStatus =

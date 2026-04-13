@@ -48,7 +48,12 @@ function getDueDateTimestamp(paymentDueDate?: string): number | null {
   return dueMs;
 }
 
-export function getFreightRemainingBalance(freight: Pick<Freight, "grossValue" | "amountReceived">): number {
+export function getFreightRemainingBalance(
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "receivablePlanType">,
+): number {
+  if (freight.receivablePlanType === "undefined") {
+    return 0;
+  }
   const grossValue = normalizeAmount(freight.grossValue);
   const amountReceived = normalizeAmount(freight.amountReceived);
 
@@ -62,8 +67,17 @@ export function getFreightAdvanceReceived(
 }
 
 export function getFreightPlannedBalance(
-  freight: Pick<Freight, "grossValue" | "advanceAmount">,
+  freight: Pick<Freight, "grossValue" | "advanceAmount" | "receivablePlanType">,
 ): number {
+  if (freight.receivablePlanType === "undefined") {
+    return 0;
+  }
+  if (freight.receivablePlanType === "paid_in_full") {
+    return 0;
+  }
+  if (freight.receivablePlanType === "paid_on_delivery") {
+    return normalizeAmount(freight.grossValue);
+  }
   const grossValue = normalizeAmount(freight.grossValue);
   const advanceAmount = getFreightAdvanceReceived(freight);
   return Math.max(0, grossValue - advanceAmount);
@@ -85,7 +99,7 @@ export function getFreightAdjustmentsNet(
 }
 
 export function getFreightAdjustedBalance(
-  freight: Pick<Freight, "grossValue" | "advanceAmount" | "balanceAdjustments">,
+  freight: Pick<Freight, "grossValue" | "advanceAmount" | "balanceAdjustments" | "receivablePlanType">,
 ): number {
   const plannedBalance = getFreightPlannedBalance(freight);
   const net = getFreightAdjustmentsNet(freight);
@@ -93,8 +107,11 @@ export function getFreightAdjustedBalance(
 }
 
 export function getFreightReceivableTarget(
-  freight: Pick<Freight, "grossValue" | "balanceAdjustments">,
+  freight: Pick<Freight, "grossValue" | "balanceAdjustments" | "receivablePlanType">,
 ): number {
+  if (freight.receivablePlanType === "undefined") {
+    return 0;
+  }
   const grossValue = normalizeAmount(freight.grossValue);
   const net = getFreightAdjustmentsNet(freight);
   return Math.max(0, grossValue + net);
@@ -152,9 +169,13 @@ export function getFreightReceivableStatus(
     | "deliveryProofStatus"
     | "balanceReleaseMode"
     | "balanceAdjustments"
+    | "receivablePlanType"
   >,
   referenceDate = new Date(),
 ): FreightReceivableStatus {
+  if (freight.receivablePlanType === "undefined") {
+    return "pending";
+  }
   const target = getFreightReceivableTarget(freight);
   const amountReceived = getFreightTotalReceived(freight);
 

@@ -796,6 +796,7 @@ describe("AppContext freight mutations", () => {
       ...freightPayload(),
       amountReceived: 180,
       paymentDueDate: "2026-05-05",
+      receivablePlanType: "advance_percent" as const,
     };
 
     const result = await app.updateFreight("trip-1", "freight-in-progress", payload);
@@ -806,6 +807,7 @@ describe("AppContext freight mutations", () => {
       expect.objectContaining({
         amount_received: payload.amountReceived,
         payment_due_date: payload.paymentDueDate,
+        receivable_plan_type: payload.receivablePlanType,
       }),
     );
     unmount();

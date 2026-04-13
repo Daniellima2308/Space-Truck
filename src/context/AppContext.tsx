@@ -39,6 +39,12 @@ import { useExpenseMutations } from "@/context/mutations/useExpenseMutations";
 import { useMaintenanceMutations } from "@/context/mutations/useMaintenanceMutations";
 
 function withReceivableDefaults<T extends Record<string, unknown>>(payload: T): T {
+  const hasReceivablePlanType = Object.hasOwn
+    ? Object.hasOwn(payload, "receivable_plan_type")
+    : Object.prototype.hasOwnProperty.call(
+      payload,
+      "receivable_plan_type",
+    );
   return {
     ...payload,
     advance_amount: (payload.advance_amount as number) ?? 0,
@@ -46,6 +52,9 @@ function withReceivableDefaults<T extends Record<string, unknown>>(payload: T): 
     delivery_proof_status: (payload.delivery_proof_status as string) ?? "not_required",
     balance_release_mode: (payload.balance_release_mode as string) ?? "none",
     balance_adjustments: payload.balance_adjustments ?? [],
+    ...(hasReceivablePlanType
+      ? { receivable_plan_type: (payload.receivable_plan_type as string) ?? "undefined" }
+      : {}),
   };
 }
 
@@ -404,6 +413,7 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
                   delivery_proof_status: action.payload.delivery_proof_status,
                   balance_release_mode: action.payload.balance_release_mode,
                   balance_adjustments: action.payload.balance_adjustments,
+                  receivable_plan_type: action.payload.receivable_plan_type,
                 }))
                 .eq("id", action.payload.freightId);
 

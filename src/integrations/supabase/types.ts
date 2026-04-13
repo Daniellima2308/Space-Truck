@@ -88,6 +88,7 @@ export type Database = {
           payer_name: string | null
           payment_due_date: string | null
           receivable_mode: string
+          receivable_plan_type: string | null
           status: string
           trip_id: string
           user_id: string
@@ -111,6 +112,7 @@ export type Database = {
           payer_name?: string | null
           payment_due_date?: string | null
           receivable_mode?: string
+          receivable_plan_type?: string | null
           status?: string
           trip_id: string
           user_id: string
@@ -134,6 +136,7 @@ export type Database = {
           payer_name?: string | null
           payment_due_date?: string | null
           receivable_mode?: string
+          receivable_plan_type?: string | null
           status?: string
           trip_id?: string
           user_id?: string
