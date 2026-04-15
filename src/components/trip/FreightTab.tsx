@@ -5,13 +5,12 @@ import { formatCurrency, formatDate, formatNumber } from "@/lib/calculations";
 import { sortFreightsByOperationalPriority } from "@/lib/freightStatus";
 import {
   getFreightReceivableStatus,
-  getFreightReceivedPercentage,
   getFreightRemainingBalance,
   getFreightAdvanceReceived,
-  getFreightTotalReceived,
   isFreightSettled,
   type FreightReceivableStatus,
 } from "@/lib/freightReceivables";
+import { parseAdvancePercentInput } from "@/lib/freightReceivableInput";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
 import {
   Dialog,
@@ -31,7 +30,7 @@ import {
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
 import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
-import { FontAwesomeIcon, iconCheckCircle2, iconChevronDown, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconReceipt, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
+import { FontAwesomeIcon, iconCheckCircle2, iconChevronDown, iconClock3, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconReceipt, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface QuickBalanceAdjustmentSectionProps {
   expanded: boolean;
@@ -75,16 +74,32 @@ function QuickBalanceAdjustmentSection({
             <p className="text-xs font-medium text-muted-foreground">Ajuste no saldo (opcional)</p>
           )}
           <div className="grid grid-cols-2 gap-2">
-            <select
-              value={adjustmentType}
-              onChange={(e) => onChangeType(e.target.value as "discount" | "increase")}
-              className="input-field"
-              aria-label="Tipo do ajuste"
-              disabled={disabled}
-            >
-              <option value="discount">Desconto</option>
-              <option value="increase">Acréscimo</option>
-            </select>
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                type="button"
+                onClick={() => onChangeType("discount")}
+                className={`min-h-[44px] rounded-md border px-2 py-2 text-xs font-semibold ${
+                  adjustmentType === "discount"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground"
+                }`}
+                disabled={disabled}
+              >
+                Desconto
+              </button>
+              <button
+                type="button"
+                onClick={() => onChangeType("increase")}
+                className={`min-h-[44px] rounded-md border px-2 py-2 text-xs font-semibold ${
+                  adjustmentType === "increase"
+                    ? "border-primary bg-primary/10 text-foreground"
+                    : "border-border text-muted-foreground"
+                }`}
+                disabled={disabled}
+              >
+                Acréscimo
+              </button>
+            </div>
             <input
               type="number"
               min="0"
@@ -139,6 +154,9 @@ interface FreightTabProps {
   onRequestOpenFreightForm?: () => void;
 }
 
+type ReceivableUiPlan = "undefined" | "advance_and_balance" | "paid_in_full" | "paid_on_delivery";
+type AdvanceInputMode = "value" | "percent";
+
 export function FreightTab({
   trip,
   vehicle,
@@ -178,7 +196,8 @@ export function FreightTab({
   const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
   const [editAmountReceived, setEditAmountReceived] = useState("");
   const [editAdvanceAmount, setEditAdvanceAmount] = useState("");
-  const [editReceivablePlanType, setEditReceivablePlanType] = useState<ReceivablePlanType>("undefined");
+  const [editReceivableUiPlan, setEditReceivableUiPlan] = useState<ReceivableUiPlan>("undefined");
+  const [editAdvanceInputMode, setEditAdvanceInputMode] = useState<AdvanceInputMode>("value");
   const [advancePercentage, setAdvancePercentage] = useState("");
   const [editPayerName, setEditPayerName] = useState("");
   const [editBalanceReleaseMode, setEditBalanceReleaseMode] = useState<Freight["balanceReleaseMode"]>("none");
@@ -259,10 +278,10 @@ export function FreightTab({
     received: "bg-profit/15 text-profit border-profit/30",
   };
   const receivableStatusLabel: Record<FreightReceivableStatus, string> = {
-    pending: "Saldo pendente",
-    partial: "Recebendo",
+    pending: "Pendente",
+    partial: "Aguardando saldo",
     overdue: "Saldo atrasado",
-    received: "Frete quitado",
+    received: "Quitado",
   };
   const normalizeBalanceReleaseMode = (
     value: Freight["balanceReleaseMode"] | undefined,
@@ -280,14 +299,14 @@ export function FreightTab({
   };
 
   const getAdvanceAmountFromInput = (grossValue: number) => {
-    if (editReceivablePlanType === "advance_percent") {
-      const parsedPercentage = Number(advancePercentage.trim());
-      if (!Number.isFinite(parsedPercentage) || parsedPercentage < 0 || parsedPercentage > 100) {
-        return { amount: NaN, percentage: parsedPercentage };
+    if (editAdvanceInputMode === "percent") {
+      const parsed = parseAdvancePercentInput(advancePercentage);
+      if (parsed.value === null) {
+        return { amount: NaN, percentage: null, parseError: parsed.error };
       }
-      return { amount: (grossValue * parsedPercentage) / 100, percentage: parsedPercentage };
+      return { amount: (grossValue * parsed.value) / 100, percentage: parsed.value, parseError: undefined };
     }
-    return { amount: Number(editAdvanceAmount || 0), percentage: null };
+    return { amount: Number(editAdvanceAmount || 0), percentage: null, parseError: undefined };
   };
 
   const formatPercentFromAdvance = (advanceAmount: number, grossValue: number): string => {
@@ -297,22 +316,37 @@ export function FreightTab({
     return Number(percentage.toFixed(2)).toString();
   };
 
-  const receivablePlanLabel: Record<ReceivablePlanType, string> = {
-    undefined: "Forma de recebimento não definida",
-    advance_value: "Adiantamento por valor",
-    advance_percent: "Adiantamento por % do frete",
-    paid_in_full: "Recebido integralmente",
-    paid_on_delivery: "Recebe na entrega",
+  const receivablePlanLabel: Record<ReceivableUiPlan, string> = {
+    undefined: "Não definido",
+    advance_and_balance: "Adiantamento e saldo",
+    paid_in_full: "Pago integralmente",
+    paid_on_delivery: "Pagamento após a descarga",
+  };
+
+  const getUiPlanFromPlanType = (planType: ReceivablePlanType): ReceivableUiPlan => {
+    if (planType === "paid_in_full") return "paid_in_full";
+    if (planType === "paid_on_delivery") return "paid_on_delivery";
+    if (planType === "advance_value" || planType === "advance_percent") return "advance_and_balance";
+    return "undefined";
+  };
+
+  const getPlanTypeFromUiPlan = (uiPlan: ReceivableUiPlan, advanceMode: AdvanceInputMode): ReceivablePlanType => {
+    if (uiPlan === "advance_and_balance") {
+      return advanceMode === "percent" ? "advance_percent" : "advance_value";
+    }
+    if (uiPlan === "paid_in_full") return "paid_in_full";
+    if (uiPlan === "paid_on_delivery") return "paid_on_delivery";
+    return "undefined";
   };
 
   const buildReceivableSummary = (freight: Freight, remainingBalance: number): string => {
-    const plan = freight.receivablePlanType ?? "undefined";
-    if (plan === "undefined") return "Forma de recebimento não definida";
-    if (plan === "paid_in_full") return "Recebido integralmente";
-    if (plan === "paid_on_delivery") {
+    const uiPlan = getUiPlanFromPlanType(freight.receivablePlanType ?? "undefined");
+    if (uiPlan === "undefined") return "Forma de recebimento não definida";
+    if (uiPlan === "paid_in_full") return "Frete pago integralmente";
+    if (uiPlan === "paid_on_delivery") {
       return freight.status === "completed" && !freight.paymentDueDate
-        ? "Após entrega: falta definir previsão"
-        : "Recebe na entrega";
+        ? "Falta definir previsão após descarga"
+        : "Pagamento previsto após a descarga";
     }
     return `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)} • Saldo ${formatCurrency(remainingBalance)}`;
   };
@@ -729,13 +763,17 @@ export function FreightTab({
   };
 
   const openReceivableDialog = (freight: Freight) => {
+    const normalizedPlanType = freight.receivablePlanType ?? "undefined";
+    const uiPlan = getUiPlanFromPlanType(normalizedPlanType);
+    const advanceInputMode: AdvanceInputMode = normalizedPlanType === "advance_percent" ? "percent" : "value";
     setEditingReceivableFreight(freight);
     setEditPaymentDueDate(freight.paymentDueDate ?? "");
     setEditAmountReceived(String(freight.amountReceived ?? 0));
     setEditAdvanceAmount(String(freight.advanceAmount ?? 0));
-    setEditReceivablePlanType(freight.receivablePlanType ?? "undefined");
+    setEditReceivableUiPlan(uiPlan);
+    setEditAdvanceInputMode(advanceInputMode);
     setAdvancePercentage(
-      freight.grossValue > 0 && (freight.receivablePlanType ?? "undefined") === "advance_percent"
+      freight.grossValue > 0 && normalizedPlanType === "advance_percent"
         ? formatPercentFromAdvance(freight.advanceAmount ?? 0, freight.grossValue)
         : "",
     );
@@ -751,26 +789,22 @@ export function FreightTab({
     if (!editingReceivableFreight || isSavingReceivable) return;
     const latestFreight =
       getLatestFreight(editingReceivableFreight.id) ?? editingReceivableFreight;
-    if (editReceivablePlanType === "advance_percent") {
-      const rawAdvancePercent = advancePercentage.trim();
-      const parsedAdvancePercent = Number(rawAdvancePercent);
-      if (
-        rawAdvancePercent === "" ||
-        !Number.isFinite(parsedAdvancePercent) ||
-        parsedAdvancePercent < 0 ||
-        parsedAdvancePercent > 100
-      ) {
+    const normalizedPlanType = getPlanTypeFromUiPlan(editReceivableUiPlan, editAdvanceInputMode);
+    if (normalizedPlanType === "advance_percent") {
+      const parsed = parseAdvancePercentInput(advancePercentage);
+      if (parsed.value === null) {
         toast({
           title: "Percentual de adiantamento inválido",
-          description: "Informe um percentual entre 0% e 100%.",
+          description: parsed.error ?? "Informe um percentual entre 0 e 100.",
           variant: "destructive",
         });
         return;
       }
+      setAdvancePercentage(parsed.normalized);
     }
     const parsedAmountReceived = Number(editAmountReceived || 0);
     const parsedAdvanceInput = getAdvanceAmountFromInput(latestFreight.grossValue);
-    if (editReceivablePlanType === "advance_percent") {
+    if (normalizedPlanType === "advance_percent") {
       const parsedAdvancePercent = parsedAdvanceInput.percentage;
       if (
         parsedAdvancePercent === null ||
@@ -782,16 +816,16 @@ export function FreightTab({
       ) {
         toast({
           title: "Adiantamento inválido",
-          description: "Informe um percentual entre 0% e 100%.",
+          description: parsedAdvanceInput.parseError ?? "Informe um percentual entre 0 e 100.",
           variant: "destructive",
         });
         return;
       }
     }
-    const parsedAdvanceAmount = editReceivablePlanType === "advance_value" || editReceivablePlanType === "advance_percent"
+    const parsedAdvanceAmount = normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent"
       ? parsedAdvanceInput.amount
       : 0;
-    const normalizedAmountReceived = editReceivablePlanType === "paid_in_full"
+    const normalizedAmountReceived = normalizedPlanType === "paid_in_full"
       ? latestFreight.grossValue
       : parsedAmountReceived;
     const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
@@ -811,7 +845,7 @@ export function FreightTab({
       });
       return;
     }
-    if ((editReceivablePlanType === "advance_value" || editReceivablePlanType === "advance_percent") && parsedAdvanceAmount > latestFreight.grossValue) {
+    if ((normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent") && parsedAdvanceAmount > latestFreight.grossValue) {
       toast({
         title: "Adiantamento inválido",
         description: "O adiantamento não pode ser maior que o valor bruto do frete.",
@@ -860,7 +894,7 @@ export function FreightTab({
         ),
         balanceReleaseMode: editBalanceReleaseMode,
         balanceAdjustments: nextAdjustments,
-        receivablePlanType: editReceivablePlanType,
+        receivablePlanType: normalizedPlanType,
         commissionPercent: latestFreight.commissionPercent,
       });
 
@@ -992,9 +1026,8 @@ export function FreightTab({
           const receivableEnabled = receivableMode !== "off";
           const receivableStatus = getFreightReceivableStatus(f);
           const remainingBalance = getFreightRemainingBalance(f);
-          const receivedPercentage = getFreightReceivedPercentage(f);
           const advanceAmount = getFreightAdvanceReceived(f);
-          const totalReceived = getFreightTotalReceived(f);
+          const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const receivableSummary = buildReceivableSummary(f, remainingBalance);
@@ -1032,7 +1065,7 @@ export function FreightTab({
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             <div className="rounded-md bg-secondary/60 p-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
                 Bruto
@@ -1075,11 +1108,6 @@ export function FreightTab({
                 )}
               </div>
             </div>
-            <div className="rounded-md bg-secondary/60 p-2">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">Recebido</p>
-              <p className="text-sm font-mono font-bold">{formatCurrency(f.amountReceived)}</p>
-              <p className="text-[10px] text-muted-foreground">{receivedPercentage.toFixed(0)}%</p>
-            </div>
           </div>
 
           {receivableEnabled && (
@@ -1089,14 +1117,15 @@ export function FreightTab({
               onClick={() => setExpandedReceivableId((current) => (current === f.id ? null : f.id))}
               className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-left"
             >
-              <div className="space-y-0.5">
+              <div className="space-y-1">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1"><FontAwesomeIcon icon={iconReceipt} className="h-3 w-3" /> Recebimento</p>
-                <p className="text-xs text-foreground">{receivableSummary}</p>
+                <p className="text-xs text-foreground leading-relaxed">{receivableSummary}</p>
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[receivableStatus]}`}
+                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[receivableStatus]}`}
                 >
+                  <FontAwesomeIcon icon={receivableStatus === "received" ? iconCheckCircle2 : iconClock3} className="h-2.5 w-2.5" />
                   {receivableStatusLabel[receivableStatus]}
                 </span>
                 <FontAwesomeIcon icon={iconChevronDown} className={`h-3 w-3 text-muted-foreground transition-transform ${isReceivableExpanded ? "rotate-180" : ""}`} />
@@ -1104,23 +1133,34 @@ export function FreightTab({
             </button>
             {isReceivableExpanded && (
               <div className="space-y-2 border-t border-border/60 px-3 py-2">
-                <p className="text-xs text-muted-foreground">Modelo: <span className="text-foreground">{receivablePlanLabel[f.receivablePlanType ?? "undefined"]}</span></p>
-                {(f.receivablePlanType ?? "undefined") !== "undefined" && (
-                  <div className="grid grid-cols-2 gap-2 text-xs">
-                    <p className="text-muted-foreground">Recebido: <span className="font-mono text-foreground">{formatCurrency(totalReceived)}</span></p>
-                    <p className="text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
-                  </div>
-                )}
-                {receivableMode === "complete" && advanceAmount > 0 && (
+                <p className="text-xs text-muted-foreground">Forma: <span className="text-foreground">{receivablePlanLabel[uiPlan]}</span></p>
+                {uiPlan === "advance_and_balance" && (
                   <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
+                )}
+                {uiPlan === "advance_and_balance" && (
+                  <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
+                )}
+                {uiPlan === "paid_on_delivery" && (
+                  <p className="text-xs text-muted-foreground">Saldo liberado após descarga</p>
+                )}
+                {uiPlan === "paid_in_full" && (
+                  <p className="text-xs text-muted-foreground">Frete sem saldo pendente</p>
                 )}
                 {f.payerName && (
                   <p className="text-xs text-muted-foreground">Quem paga: <span className="text-foreground">{f.payerName}</span></p>
                 )}
-                {isFreightCompleted && f.paymentDueDate && (
-                  <p className="text-xs text-muted-foreground">Data prevista para recebimento do saldo: {formatDate(f.paymentDueDate)}</p>
+                {isFreightCompleted && f.paymentDueDate && uiPlan !== "paid_in_full" && (
+                  <p className="text-xs text-muted-foreground">Previsão do saldo: {formatDate(f.paymentDueDate)}</p>
                 )}
                 {paymentContextLine && <p className="text-xs text-warning">{paymentContextLine}</p>}
+                {isOpen && (
+                  <button
+                    onClick={() => openReceivableDialog(f)}
+                    className="mt-1 inline-flex min-h-[44px] items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+                  >
+                    <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Ajustar recebimento"}
+                  </button>
+                )}
               </div>
             )}
           </div>
@@ -1176,12 +1216,12 @@ export function FreightTab({
                   <FontAwesomeIcon icon={iconCheckCircle2} className="w-3.5 h-3.5" /> Concluir
                 </button>
               )}
-              {receivableEnabled && (
+              {receivableEnabled && !isReceivableExpanded && (
                 <button
                   onClick={() => openReceivableDialog(f)}
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
                 >
-                  <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Abrir painel de recebimento"}
+                  <FontAwesomeIcon icon={iconReceipt} className="w-3.5 h-3.5" /> Abrir painel de recebimento
                 </button>
               )}
             </div>
@@ -1374,28 +1414,64 @@ export function FreightTab({
             </div>
 
             <label className="space-y-1 text-sm text-foreground">
-              <span className="text-xs font-medium text-muted-foreground">Como você vai receber este frete?</span>
-              <select
-                value={editReceivablePlanType}
-                onChange={(e) => setEditReceivablePlanType(e.target.value as ReceivablePlanType)}
-                className="input-field"
-                disabled={isSavingReceivable}
-                aria-label="Forma de recebimento"
-              >
-                <option value="undefined">Forma de recebimento não definida</option>
-                <option value="advance_value">Valor</option>
-                <option value="advance_percent">% do frete</option>
-                <option value="paid_in_full">Recebido integralmente</option>
-                <option value="paid_on_delivery">Recebe na entrega</option>
-              </select>
+              <span className="text-xs font-medium text-muted-foreground">Como este frete será pago?</span>
+              <div className="grid grid-cols-1 gap-2">
+                {([
+                  { value: "undefined", label: "Não definido" },
+                  { value: "advance_and_balance", label: "Adiantamento e saldo" },
+                  { value: "paid_in_full", label: "Pago integralmente" },
+                  { value: "paid_on_delivery", label: "Pagamento após a descarga" },
+                ] as const).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setEditReceivableUiPlan(option.value)}
+                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                      editReceivableUiPlan === option.value
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border/70 bg-background text-muted-foreground hover:bg-secondary/40"
+                    }`}
+                    disabled={isSavingReceivable}
+                    aria-label={option.label}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </label>
 
             {(editingReceivableFreight?.receivableMode ?? "off") !== "off" && (
               <>
-                {(editReceivablePlanType === "advance_value" || editReceivablePlanType === "advance_percent") && (
+                {editReceivableUiPlan === "advance_and_balance" && (
                 <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Adiantamento</span>
-                  {editReceivablePlanType === "advance_value" && (
+                  <span className="text-xs font-medium text-muted-foreground">Como digitar o adiantamento</span>
+                  <div className="grid grid-cols-2 gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setEditAdvanceInputMode("value")}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
+                        editAdvanceInputMode === "value"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                      }`}
+                      disabled={isSavingReceivable}
+                    >
+                      Valor
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setEditAdvanceInputMode("percent")}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
+                        editAdvanceInputMode === "percent"
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                      }`}
+                      disabled={isSavingReceivable}
+                    >
+                      %
+                    </button>
+                  </div>
+                  {editAdvanceInputMode === "value" && (
                     <>
                       <input
                         type="number"
@@ -1405,54 +1481,53 @@ export function FreightTab({
                         onChange={(e) => setEditAdvanceAmount(e.target.value)}
                         className="input-field"
                         disabled={isSavingReceivable}
+                        placeholder="Ex.: 3600"
                       />
                       <p className="text-[11px] text-muted-foreground">
                         Valor informado: <span className="font-mono text-foreground">{formatCurrency(Number(editAdvanceAmount || 0))}</span>
                       </p>
                     </>
                   )}
-                  {editReceivablePlanType === "advance_percent" && (
+                  {editAdvanceInputMode === "percent" && (
                     <div className="space-y-2">
                       <input
-                        type="number"
-                        min="0"
-                        max="100"
-                        step="1"
+                        type="text"
                         value={advancePercentage}
                         onChange={(e) => setAdvancePercentage(e.target.value)}
                         className="input-field"
                         disabled={isSavingReceivable}
                         aria-label="Porcentagem do adiantamento"
-                        placeholder="Ex: 80"
+                        placeholder="Ex.: 80, 80% ou 80/20"
                       />
                       <div className="flex flex-wrap gap-2">
-                        {[80, 70, 50].map((pct) => (
+                        {[80, 70, 60].map((pct) => (
                           <button
                             key={pct}
                             type="button"
-                            onClick={() => setAdvancePercentage(String(pct))}
+                            onClick={() => setAdvancePercentage(`${pct}/${100 - pct}`)}
                             className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground min-h-[44px]"
                             disabled={isSavingReceivable}
                           >
-                            {pct}%
+                            {pct}/{100 - pct}
                           </button>
                         ))}
                       </div>
                       {(() => {
-                        const parsedPercentage = Number(advancePercentage.trim());
+                        const parsed = parseAdvancePercentInput(advancePercentage);
                         const grossValue = editingReceivableFreight?.grossValue ?? 0;
-                        const hasValidPreview =
-                          Number.isFinite(parsedPercentage) &&
-                          parsedPercentage >= 0 &&
-                          parsedPercentage <= 100;
-
-                        if (!hasValidPreview) return null;
+                        if (parsed.value === null) {
+                          return (
+                            <p className="text-[11px] text-warning">
+                              {parsed.error}
+                            </p>
+                          );
+                        }
 
                         return (
                           <p className="text-[11px] text-muted-foreground">
-                            {`${parsedPercentage}% de ${formatCurrency(grossValue)} = `}
+                            {`${parsed.value}% de ${formatCurrency(grossValue)} = `}
                             <span className="font-mono text-foreground">
-                              {formatCurrency((grossValue * parsedPercentage) / 100)}
+                              {formatCurrency((grossValue * parsed.value) / 100)}
                             </span>
                           </p>
                         );
@@ -1475,18 +1550,29 @@ export function FreightTab({
               </>
             )}
 
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivablePlanType !== "undefined" && <label className="space-y-1 text-sm text-foreground">
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Canhoto para liberar saldo</span>
-              <select
-                value={editBalanceReleaseMode}
-                onChange={(e) => setEditBalanceReleaseMode(e.target.value as Freight["balanceReleaseMode"])}
-                className="input-field"
-                disabled={isSavingReceivable}
-              >
-                <option value="none">Não precisa de canhoto</option>
-                <option value="proof_photo">Precisa enviar foto do canhoto</option>
-                <option value="physical_proof">Precisa enviar canhoto físico</option>
-              </select>
+              <div className="grid grid-cols-1 gap-2">
+                {([
+                  { value: "none", label: "Canhoto: não precisa" },
+                  { value: "proof_photo", label: "Canhoto: enviar foto" },
+                  { value: "physical_proof", label: "Canhoto: enviar físico" },
+                ] as const).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setEditBalanceReleaseMode(option.value)}
+                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
+                      editBalanceReleaseMode === option.value
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                    }`}
+                    disabled={isSavingReceivable}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </label>}
 
             {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && (
@@ -1504,9 +1590,9 @@ export function FreightTab({
               />
             )}
 
-            {editingReceivableFreight?.status === "completed" && (
+            {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "paid_in_full" && (
               <label className="space-y-1 text-sm text-foreground">
-                <span className="text-xs font-medium text-muted-foreground">Previsão de pagamento</span>
+                <span className="text-xs font-medium text-muted-foreground">Previsão do saldo</span>
                 <input
                   type="date"
                   value={editPaymentDueDate}
@@ -1516,19 +1602,6 @@ export function FreightTab({
                 />
               </label>
             )}
-
-            <label className="space-y-1 text-sm text-foreground">
-              <span className="text-xs font-medium text-muted-foreground">Valor recebido (R$)</span>
-              <input
-                type="number"
-                min="0"
-                step="0.01"
-                value={editAmountReceived}
-                onChange={(e) => setEditAmountReceived(e.target.value)}
-                className="input-field"
-                disabled={isSavingReceivable}
-              />
-            </label>
           </div>
 
           <DialogFooter>
@@ -1652,30 +1725,52 @@ export function FreightTab({
 
             <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Canhoto para liberar saldo</span>
-              <select
-                value={completionBalanceReleaseMode}
-                onChange={(e) => setCompletionBalanceReleaseMode(e.target.value as Freight["balanceReleaseMode"])}
-                className="input-field"
-              >
-                <option value="none">Não precisa</option>
-                <option value="proof_photo">Enviar foto</option>
-                <option value="physical_proof">Enviar físico</option>
-              </select>
+              <div className="grid grid-cols-1 gap-2">
+                {([
+                  { value: "none", label: "Canhoto: não precisa" },
+                  { value: "proof_photo", label: "Canhoto: enviar foto" },
+                  { value: "physical_proof", label: "Canhoto: enviar físico" },
+                ] as const).map((option) => (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => setCompletionBalanceReleaseMode(option.value)}
+                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm ${
+                      completionBalanceReleaseMode === option.value
+                        ? "border-primary bg-primary/10 text-foreground"
+                        : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                    }`}
+                  >
+                    {option.label}
+                  </button>
+                ))}
+              </div>
             </label>
 
             {completionBalanceReleaseMode === "physical_proof" && (
               <label className="space-y-1 text-sm text-foreground">
                 <span className="text-xs font-medium text-muted-foreground">Lembrete de correio (opcional)</span>
-                <select
-                  value={completionMailReminder}
-                  onChange={(e) => setCompletionMailReminder(e.target.value as typeof completionMailReminder)}
-                  className="input-field"
-                >
-                  <option value="off">Não lembrar</option>
-                  <option value="tomorrow">Amanhã</option>
-                  <option value="day_after_tomorrow">Depois de amanhã</option>
-                  <option value="pick_date">Escolher dia</option>
-                </select>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "off", label: "Não lembrar" },
+                    { value: "tomorrow", label: "Amanhã" },
+                    { value: "day_after_tomorrow", label: "Depois de amanhã" },
+                    { value: "pick_date", label: "Escolher dia" },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setCompletionMailReminder(option.value)}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-medium ${
+                        completionMailReminder === option.value
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                      }`}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
                 {completionMailReminder === "pick_date" && (
                   <input
                     type="date"
