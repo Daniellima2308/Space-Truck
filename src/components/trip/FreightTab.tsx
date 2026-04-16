@@ -353,14 +353,12 @@ export function FreightTab({
 
   const getPaymentContextLine = (freight: Freight, remainingBalance: number): string | null => {
     if (freight.status !== "completed" || remainingBalance <= 0) return null;
-    if (!freight.paymentDueDate) return "Sem previsão informada";
     const releaseMode = freight.balanceReleaseMode ?? "none";
     const deliveryProofStatus = freight.deliveryProofStatus ?? "not_required";
-    if (deliveryProofStatus === "confirmed") return null;
-    if (releaseMode !== "none" && releaseMode !== "direct_delivery") {
-      return "Canhoto necessário";
-    }
-    return null;
+    if (deliveryProofStatus === "confirmed") return "Canhoto não necessário";
+    if (releaseMode === "proof_photo") return "Necessário enviar foto do canhoto";
+    if (releaseMode === "physical_proof") return "Necessário enviar canhoto físico";
+    return "Canhoto não necessário";
   };
 
   const resolveDeliveryProofStatus = (
@@ -1065,7 +1063,7 @@ export function FreightTab({
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md bg-secondary/60 p-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
                 Bruto
@@ -1108,14 +1106,40 @@ export function FreightTab({
                 )}
               </div>
             </div>
+            <div className="rounded-md bg-secondary/60 p-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                KM estimado
+              </p>
+              <p className="text-sm font-mono font-bold">
+                {formatNumber(f.estimatedDistance || 0)} km
+              </p>
+            </div>
           </div>
 
+          {f.estimatedDistance <= 0 && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+              <p className="text-xs font-semibold text-foreground">
+                Sem previsão de rota no momento
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Ainda não conseguimos estimar a distância deste trecho. Você pode seguir lançando a viagem normalmente e revisar origem e destino para tentar liberar a previsão.
+              </p>
+              <button
+                type="button"
+                onClick={() => openRouteReviewDialog(f)}
+                className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-border/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-background"
+              >
+                Revisar origem e destino
+              </button>
+            </div>
+          )}
+
           {receivableEnabled && (
-          <div className="rounded-lg border border-border/70 bg-background/80">
+          <div className="rounded-lg border border-border/70 bg-background/70 backdrop-blur-sm">
             <button
               type="button"
               onClick={() => setExpandedReceivableId((current) => (current === f.id ? null : f.id))}
-              className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-left"
+              className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
             >
               <div className="space-y-1">
                 <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1"><FontAwesomeIcon icon={iconReceipt} className="h-3 w-3" /> Recebimento</p>
@@ -1132,7 +1156,7 @@ export function FreightTab({
               </div>
             </button>
             {isReceivableExpanded && (
-              <div className="space-y-2 border-t border-border/60 px-3 py-2">
+              <div className="space-y-2 border-t border-border/60 px-3 py-2.5">
                 <p className="text-xs text-muted-foreground">Forma: <span className="text-foreground">{receivablePlanLabel[uiPlan]}</span></p>
                 {uiPlan === "advance_and_balance" && (
                   <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
@@ -1152,7 +1176,11 @@ export function FreightTab({
                 {isFreightCompleted && f.paymentDueDate && uiPlan !== "paid_in_full" && (
                   <p className="text-xs text-muted-foreground">Previsão do saldo: {formatDate(f.paymentDueDate)}</p>
                 )}
-                {paymentContextLine && <p className="text-xs text-warning">{paymentContextLine}</p>}
+                {paymentContextLine && (
+                  <div className="rounded-md border border-warning/40 bg-warning/10 px-2.5 py-2">
+                    <p className="text-xs font-medium text-warning">{paymentContextLine}</p>
+                  </div>
+                )}
                 {isOpen && (
                   <button
                     onClick={() => openReceivableDialog(f)}
@@ -1165,32 +1193,6 @@ export function FreightTab({
             )}
           </div>
           )}
-
-          <div className="rounded-md bg-secondary/60 p-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-              KM estimado
-            </p>
-            <p className="text-sm font-mono font-bold">
-              {formatNumber(f.estimatedDistance || 0)} km
-            </p>
-            {f.estimatedDistance <= 0 && (
-              <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 p-3">
-                <p className="text-xs font-semibold text-foreground">
-                  Sem previsão de rota no momento
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                  Ainda não conseguimos estimar a distância deste trecho. Você pode seguir lançando a viagem normalmente e revisar origem e destino para tentar liberar a previsão.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => openRouteReviewDialog(f)}
-                  className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-border/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-background"
-                >
-                  Revisar origem e destino
-                </button>
-              </div>
-            )}
-          </div>
 
           {isOpen && (
             <div className="flex flex-wrap gap-2">
@@ -1400,15 +1402,15 @@ export function FreightTab({
         open={!!editingReceivableFreight}
         onOpenChange={(open) => !open && !isSavingReceivable && setEditingReceivableFreight(null)}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="w-[calc(100%-1.5rem)] max-h-[92dvh] gap-0 overflow-hidden p-0 sm:max-w-md">
+          <DialogHeader className="sticky top-0 z-10 border-b border-border/60 bg-background px-4 pb-3 pt-4">
             <DialogTitle>{(editingReceivableFreight?.receivableMode ?? "off") === "basic" ? "Registrar recebimento" : "Painel de recebimento"}</DialogTitle>
             <DialogDescription>
               Área separada para organizar previsão, recebimentos e ajustes sem poluir o card principal.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="space-y-3 overflow-y-auto px-4 py-3">
             <div className="rounded-md border border-border/60 bg-secondary/30 p-2 text-xs text-muted-foreground">
               {editingReceivableFreight && `${editingReceivableFreight.origin} → ${editingReceivableFreight.destination}`}
             </div>
@@ -1604,10 +1606,10 @@ export function FreightTab({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="sticky bottom-0 z-10 border-t border-border/60 bg-background px-4 py-3">
             <button
               type="button"
-              className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
+              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
               onClick={handleSaveReceivable}
               disabled={isSavingReceivable}
             >
