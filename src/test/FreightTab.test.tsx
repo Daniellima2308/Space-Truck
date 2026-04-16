@@ -621,7 +621,7 @@ describe("FreightTab", () => {
     expect(screen.getByText("Pagamento previsto após a descarga")).toBeInTheDocument();
   });
 
-  it("não mostra 'Canhoto necessário' quando modo é entrega direta", () => {
+  it("não mostra aviso de canhoto quando modo é entrega direta", () => {
     render(
       <FreightTab
         trip={{
@@ -645,10 +645,11 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.queryByText("Canhoto necessário")).not.toBeInTheDocument();
+    expect(screen.queryByText("Necessário enviar foto do canhoto")).not.toBeInTheDocument();
+    expect(screen.queryByText("Necessário enviar canhoto físico")).not.toBeInTheDocument();
   });
 
-  it("não mostra 'Canhoto necessário' quando comprovante já está confirmado", () => {
+  it("não mostra aviso de canhoto quando comprovante já está confirmado", () => {
     render(
       <FreightTab
         trip={{
@@ -673,7 +674,37 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.queryByText("Canhoto necessário")).not.toBeInTheDocument();
+    expect(screen.queryByText("Necessário enviar foto do canhoto")).not.toBeInTheDocument();
+    expect(screen.queryByText("Necessário enviar canhoto físico")).not.toBeInTheDocument();
+  });
+
+  it("mostra aviso específico quando saldo depende de foto do canhoto", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              paymentDueDate: "2026-06-01",
+              balanceReleaseMode: "proof_photo",
+              deliveryProofStatus: "pending_send",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByText("Necessário enviar foto do canhoto")).toBeInTheDocument();
   });
 
   it("não envia createdAt nos payloads de UI ao criar frete", async () => {

@@ -357,8 +357,14 @@ export function FreightTab({
     const releaseMode = freight.balanceReleaseMode ?? "none";
     const deliveryProofStatus = freight.deliveryProofStatus ?? "not_required";
     if (deliveryProofStatus === "confirmed") return null;
+    if (releaseMode === "proof_photo") {
+      return "Necessário enviar foto do canhoto";
+    }
+    if (releaseMode === "physical_proof") {
+      return "Necessário enviar canhoto físico";
+    }
     if (releaseMode !== "none" && releaseMode !== "direct_delivery") {
-      return "Canhoto necessário";
+      return "Canhoto não necessário";
     }
     return null;
   };
@@ -1065,7 +1071,7 @@ export function FreightTab({
             )}
           </div>
 
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+          <div className="grid grid-cols-2 gap-2">
             <div className="rounded-md bg-secondary/60 p-2">
               <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
                 Bruto
@@ -1108,89 +1114,89 @@ export function FreightTab({
                 )}
               </div>
             </div>
+            <div className="rounded-md bg-secondary/60 p-2">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
+                KM estimado
+              </p>
+              <p className="text-sm font-mono font-bold">
+                {formatNumber(f.estimatedDistance || 0)} km
+              </p>
+            </div>
           </div>
 
-          {receivableEnabled && (
-          <div className="rounded-lg border border-border/70 bg-background/80">
-            <button
-              type="button"
-              onClick={() => setExpandedReceivableId((current) => (current === f.id ? null : f.id))}
-              className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2 text-left"
-            >
-              <div className="space-y-1">
-                <p className="text-[10px] font-semibold uppercase tracking-wide text-muted-foreground inline-flex items-center gap-1"><FontAwesomeIcon icon={iconReceipt} className="h-3 w-3" /> Recebimento</p>
-                <p className="text-xs text-foreground leading-relaxed">{receivableSummary}</p>
-              </div>
-              <div className="flex items-center gap-2">
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[receivableStatus]}`}
-                >
-                  <FontAwesomeIcon icon={receivableStatus === "received" ? iconCheckCircle2 : iconClock3} className="h-2.5 w-2.5" />
-                  {receivableStatusLabel[receivableStatus]}
-                </span>
-                <FontAwesomeIcon icon={iconChevronDown} className={`h-3 w-3 text-muted-foreground transition-transform ${isReceivableExpanded ? "rotate-180" : ""}`} />
-              </div>
-            </button>
-            {isReceivableExpanded && (
-              <div className="space-y-2 border-t border-border/60 px-3 py-2">
-                <p className="text-xs text-muted-foreground">Forma: <span className="text-foreground">{receivablePlanLabel[uiPlan]}</span></p>
-                {uiPlan === "advance_and_balance" && (
-                  <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
-                )}
-                {uiPlan === "advance_and_balance" && (
-                  <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
-                )}
-                {uiPlan === "paid_on_delivery" && (
-                  <p className="text-xs text-muted-foreground">Saldo liberado após descarga</p>
-                )}
-                {uiPlan === "paid_in_full" && (
-                  <p className="text-xs text-muted-foreground">Frete sem saldo pendente</p>
-                )}
-                {f.payerName && (
-                  <p className="text-xs text-muted-foreground">Quem paga: <span className="text-foreground">{f.payerName}</span></p>
-                )}
-                {isFreightCompleted && f.paymentDueDate && uiPlan !== "paid_in_full" && (
-                  <p className="text-xs text-muted-foreground">Previsão do saldo: {formatDate(f.paymentDueDate)}</p>
-                )}
-                {paymentContextLine && <p className="text-xs text-warning">{paymentContextLine}</p>}
-                {isOpen && (
-                  <button
-                    onClick={() => openReceivableDialog(f)}
-                    className="mt-1 inline-flex min-h-[44px] items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
-                  >
-                    <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Ajustar recebimento"}
-                  </button>
-                )}
-              </div>
-            )}
-          </div>
+          {f.estimatedDistance <= 0 && (
+            <div className="rounded-lg border border-warning/30 bg-warning/10 p-3">
+              <p className="text-xs font-semibold text-foreground">
+                Sem previsão de rota no momento
+              </p>
+              <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
+                Ainda não conseguimos estimar a distância deste trecho. Você pode seguir lançando a viagem normalmente e revisar origem e destino para tentar liberar a previsão.
+              </p>
+              <button
+                type="button"
+                onClick={() => openRouteReviewDialog(f)}
+                className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-border/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-background"
+              >
+                Revisar origem e destino
+              </button>
+            </div>
           )}
 
-          <div className="rounded-md bg-secondary/60 p-2">
-            <p className="text-[10px] text-muted-foreground uppercase tracking-wide">
-              KM estimado
-            </p>
-            <p className="text-sm font-mono font-bold">
-              {formatNumber(f.estimatedDistance || 0)} km
-            </p>
-            {f.estimatedDistance <= 0 && (
-              <div className="mt-2 rounded-lg border border-warning/30 bg-warning/10 p-3">
-                <p className="text-xs font-semibold text-foreground">
-                  Sem previsão de rota no momento
-                </p>
-                <p className="mt-1 text-[11px] leading-relaxed text-muted-foreground">
-                  Ainda não conseguimos estimar a distância deste trecho. Você pode seguir lançando a viagem normalmente e revisar origem e destino para tentar liberar a previsão.
-                </p>
-                <button
-                  type="button"
-                  onClick={() => openRouteReviewDialog(f)}
-                  className="mt-2 inline-flex min-h-[44px] items-center rounded-lg border border-border/70 px-3 py-2 text-xs font-semibold text-foreground transition-colors hover:bg-background"
-                >
-                  Revisar origem e destino
-                </button>
-              </div>
-            )}
-          </div>
+          {receivableEnabled && (
+            <div className="rounded-xl border border-border/70 bg-background/80 shadow-sm">
+              <button
+                type="button"
+                onClick={() => setExpandedReceivableId((current) => (current === f.id ? null : f.id))}
+                className="flex min-h-[44px] w-full items-center justify-between gap-2 px-3 py-2.5 text-left"
+              >
+                <div className="space-y-1">
+                  <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground"><FontAwesomeIcon icon={iconReceipt} className="h-3 w-3" /> Recebimento</p>
+                  <p className="text-xs leading-relaxed text-foreground">{receivableSummary}</p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <span
+                    className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[10px] font-semibold ${receivableStatusClass[receivableStatus]}`}
+                  >
+                    <FontAwesomeIcon icon={receivableStatus === "received" ? iconCheckCircle2 : iconClock3} className="h-2.5 w-2.5" />
+                    {receivableStatusLabel[receivableStatus]}
+                  </span>
+                  <FontAwesomeIcon icon={iconChevronDown} className={`h-3 w-3 text-muted-foreground transition-transform ${isReceivableExpanded ? "rotate-180" : ""}`} />
+                </div>
+              </button>
+              {isReceivableExpanded && (
+                <div className="space-y-2 border-t border-border/60 px-3 py-2.5">
+                  <p className="text-xs text-muted-foreground">Forma: <span className="text-foreground">{receivablePlanLabel[uiPlan]}</span></p>
+                  {uiPlan === "advance_and_balance" && (
+                    <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
+                  )}
+                  {uiPlan === "advance_and_balance" && (
+                    <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
+                  )}
+                  {uiPlan === "paid_on_delivery" && (
+                    <p className="text-xs text-muted-foreground">Saldo liberado após descarga</p>
+                  )}
+                  {uiPlan === "paid_in_full" && (
+                    <p className="text-xs text-muted-foreground">Frete sem saldo pendente</p>
+                  )}
+                  {f.payerName && (
+                    <p className="text-xs text-muted-foreground">Quem paga: <span className="text-foreground">{f.payerName}</span></p>
+                  )}
+                  {isFreightCompleted && f.paymentDueDate && uiPlan !== "paid_in_full" && (
+                    <p className="text-xs text-muted-foreground">Previsão do saldo: {formatDate(f.paymentDueDate)}</p>
+                  )}
+                  {paymentContextLine && <p className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-xs text-warning">{paymentContextLine}</p>}
+                  {isOpen && (
+                    <button
+                      onClick={() => openReceivableDialog(f)}
+                      className="mt-1 inline-flex min-h-[44px] items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
+                    >
+                      <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Ajustar recebimento"}
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          )}
 
           {isOpen && (
             <div className="flex flex-wrap gap-2">
@@ -1400,15 +1406,15 @@ export function FreightTab({
         open={!!editingReceivableFreight}
         onOpenChange={(open) => !open && !isSavingReceivable && setEditingReceivableFreight(null)}
       >
-        <DialogContent className="sm:max-w-md">
-          <DialogHeader>
+        <DialogContent className="bottom-0 top-auto flex h-[92vh] w-[calc(100%-1rem)] max-w-md translate-x-[-50%] translate-y-0 flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none p-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:translate-y-[-50%] sm:rounded-2xl">
+          <DialogHeader className="shrink-0 space-y-1 border-b border-border/60 px-4 py-3 pr-10 text-left">
             <DialogTitle>{(editingReceivableFreight?.receivableMode ?? "off") === "basic" ? "Registrar recebimento" : "Painel de recebimento"}</DialogTitle>
             <DialogDescription>
               Área separada para organizar previsão, recebimentos e ajustes sem poluir o card principal.
             </DialogDescription>
           </DialogHeader>
 
-          <div className="space-y-3">
+          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
             <div className="rounded-md border border-border/60 bg-secondary/30 p-2 text-xs text-muted-foreground">
               {editingReceivableFreight && `${editingReceivableFreight.origin} → ${editingReceivableFreight.destination}`}
             </div>
@@ -1440,7 +1446,7 @@ export function FreightTab({
               </div>
             </label>
 
-            {(editingReceivableFreight?.receivableMode ?? "off") !== "off" && (
+            {(editingReceivableFreight?.receivableMode ?? "off") !== "off" && editReceivableUiPlan !== "undefined" && (
               <>
                 {editReceivableUiPlan === "advance_and_balance" && (
                 <label className="space-y-1 text-sm text-foreground">
@@ -1575,7 +1581,7 @@ export function FreightTab({
               </div>
             </label>}
 
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && (
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
               <QuickBalanceAdjustmentSection
                 expanded={showQuickAdjustment}
                 onExpand={() => setShowQuickAdjustment(true)}
@@ -1590,7 +1596,7 @@ export function FreightTab({
               />
             )}
 
-            {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "paid_in_full" && (
+            {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
               <label className="space-y-1 text-sm text-foreground">
                 <span className="text-xs font-medium text-muted-foreground">Previsão do saldo</span>
                 <input
@@ -1604,10 +1610,10 @@ export function FreightTab({
             )}
           </div>
 
-          <DialogFooter>
+          <DialogFooter className="shrink-0 border-t border-border/60 px-4 py-3 sm:flex-col sm:space-x-0">
             <button
               type="button"
-              className="rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
+              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
               onClick={handleSaveReceivable}
               disabled={isSavingReceivable}
             >
