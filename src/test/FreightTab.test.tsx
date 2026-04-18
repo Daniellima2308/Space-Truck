@@ -267,6 +267,9 @@ describe("FreightTab", () => {
     const getNormalizedGross = () =>
       (grossInput as HTMLInputElement).value.replace(/\u00a0/g, " ");
 
+    expect(getNormalizedGross()).toBe("");
+
+    fireEvent.focus(grossInput);
     expect(getNormalizedGross()).toBe("R$ 0,00");
 
     fireEvent.change(grossInput, { target: { value: "2" } });

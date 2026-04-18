@@ -1960,9 +1960,19 @@ export function FreightTab({
                 ref={grossInputRef}
                 type="text"
                 inputMode="decimal"
-                value={gross || "R$ 0,00"}
+                value={gross}
                 onChange={(e) => handleGrossInputChange(e.target.value)}
-                onFocus={moveGrossCaretToEnd}
+                onFocus={() => {
+                  if (!gross.trim()) {
+                    setGross(formatCurrency(0));
+                  }
+                  requestAnimationFrame(moveGrossCaretToEnd);
+                }}
+                onBlur={() => {
+                  if (parseCurrencyInputValue(gross) <= 0) {
+                    setGross("");
+                  }
+                }}
                 className="input-field"
                 disabled={isSubmitting}
               />
