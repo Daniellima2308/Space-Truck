@@ -12,6 +12,69 @@ import { buildCompleteFreightSummary, buildShortFreightSummary, calculateEta, ge
 import { FontAwesomeIcon, iconArrowLeft, iconCopy, iconMapPin, iconDollarSign, iconGauge, iconTruck, iconAlertTriangle, iconTrendingUp, iconCalculator, iconRoute, iconScale, iconShare2, iconMessageCircle } from "@/lib/icons";
 import type { IconDefinition } from "@/lib/icons";
 
+const BRL_CURRENCY_FORMATTER = new Intl.NumberFormat("pt-BR", {
+  style: "currency",
+  currency: "BRL",
+  minimumFractionDigits: 2,
+  maximumFractionDigits: 2,
+});
+
+function formatCurrencyMaskInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  const cents = Number(digits) / 100;
+  return BRL_CURRENCY_FORMATTER.format(cents);
+}
+
+function parseCurrencyMaskInput(value: string): number {
+  if (!value.trim()) return 0;
+  const sanitized = value.replace(/\s/g, "").replace(/R\$/gi, "").replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+  const parsed = Number(sanitized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatKmIntegerInput(value: string): string {
+  const digits = value.replace(/\D/g, "");
+  if (!digits) return "";
+  return new Intl.NumberFormat("pt-BR", { maximumFractionDigits: 0 }).format(Number(digits));
+}
+
+function parseKmIntegerInput(value: string): number {
+  if (!value.trim()) return 0;
+  const digits = value.replace(/\D/g, "");
+  return digits ? Number(digits) : 0;
+}
+
+function formatDecimalPtBrInput(value: string, maxDecimals = 2): string {
+  const sanitized = value.replace(/[^\d,.]/g, "").replace(/\./g, ",");
+  if (!sanitized) return "";
+  const [integerPartRaw = "", decimalRaw = ""] = sanitized.split(",");
+  const integerDigits = integerPartRaw.replace(/\D/g, "");
+  const decimalDigits = decimalRaw.replace(/\D/g, "").slice(0, maxDecimals);
+  if (!integerDigits && !decimalDigits) return "";
+  if (sanitized.includes(",")) {
+    return `${integerDigits || "0"},${decimalDigits}`;
+  }
+  return integerDigits;
+}
+
+function parseDecimalPtBrInput(value: string): number {
+  if (!value.trim()) return 0;
+  const normalized = value.replace(/\./g, "").replace(",", ".").replace(/[^\d.-]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+}
+
+function formatPercentInput(value: string): string {
+  return formatDecimalPtBrInput(value, 1);
+}
+
+function parsePercentInput(value: string): number {
+  const parsed = parseDecimalPtBrInput(value);
+  if (!Number.isFinite(parsed)) return 0;
+  return Math.min(100, Math.max(0, parsed));
+}
+
 // Tabela ANTT - Resolução Nº 6.076/2026
 const tabelaANTT2026: Record<string, Record<number, { ccd: number; cc: number }>> = {
   'Carga Geral': {
@@ -143,25 +206,37 @@ const FreightAnalysisPage = () => {
   // Form state
   const [origin, setOrigin] = useState("");
   const [destination, setDestination] = useState("");
-  const [distanceKm, setDistanceKm] = useState<number>(0);
+  const [distanceKmInput, setDistanceKmInput] = useState("");
   const [loadingRoute, setLoadingRoute] = useState(false);
-  const [offeredValue, setOfferedValue] = useState<number>(0);
-  const [commissionPercent, setCommissionPercent] = useState<number>(17);
-  const [dieselPrice, setDieselPrice] = useState<number>(0);
-  const [avgKmPerLiter, setAvgKmPerLiter] = useState<number>(0);
+  const [offeredValueInput, setOfferedValueInput] = useState("");
+  const [commissionPercentInput, setCommissionPercentInput] = useState("17");
+  const [dieselPriceInput, setDieselPriceInput] = useState("");
+  const [avgKmPerLiterInput, setAvgKmPerLiterInput] = useState("");
   const [cargoType, setCargoType] = useState("geral");
   const [axles, setAxles] = useState<number>(3);
-  const [tollCost, setTollCost] = useState<number>(0);
+  const [tollCostInput, setTollCostInput] = useState("");
   const [tollManuallyEdited, setTollManuallyEdited] = useState(false);
   const [loadingToll, setLoadingToll] = useState(false);
   const [tollSource, setTollSource] = useState<"api" | "estimate" | "manual">("estimate");
   const [incluiCargaDescarga, setIncluiCargaDescarga] = useState(true);
   const [valePedagio, setValePedagio] = useState(false);
-  const [avgSpeedKmH, setAvgSpeedKmH] = useState<number>(65);
+  const [avgSpeedInput, setAvgSpeedInput] = useState("");
+  const [isAvgSpeedFocused, setIsAvgSpeedFocused] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [summaryMode, setSummaryMode] = useState<"short" | "complete">("short");
   const routeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const coordsRef = useRef<{ originLat: number; originLng: number; destLat: number; destLng: number } | null>(null);
+  const distanceKm = useMemo(() => parseKmIntegerInput(distanceKmInput), [distanceKmInput]);
+  const offeredValue = useMemo(() => parseCurrencyMaskInput(offeredValueInput), [offeredValueInput]);
+  const commissionPercent = useMemo(() => parsePercentInput(commissionPercentInput), [commissionPercentInput]);
+  const dieselPrice = useMemo(() => parseCurrencyMaskInput(dieselPriceInput), [dieselPriceInput]);
+  const avgKmPerLiter = useMemo(() => parseDecimalPtBrInput(avgKmPerLiterInput), [avgKmPerLiterInput]);
+  const tollCost = useMemo(() => parseCurrencyMaskInput(tollCostInput), [tollCostInput]);
+  const avgSpeedKmH = useMemo(() => {
+    const digits = avgSpeedInput.replace(/\D/g, "");
+    if (!digits) return 65;
+    return Math.min(130, Math.max(1, Number(digits)));
+  }, [avgSpeedInput]);
 
   // Auto-calculate distance when both cities are selected (contain " - ")
   const calcRoute = useCallback(async (o: string, d: string) => {
@@ -169,7 +244,7 @@ const FreightAnalysisPage = () => {
     setLoadingRoute(true);
     const result = await getRouteInfo(o, d);
     if (result) {
-      setDistanceKm(result.distanceKm);
+      setDistanceKmInput(formatKmIntegerInput(String(result.distanceKm)));
       coordsRef.current = {
         originLat: result.originCoords.lat,
         originLng: result.originCoords.lon,
@@ -204,11 +279,12 @@ const FreightAnalysisPage = () => {
       if (cancelled) return;
 
       if (apiToll !== null && apiToll > 0) {
-        setTollCost(apiToll);
+        setTollCostInput(BRL_CURRENCY_FORMATTER.format(apiToll));
         setTollSource("api");
       } else {
         // Fallback to estimate
-        setTollCost(estimateToll(distanceKm, axles));
+        const estimatedToll = estimateToll(distanceKm, axles);
+        setTollCostInput(BRL_CURRENCY_FORMATTER.format(estimatedToll));
         setTollSource("estimate");
       }
       setLoadingToll(false);
@@ -329,10 +405,10 @@ const FreightAnalysisPage = () => {
               </label>
               <div className="flex items-center gap-2">
                 <input
-                  type="number"
+                  type="text"
                   inputMode="numeric"
-                  value={distanceKm || ""}
-                  onChange={(e) => setDistanceKm(Number(e.target.value))}
+                  value={distanceKmInput}
+                  onChange={(e) => setDistanceKmInput(formatKmIntegerInput(e.target.value))}
                   placeholder="Automático ou manual"
                   className="input-field"
                 />
@@ -354,6 +430,9 @@ const FreightAnalysisPage = () => {
                   {isAwaitingDistance && (
                     <p className="text-[11px] text-muted-foreground mt-1">Aguardando distância para calcular.</p>
                   )}
+                  <p className="text-[11px] text-muted-foreground mt-1">
+                    O app calcula automático pela rota. Se preferir, você pode informar o KM manualmente.
+                  </p>
                 </div>
               )}
             </div>
@@ -370,23 +449,22 @@ const FreightAnalysisPage = () => {
               <div>
                 <label className="text-xs text-muted-foreground">Valor do Frete (R$)</label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  value={offeredValue || ""}
-                  onChange={(e) => setOfferedValue(Number(e.target.value))}
-                  placeholder="0,00"
+                  value={offeredValueInput}
+                  onChange={(e) => setOfferedValueInput(formatCurrencyMaskInput(e.target.value))}
+                  placeholder="Ex: R$ 4.500,00"
                   className="input-field"
                 />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Comissão (%)</label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.5"
-                  value={commissionPercent || ""}
-                  onChange={(e) => setCommissionPercent(Number(e.target.value))}
+                  value={commissionPercentInput}
+                  onChange={(e) => setCommissionPercentInput(formatPercentInput(e.target.value))}
+                  placeholder="comissão do motorista ou sua retirada"
                   className="input-field"
                 />
               </div>
@@ -401,17 +479,20 @@ const FreightAnalysisPage = () => {
                   )}
                 </label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  value={tollCost || ""}
+                  value={tollCostInput}
                   onChange={(e) => {
                     setTollManuallyEdited(true);
-                    setTollCost(Number(e.target.value));
+                    setTollSource("manual");
+                    setTollCostInput(formatCurrencyMaskInput(e.target.value));
                   }}
-                  placeholder="0,00"
+                  placeholder="Ex: R$ 350,00"
                   className="input-field"
                 />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  O pedágio pode ser calculado automaticamente com base na origem e destino.
+                </p>
                 {tollManuallyEdited && (
                   <button
                     type="button"
@@ -446,22 +527,20 @@ const FreightAnalysisPage = () => {
               <div>
                 <label className="text-xs text-muted-foreground">Diesel (R$/L)</label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.01"
-                  value={dieselPrice || ""}
-                  onChange={(e) => setDieselPrice(Number(e.target.value))}
+                  value={dieselPriceInput}
+                  onChange={(e) => setDieselPriceInput(formatDecimalPtBrInput(e.target.value, 2))}
                   className="input-field" placeholder="Ex: 5,55"
                 />
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Média (KM/L)</label>
                 <input
-                  type="number"
+                  type="text"
                   inputMode="decimal"
-                  step="0.1"
-                  value={avgKmPerLiter || ""}
-                  onChange={(e) => setAvgKmPerLiter(Number(e.target.value))}
+                  value={avgKmPerLiterInput}
+                  onChange={(e) => setAvgKmPerLiterInput(formatDecimalPtBrInput(e.target.value, 2))}
                   className="input-field" placeholder="Ex: 3,5"
                 />
               </div>
@@ -483,20 +562,30 @@ const FreightAnalysisPage = () => {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Velocidade média (km/h)</label>
-                <input
-                  type="number"
-                  min={1}
-                  max={130}
-                  inputMode="numeric"
-                  value={avgSpeedKmH || ""}
-                  onChange={(e) => {
-                    const nextSpeed = Number(e.target.value);
-                    if (Number.isNaN(nextSpeed)) return;
-                    setAvgSpeedKmH(Math.min(130, Math.max(1, nextSpeed)));
-                  }}
-                  className="input-field"
-                  placeholder="Ex: 65"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="numeric"
+                    value={avgSpeedInput}
+                    onFocus={() => setIsAvgSpeedFocused(true)}
+                    onBlur={() => setIsAvgSpeedFocused(false)}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      if (!digits) {
+                        setAvgSpeedInput("");
+                        return;
+                      }
+                      setAvgSpeedInput(String(Math.min(130, Math.max(1, Number(digits)))));
+                    }}
+                    className="input-field pr-14"
+                    placeholder="65 km/h"
+                  />
+                  {(isAvgSpeedFocused || !!avgSpeedInput) && (
+                    <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-xs font-medium text-muted-foreground">
+                      km/h
+                    </span>
+                  )}
+                </div>
               </div>
             </div>
             <div className="flex items-center justify-between pt-1">
