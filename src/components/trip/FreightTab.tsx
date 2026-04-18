@@ -61,6 +61,23 @@ function QuickBalanceAdjustmentSection({
   disabled = false,
   showOptionalTitle = false,
 }: QuickBalanceAdjustmentSectionProps) {
+  const handleAmountInputChange = (value: string) => {
+    if (value.trim() === "") {
+      onChangeAmount("");
+      return;
+    }
+    const normalized = value
+      .replace(/[^\d,.-]/g, "")
+      .replace(/\.(?=.*\.)/g, "")
+      .replace(",", ".");
+    const parsed = Number(normalized);
+    if (!Number.isFinite(parsed) || parsed < 0) {
+      onChangeAmount(value);
+      return;
+    }
+    onChangeAmount(formatCurrency(parsed));
+  };
+
   return (
     <div className="rounded-md border border-border/70 p-2 space-y-2">
       {!expanded ? (
@@ -82,7 +99,7 @@ function QuickBalanceAdjustmentSection({
               <button
                 type="button"
                 onClick={() => onChangeType("discount")}
-                className={`min-h-[44px] rounded-md border px-2 py-2 text-xs font-semibold ${
+                className={`min-h-[44px] rounded-md border px-2 py-2 text-center text-xs font-semibold inline-flex items-center justify-center whitespace-nowrap ${
                   adjustmentType === "discount"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border text-muted-foreground"
@@ -94,7 +111,7 @@ function QuickBalanceAdjustmentSection({
               <button
                 type="button"
                 onClick={() => onChangeType("increase")}
-                className={`min-h-[44px] rounded-md border px-2 py-2 text-xs font-semibold ${
+                className={`min-h-[44px] rounded-md border px-2 py-2 text-center text-xs font-semibold inline-flex items-center justify-center whitespace-nowrap ${
                   adjustmentType === "increase"
                     ? "border-primary bg-primary/10 text-foreground"
                     : "border-border text-muted-foreground"
@@ -105,12 +122,11 @@ function QuickBalanceAdjustmentSection({
               </button>
             </div>
             <input
-              type="number"
-              min="0"
-              step="0.01"
-              placeholder="Valor"
+              type="text"
+              inputMode="decimal"
+              placeholder="R$ 0,00"
               value={adjustmentAmount}
-              onChange={(e) => onChangeAmount(e.target.value)}
+              onChange={(e) => handleAmountInputChange(e.target.value)}
               className="input-field"
               aria-label="Valor do ajuste"
               disabled={disabled}
@@ -246,6 +262,15 @@ export function FreightTab({
   const [isDeletingFreight, setIsDeletingFreight] = useState(false);
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
+
+  const parseCurrencyInputValue = (value: string): number => {
+    if (!value.trim()) return 0;
+    const normalized = value
+      .replace(/[^\d,.-]/g, "")
+      .replace(/\.(?=.*\.)/g, "")
+      .replace(",", ".");
+    return Number(normalized);
+  };
 
   const defaultCommission = useMemo(
     () => getDefaultCommissionPercentForVehicle(vehicle),
@@ -676,7 +701,7 @@ export function FreightTab({
   const handleSaveCompletionForecast = async () => {
     if (!postCompletionForecastFreight || isSavingCompletionForecast) return;
     const latestFreight = getLatestFreight(postCompletionForecastFreight.id) ?? postCompletionForecastFreight;
-    const parsedAdjustmentAmount = Number(completionQuickAdjustmentAmount || 0);
+    const parsedAdjustmentAmount = parseCurrencyInputValue(completionQuickAdjustmentAmount);
     if (
       completionQuickAdjustmentAmount.trim() &&
       (!Number.isFinite(parsedAdjustmentAmount) || parsedAdjustmentAmount <= 0)
@@ -906,7 +931,7 @@ export function FreightTab({
     setShowQuickAdjustment(true);
     setEditingQuickAdjustmentIndex(adjustmentIndex);
     setQuickAdjustmentType(adjustment.type);
-    setQuickAdjustmentAmount(String(adjustment.amount));
+    setQuickAdjustmentAmount(formatCurrency(adjustment.amount));
     setQuickAdjustmentNote(adjustment.note ?? "");
   };
 
@@ -924,7 +949,7 @@ export function FreightTab({
   };
 
   const handleApplyQuickAdjustmentDraft = () => {
-    const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
+    const parsedQuickAdjustmentAmount = parseCurrencyInputValue(quickAdjustmentAmount);
     if (!Number.isFinite(parsedQuickAdjustmentAmount) || parsedQuickAdjustmentAmount <= 0) {
       toast({
         title: "Ajuste no saldo inválido",

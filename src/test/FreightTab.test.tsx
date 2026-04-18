@@ -1713,7 +1713,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
     await screen.findByText("Pós-entrega do recebimento");
     fireEvent.click(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
-    fireEvent.change(screen.getByLabelText("Valor do ajuste"), { target: { value: "25" } });
+    fireEvent.change(screen.getByLabelText("Valor do ajuste"), { target: { value: "R$ 25,00" } });
     fireEvent.change(screen.getByLabelText("Observação do ajuste"), { target: { value: "Taxa extra" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
 
