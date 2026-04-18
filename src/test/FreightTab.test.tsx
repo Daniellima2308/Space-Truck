@@ -89,6 +89,7 @@ function makeFreight(
 describe("FreightTab", () => {
   beforeEach(() => {
     toastMock.mockReset();
+    window.localStorage.clear();
   });
 
   afterEach(() => {
@@ -681,8 +682,118 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText(/Saldo R\$\s*800,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo reajustado R\$\s*800,00/)).toBeInTheDocument();
     expect(screen.queryByText(/Saldo R\$\s*0,00/)).not.toBeInTheDocument();
+  });
+
+  it("mostra história do saldo com ajuste aplicado no card de recebimento", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+              balanceAdjustments: [{ type: "discount", amount: 100 }],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.getByText(/Saldo R\$\s*900,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Desconto de R\$\s*100,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo reajustado R\$\s*800,00/)).toBeInTheDocument();
+  });
+
+  it("permite excluir ajuste já lançado no painel e salva sem o item removido", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+              balanceAdjustments: [{ type: "discount", amount: 100, note: "Avaria" }],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento/i }));
+    const dialog = await screen.findByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Excluir ajuste" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          balanceAdjustments: [],
+        }),
+      );
+    });
+  });
+
+  it("mostra lembrete de correio ativo no recebimento quando salvo localmente", () => {
+    window.localStorage.setItem(
+      "space-truck:freight-mail-reminders:v1",
+      JSON.stringify({
+        "f-1": { choice: "tomorrow" },
+      }),
+    );
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "paid_on_delivery",
+              paymentDueDate: "2026-05-01",
+              balanceReleaseMode: "physical_proof",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByText(/Lembrete de correio:/)).toBeInTheDocument();
+    expect(screen.getByText("amanhã")).toBeInTheDocument();
   });
 
   it("não mostra aviso de canhoto quando modo é entrega direta", () => {
@@ -1420,7 +1531,7 @@ describe("FreightTab", () => {
     });
   });
 
-  it("mostra toast de lembrete como temporário na sessão (sem prometer persistência)", async () => {
+  it("salva lembrete de correio local para revisão posterior", async () => {
     const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
 
@@ -1458,12 +1569,9 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
 
     await waitFor(() => {
-      expect(toastMock).toHaveBeenCalledWith(
-        expect.objectContaining({
-          title: "Lembrete visual desta sessão",
-          description: expect.stringContaining("somente nesta sessão"),
-        }),
-      );
+      const stored = window.localStorage.getItem("space-truck:freight-mail-reminders:v1");
+      expect(stored).toContain("\"f-1\"");
+      expect(stored).toContain("\"choice\":\"tomorrow\"");
     });
   });
 

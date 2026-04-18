@@ -8,6 +8,8 @@ import {
   getFreightRemainingBalance,
   getFreightAdvanceReceived,
   getFreightAdjustedBalance,
+  getFreightPlannedBalance,
+  getFreightAdjustmentsNet,
   getFreightAmountReceivedForSettlement,
   getFreightReceivableTarget,
   type FreightReceivableBadgeState,
@@ -158,6 +160,15 @@ interface FreightTabProps {
 
 type ReceivableUiPlan = "undefined" | "advance_and_balance" | "paid_in_full" | "paid_on_delivery";
 type AdvanceInputMode = "value" | "percent";
+type MailReminderChoice = "off" | "tomorrow" | "day_after_tomorrow" | "pick_date";
+type ActiveMailReminderChoice = Exclude<MailReminderChoice, "off">;
+
+interface FreightMailReminder {
+  choice: ActiveMailReminderChoice;
+  date?: string;
+}
+
+const FREIGHT_MAIL_REMINDER_STORAGE_KEY = "space-truck:freight-mail-reminders:v1";
 
 export function FreightTab({
   trip,
@@ -207,6 +218,10 @@ export function FreightTab({
   const [quickAdjustmentType, setQuickAdjustmentType] = useState<"discount" | "increase">("discount");
   const [quickAdjustmentAmount, setQuickAdjustmentAmount] = useState("");
   const [quickAdjustmentNote, setQuickAdjustmentNote] = useState("");
+  const [editingQuickAdjustmentIndex, setEditingQuickAdjustmentIndex] = useState<number | null>(null);
+  const [draftBalanceAdjustments, setDraftBalanceAdjustments] = useState<Freight["balanceAdjustments"]>([]);
+  const [editMailReminderChoice, setEditMailReminderChoice] = useState<MailReminderChoice>("off");
+  const [editMailReminderDate, setEditMailReminderDate] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isFinishingFreight, setIsFinishingFreight] = useState(false);
   const [isSavingKm, setIsSavingKm] = useState(false);
@@ -216,7 +231,7 @@ export function FreightTab({
   const [postCompletionForecastFreight, setPostCompletionForecastFreight] = useState<Freight | null>(null);
   const [completionForecastDate, setCompletionForecastDate] = useState("");
   const [completionBalanceReleaseMode, setCompletionBalanceReleaseMode] = useState<Freight["balanceReleaseMode"]>("none");
-  const [completionMailReminder, setCompletionMailReminder] = useState<"off" | "tomorrow" | "day_after_tomorrow" | "pick_date">("off");
+  const [completionMailReminder, setCompletionMailReminder] = useState<MailReminderChoice>("off");
   const [completionMailReminderDate, setCompletionMailReminderDate] = useState("");
   const [completionShowQuickAdjustment, setCompletionShowQuickAdjustment] = useState(false);
   const [completionQuickAdjustmentType, setCompletionQuickAdjustmentType] = useState<"discount" | "increase">("discount");
@@ -229,6 +244,7 @@ export function FreightTab({
   const [isHandingOffFreight, setIsHandingOffFreight] = useState(false);
   const [freightToDelete, setFreightToDelete] = useState<Freight | null>(null);
   const [isDeletingFreight, setIsDeletingFreight] = useState(false);
+  const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
 
   const defaultCommission = useMemo(
@@ -268,6 +284,19 @@ export function FreightTab({
     const found = trip.freights.find((freight) => freight.id === postCreateFreightId);
     if (found) setPostCreateModeFreight(found);
   }, [postCreateFreightId, postCreateModeFreight, trip.freights]);
+
+  useEffect(() => {
+    setMailReminderByFreight(getMailRemindersFromStorage());
+  }, []);
+
+  const persistMailReminderState = (nextState: Record<string, FreightMailReminder>) => {
+    setMailReminderByFreight(nextState);
+    if (typeof window === "undefined") return;
+    window.localStorage.setItem(
+      FREIGHT_MAIL_REMINDER_STORAGE_KEY,
+      JSON.stringify(nextState),
+    );
+  };
 
   const statusClassByFreight: Record<Freight["status"], string> = {
     planned: "bg-secondary text-muted-foreground border-border",
@@ -325,6 +354,38 @@ export function FreightTab({
     return Number(percentage.toFixed(2)).toString();
   };
 
+  const getMailRemindersFromStorage = (): Record<string, FreightMailReminder> => {
+    if (typeof window === "undefined") return {};
+    try {
+      const rawValue = window.localStorage.getItem(FREIGHT_MAIL_REMINDER_STORAGE_KEY);
+      if (!rawValue) return {};
+      const parsed = JSON.parse(rawValue) as Record<string, FreightMailReminder>;
+      if (!parsed || typeof parsed !== "object") return {};
+      return Object.entries(parsed).reduce<Record<string, FreightMailReminder>>((acc, [freightId, reminder]) => {
+        if (!reminder || typeof reminder !== "object") return acc;
+        if (reminder.choice !== "tomorrow" && reminder.choice !== "day_after_tomorrow" && reminder.choice !== "pick_date") return acc;
+        acc[freightId] = {
+          choice: reminder.choice,
+          date: typeof reminder.date === "string" ? reminder.date : undefined,
+        };
+        return acc;
+      }, {});
+    } catch {
+      return {};
+    }
+  };
+
+  const getMailReminderLabel = (reminder: FreightMailReminder | undefined): string | null => {
+    if (!reminder) return null;
+    if (reminder.choice === "tomorrow") return "amanhã";
+    if (reminder.choice === "day_after_tomorrow") return "depois de amanhã";
+    if (reminder.choice === "pick_date") {
+      if (!reminder.date) return "data não definida";
+      return formatDate(reminder.date);
+    }
+    return null;
+  };
+
   const receivablePlanLabel: Record<ReceivableUiPlan, string> = {
     undefined: "Não definido",
     advance_and_balance: "Adiantamento e saldo",
@@ -348,7 +409,12 @@ export function FreightTab({
     return "undefined";
   };
 
-  const buildReceivableSummary = (freight: Freight, historicalBalance: number): string[] => {
+  const buildReceivableSummary = (
+    freight: Freight,
+    originalBalance: number,
+    adjustedBalance: number,
+    adjustmentsNet: number,
+  ): string[] => {
     const uiPlan = getUiPlanFromPlanType(freight.receivablePlanType ?? "undefined");
     if (uiPlan === "undefined") return ["Sem configuração de recebimento"];
     if (uiPlan === "paid_in_full") return ["Frete pago por inteiro"];
@@ -359,10 +425,23 @@ export function FreightTab({
           ? "Pagamento previsto após a descarga"
           : "Pagamento após descarga"];
     }
-    return [
+    const lines = [
       `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)}`,
-      `Saldo ${formatCurrency(historicalBalance)}`,
+      `Saldo ${formatCurrency(originalBalance)}`,
     ];
+    if (adjustmentsNet !== 0) {
+      const adjustmentCount = Array.isArray(freight.balanceAdjustments) ? freight.balanceAdjustments.length : 0;
+      if (adjustmentCount === 1 && freight.balanceAdjustments?.[0]) {
+        const latestAdjustment = freight.balanceAdjustments[0];
+        lines.push(
+          `${latestAdjustment.type === "discount" ? "Desconto" : "Acréscimo"} de ${formatCurrency(latestAdjustment.amount)}`,
+        );
+      } else {
+        lines.push(`Ajustes (${adjustmentCount}) ${adjustmentsNet > 0 ? "+" : "-"}${formatCurrency(Math.abs(adjustmentsNet))}`);
+      }
+      lines.push(`Saldo reajustado ${formatCurrency(adjustedBalance)}`);
+    }
+    return lines;
   };
 
   const getPaymentContextLine = (freight: Freight, remainingBalance: number): string | null => {
@@ -577,8 +656,9 @@ export function FreightTab({
       if (isReceivableActive) {
         setCompletionForecastDate(latestFreight.paymentDueDate ?? "");
         setCompletionBalanceReleaseMode(normalizeBalanceReleaseMode(latestFreight.balanceReleaseMode));
-        setCompletionMailReminder("off");
-        setCompletionMailReminderDate("");
+        const existingReminder = mailReminderByFreight[latestFreight.id];
+        setCompletionMailReminder(existingReminder?.choice ?? "off");
+        setCompletionMailReminderDate(existingReminder?.date ?? "");
         setCompletionShowQuickAdjustment(false);
         setCompletionQuickAdjustmentType("discount");
         setCompletionQuickAdjustmentAmount("");
@@ -614,6 +694,14 @@ export function FreightTab({
       });
       return;
     }
+    if (completionMailReminder === "pick_date" && !completionMailReminderDate) {
+      toast({
+        title: "Lembrete de correio incompleto",
+        description: "Escolha uma data para salvar esse lembrete.",
+        variant: "destructive",
+      });
+      return;
+    }
     const nextAdjustments = Array.isArray(latestFreight.balanceAdjustments)
       ? [...latestFreight.balanceAdjustments]
       : [];
@@ -645,14 +733,16 @@ export function FreightTab({
         receivableMode: latestFreight.receivableMode,
         commissionPercent: latestFreight.commissionPercent,
       });
-      if (completionBalanceReleaseMode === "physical_proof" && completionMailReminder !== "off") {
-        toast({
-          title: "Lembrete visual desta sessão",
-          description:
-            completionMailReminder === "pick_date" && completionMailReminderDate
-              ? `Lembrete visual local para ${formatDate(completionMailReminderDate)} (somente nesta sessão). Ele não fica salvo após recarregar a página.`
-              : "Lembrete visual local ativado (somente nesta sessão). Ele não fica salvo após recarregar a página.",
-          variant: "notice",
+      if (completionMailReminder === "off") {
+        const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
+        persistMailReminderState(nextState);
+      } else {
+        persistMailReminderState({
+          ...mailReminderByFreight,
+          [latestFreight.id]: {
+            choice: completionMailReminder,
+            date: completionMailReminder === "pick_date" ? completionMailReminderDate || undefined : undefined,
+          },
         });
       }
       setPostCompletionForecastFreight(null);
@@ -803,6 +893,70 @@ export function FreightTab({
     setQuickAdjustmentType("discount");
     setQuickAdjustmentAmount("");
     setQuickAdjustmentNote("");
+    setEditingQuickAdjustmentIndex(null);
+    setDraftBalanceAdjustments(
+      Array.isArray(freight.balanceAdjustments) ? [...freight.balanceAdjustments] : [],
+    );
+    const existingReminder = mailReminderByFreight[freight.id];
+    setEditMailReminderChoice(existingReminder?.choice ?? "off");
+    setEditMailReminderDate(existingReminder?.date ?? "");
+  };
+
+  const handleEditAdjustment = (adjustmentIndex: number) => {
+    const adjustment = draftBalanceAdjustments?.[adjustmentIndex];
+    if (!adjustment) return;
+    setShowQuickAdjustment(true);
+    setEditingQuickAdjustmentIndex(adjustmentIndex);
+    setQuickAdjustmentType(adjustment.type);
+    setQuickAdjustmentAmount(String(adjustment.amount));
+    setQuickAdjustmentNote(adjustment.note ?? "");
+  };
+
+  const handleDeleteAdjustment = (adjustmentIndex: number) => {
+    setDraftBalanceAdjustments((current) =>
+      (current ?? []).filter((_, index) => index !== adjustmentIndex),
+    );
+    if (editingQuickAdjustmentIndex === adjustmentIndex) {
+      setEditingQuickAdjustmentIndex(null);
+      setQuickAdjustmentAmount("");
+      setQuickAdjustmentNote("");
+      setQuickAdjustmentType("discount");
+      setShowQuickAdjustment(false);
+    }
+  };
+
+  const handleApplyQuickAdjustmentDraft = () => {
+    const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
+    if (!Number.isFinite(parsedQuickAdjustmentAmount) || parsedQuickAdjustmentAmount <= 0) {
+      toast({
+        title: "Ajuste no saldo inválido",
+        description: "Use um valor maior que zero para desconto ou acréscimo.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setDraftBalanceAdjustments((current) => {
+      const base = Array.isArray(current) ? [...current] : [];
+      const nextValue = {
+        type: quickAdjustmentType,
+        amount: parsedQuickAdjustmentAmount,
+        note: quickAdjustmentNote.trim() || undefined,
+      };
+
+      if (editingQuickAdjustmentIndex !== null && base[editingQuickAdjustmentIndex]) {
+        base[editingQuickAdjustmentIndex] = nextValue;
+        return base;
+      }
+      base.push(nextValue);
+      return base;
+    });
+
+    setEditingQuickAdjustmentIndex(null);
+    setShowQuickAdjustment(false);
+    setQuickAdjustmentType("discount");
+    setQuickAdjustmentAmount("");
+    setQuickAdjustmentNote("");
   };
 
   const persistReceivable = async (options?: { settleRemaining?: boolean }) => {
@@ -860,7 +1014,6 @@ export function FreightTab({
       }
       return parsedAmountReceived;
     })();
-    const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
     if (!Number.isFinite(normalizedAmountReceived) || normalizedAmountReceived < 0) {
       toast({
         title: "Valor recebido inválido",
@@ -885,29 +1038,17 @@ export function FreightTab({
       });
       return;
     }
-    if (
-      quickAdjustmentAmount.trim() &&
-      (!Number.isFinite(parsedQuickAdjustmentAmount) ||
-        parsedQuickAdjustmentAmount <= 0)
-    ) {
+    if (editMailReminderChoice === "pick_date" && !editMailReminderDate) {
       toast({
-        title: "Ajuste no saldo inválido",
-        description: "Use um valor maior que zero para desconto ou acréscimo.",
+        title: "Lembrete de correio incompleto",
+        description: "Escolha uma data para salvar esse lembrete.",
         variant: "destructive",
       });
       return;
     }
-
-    const nextAdjustments = Array.isArray(latestFreight.balanceAdjustments)
-      ? [...latestFreight.balanceAdjustments]
+    const nextAdjustments = Array.isArray(draftBalanceAdjustments)
+      ? draftBalanceAdjustments
       : [];
-    if (quickAdjustmentAmount.trim() && parsedQuickAdjustmentAmount > 0) {
-      nextAdjustments.push({
-        type: quickAdjustmentType,
-        amount: parsedQuickAdjustmentAmount,
-        note: quickAdjustmentNote.trim() || undefined,
-      });
-    }
     if (shouldSettleRemaining) {
       normalizedAmountReceived = getFreightAmountReceivedForSettlement({
         grossValue: latestFreight.grossValue,
@@ -943,6 +1084,18 @@ export function FreightTab({
         return;
       }
 
+      if (editMailReminderChoice === "off") {
+        const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
+        persistMailReminderState(nextState);
+      } else {
+        persistMailReminderState({
+          ...mailReminderByFreight,
+          [latestFreight.id]: {
+            choice: editMailReminderChoice,
+            date: editMailReminderChoice === "pick_date" ? editMailReminderDate || undefined : undefined,
+          },
+        });
+      }
       setEditingReceivableFreight(null);
     } catch (error) {
       const message =
@@ -1112,12 +1265,20 @@ export function FreightTab({
           const receivableStatus = getFreightReceivableBadgeState(f);
           const remainingBalance = getFreightRemainingBalance(f);
           const historicalBalance = getFreightAdjustedBalance(f);
+          const originalBalance = getFreightPlannedBalance(f);
+          const adjustmentsNet = getFreightAdjustmentsNet(f);
+          const reminderLabel = getMailReminderLabel(mailReminderByFreight[f.id]);
           const advanceAmount = getFreightAdvanceReceived(f);
           const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const canSettleRemaining = isFreightCompleted && uiPlan !== "undefined" && uiPlan !== "paid_in_full" && remainingBalance > 0;
-          const receivableSummaryLines = buildReceivableSummary(f, historicalBalance);
+          const receivableSummaryLines = buildReceivableSummary(
+            f,
+            originalBalance,
+            historicalBalance,
+            adjustmentsNet,
+          );
           const paymentContextLine = getPaymentContextLine(f, remainingBalance);
 
           return (
@@ -1257,7 +1418,18 @@ export function FreightTab({
                     <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
                   )}
                   {uiPlan === "advance_and_balance" && (
-                    <p className="text-xs text-muted-foreground">Saldo do frete: <span className="font-mono text-foreground">{formatCurrency(historicalBalance)}</span></p>
+                    <p className="text-xs text-muted-foreground">Saldo original: <span className="font-mono text-foreground">{formatCurrency(originalBalance)}</span></p>
+                  )}
+                  {uiPlan === "advance_and_balance" && adjustmentsNet !== 0 && (
+                    <p className="text-xs text-muted-foreground">
+                      Ajustes:{" "}
+                      <span className="font-mono text-foreground">
+                        {`${adjustmentsNet > 0 ? "+" : "-"}${formatCurrency(Math.abs(adjustmentsNet))}`}
+                      </span>
+                    </p>
+                  )}
+                  {uiPlan === "advance_and_balance" && (
+                    <p className="text-xs text-muted-foreground">Saldo reajustado: <span className="font-mono text-foreground">{formatCurrency(historicalBalance)}</span></p>
                   )}
                   {uiPlan === "paid_on_delivery" && (
                     <p className="text-xs text-muted-foreground">
@@ -1272,6 +1444,9 @@ export function FreightTab({
                   )}
                   {isFreightCompleted && f.paymentDueDate && uiPlan !== "paid_in_full" && (
                     <p className="text-xs text-muted-foreground">Previsão do saldo: {formatDate(f.paymentDueDate)}</p>
+                  )}
+                  {reminderLabel && (
+                    <p className="text-xs text-muted-foreground">Lembrete de correio: <span className="text-foreground">{reminderLabel}</span></p>
                   )}
                   {paymentContextLine && <p className="rounded-md border border-warning/30 bg-warning/10 px-2 py-1 text-xs text-warning">{paymentContextLine}</p>}
                   {isOpen && (
@@ -1697,18 +1872,85 @@ export function FreightTab({
             </label>}
 
             {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
-              <QuickBalanceAdjustmentSection
-                expanded={showQuickAdjustment}
-                onExpand={() => setShowQuickAdjustment(true)}
-                adjustmentType={quickAdjustmentType}
-                onChangeType={setQuickAdjustmentType}
-                adjustmentAmount={quickAdjustmentAmount}
-                onChangeAmount={setQuickAdjustmentAmount}
-                adjustmentNote={quickAdjustmentNote}
-                onChangeNote={setQuickAdjustmentNote}
-                disabled={isSavingReceivable}
-                showOptionalTitle
-              />
+              <div className="space-y-2 rounded-md border border-border/60 bg-secondary/20 p-2">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-medium text-muted-foreground">Ajustes no saldo</p>
+                  {Array.isArray(draftBalanceAdjustments) && draftBalanceAdjustments.length > 0 && (
+                    <span className="text-[11px] text-muted-foreground">{draftBalanceAdjustments.length} ajuste(s)</span>
+                  )}
+                </div>
+                {Array.isArray(draftBalanceAdjustments) && draftBalanceAdjustments.length > 0 ? (
+                  <div className="space-y-2">
+                    {draftBalanceAdjustments.map((adjustment, index) => (
+                      <div key={`${adjustment.type}-${adjustment.amount}-${index}`} className="rounded-md border border-border/70 bg-background p-2">
+                        <p className="text-xs font-medium text-foreground">
+                          {adjustment.type === "discount" ? "Desconto" : "Acréscimo"} de {formatCurrency(adjustment.amount)}
+                        </p>
+                        {adjustment.note && <p className="mt-0.5 text-[11px] text-muted-foreground">{adjustment.note}</p>}
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={() => handleEditAdjustment(index)}
+                            className="min-h-[44px] rounded-md border border-border px-2 py-1 text-xs font-semibold text-foreground"
+                            disabled={isSavingReceivable}
+                          >
+                            Editar ajuste
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => handleDeleteAdjustment(index)}
+                            className="min-h-[44px] rounded-md border border-expense/30 px-2 py-1 text-xs font-semibold text-expense"
+                            disabled={isSavingReceivable}
+                          >
+                            Excluir ajuste
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-[11px] text-muted-foreground">Nenhum ajuste lançado.</p>
+                )}
+
+                <QuickBalanceAdjustmentSection
+                  expanded={showQuickAdjustment}
+                  onExpand={() => setShowQuickAdjustment(true)}
+                  adjustmentType={quickAdjustmentType}
+                  onChangeType={setQuickAdjustmentType}
+                  adjustmentAmount={quickAdjustmentAmount}
+                  onChangeAmount={setQuickAdjustmentAmount}
+                  adjustmentNote={quickAdjustmentNote}
+                  onChangeNote={setQuickAdjustmentNote}
+                  disabled={isSavingReceivable}
+                  showOptionalTitle
+                />
+                {showQuickAdjustment && (
+                  <div className="flex flex-wrap gap-2">
+                    <button
+                      type="button"
+                      onClick={handleApplyQuickAdjustmentDraft}
+                      className="min-h-[44px] rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                      disabled={isSavingReceivable}
+                    >
+                      {editingQuickAdjustmentIndex !== null ? "Atualizar ajuste" : "Adicionar ajuste"}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setShowQuickAdjustment(false);
+                        setEditingQuickAdjustmentIndex(null);
+                        setQuickAdjustmentType("discount");
+                        setQuickAdjustmentAmount("");
+                        setQuickAdjustmentNote("");
+                      }}
+                      className="min-h-[44px] rounded-md border border-border px-3 py-2 text-xs font-semibold"
+                      disabled={isSavingReceivable}
+                    >
+                      Cancelar
+                    </button>
+                  </div>
+                )}
+              </div>
             )}
 
             {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
@@ -1721,6 +1963,43 @@ export function FreightTab({
                   className="input-field"
                   disabled={isSavingReceivable}
                 />
+              </label>
+            )}
+
+            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && (
+              <label className="space-y-1 text-sm text-foreground">
+                <span className="text-xs font-medium text-muted-foreground">Lembrete de correio</span>
+                <div className="grid grid-cols-2 gap-2">
+                  {([
+                    { value: "off", label: "Sem lembrete" },
+                    { value: "tomorrow", label: "Amanhã" },
+                    { value: "day_after_tomorrow", label: "Depois de amanhã" },
+                    { value: "pick_date", label: "Escolher dia" },
+                  ] as const).map((option) => (
+                    <button
+                      key={option.value}
+                      type="button"
+                      onClick={() => setEditMailReminderChoice(option.value)}
+                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-medium ${
+                        editMailReminderChoice === option.value
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                      }`}
+                      disabled={isSavingReceivable}
+                    >
+                      {option.label}
+                    </button>
+                  ))}
+                </div>
+                {editMailReminderChoice === "pick_date" && (
+                  <input
+                    type="date"
+                    value={editMailReminderDate}
+                    onChange={(e) => setEditMailReminderDate(e.target.value)}
+                    className="input-field"
+                    disabled={isSavingReceivable}
+                  />
+                )}
               </label>
             )}
           </div>
@@ -1929,7 +2208,7 @@ export function FreightTab({
                     className="input-field"
                   />
                 )}
-                <p className="text-[11px] text-muted-foreground">Neste momento o lembrete é visual dentro do app (in-app).</p>
+                <p className="text-[11px] text-muted-foreground">Esse lembrete fica salvo localmente neste dispositivo e pode ser revisado no painel de recebimento.</p>
               </label>
             )}
 
