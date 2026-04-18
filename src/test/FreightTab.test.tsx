@@ -789,7 +789,7 @@ describe("FreightTab", () => {
     expect(screen.getByText(/^Ajustes:/)).toBeInTheDocument();
     expect(screen.getByText("Histórico de ajustes")).toBeInTheDocument();
     expect(screen.getByText(/Saldo reajustado:/)).toBeInTheDocument();
-    expect(screen.getByText(/Saldo original:/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo:/)).toBeInTheDocument();
   });
 
   it("permite excluir ajuste já lançado no painel e salva sem o item removido", async () => {

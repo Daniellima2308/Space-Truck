@@ -1418,7 +1418,7 @@ export function FreightTab({
                     <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
                   )}
                   {uiPlan === "advance_and_balance" && (
-                    <p className="text-xs text-muted-foreground">Saldo original: <span className="font-mono text-foreground">{formatCurrency(originalBalance)}</span></p>
+                    <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(originalBalance)}</span></p>
                   )}
                   {uiPlan === "advance_and_balance" && hasAdjustments && (
                     <p className="text-xs text-muted-foreground">
