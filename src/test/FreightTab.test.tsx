@@ -656,6 +656,35 @@ describe("FreightTab", () => {
     expect(screen.queryByText(/Adiantamento .*•.*Saldo/)).not.toBeInTheDocument();
   });
 
+  it("mantém saldo histórico visível mesmo quando saldo já foi quitado", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 4400,
+              balanceAdjustments: [{ type: "discount", amount: 100, note: "Avaria" }],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.getByText(/Saldo R\$\s*800,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Saldo R\$\s*0,00/)).not.toBeInTheDocument();
+  });
+
   it("não mostra aviso de canhoto quando modo é entrega direta", () => {
     render(
       <FreightTab

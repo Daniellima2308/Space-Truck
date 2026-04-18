@@ -7,9 +7,9 @@ import {
   getFreightReceivableBadgeState,
   getFreightRemainingBalance,
   getFreightAdvanceReceived,
+  getFreightAdjustedBalance,
   getFreightAmountReceivedForSettlement,
   getFreightReceivableTarget,
-  isFreightSettled,
   type FreightReceivableBadgeState,
 } from "@/lib/freightReceivables";
 import { parseAdvancePercentInput } from "@/lib/freightReceivableInput";
@@ -197,7 +197,6 @@ export function FreightTab({
   const [editKmInitial, setEditKmInitial] = useState("");
   const [editingReceivableFreight, setEditingReceivableFreight] = useState<Freight | null>(null);
   const [editPaymentDueDate, setEditPaymentDueDate] = useState("");
-  const [editAmountReceived, setEditAmountReceived] = useState("");
   const [editAdvanceAmount, setEditAdvanceAmount] = useState("");
   const [editReceivableUiPlan, setEditReceivableUiPlan] = useState<ReceivableUiPlan>("undefined");
   const [editAdvanceInputMode, setEditAdvanceInputMode] = useState<AdvanceInputMode>("value");
@@ -349,7 +348,7 @@ export function FreightTab({
     return "undefined";
   };
 
-  const buildReceivableSummary = (freight: Freight, remainingBalance: number): string[] => {
+  const buildReceivableSummary = (freight: Freight, historicalBalance: number): string[] => {
     const uiPlan = getUiPlanFromPlanType(freight.receivablePlanType ?? "undefined");
     if (uiPlan === "undefined") return ["Sem configuração de recebimento"];
     if (uiPlan === "paid_in_full") return ["Frete pago por inteiro"];
@@ -362,7 +361,7 @@ export function FreightTab({
     }
     return [
       `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)}`,
-      `Saldo ${formatCurrency(remainingBalance)}`,
+      `Saldo ${formatCurrency(historicalBalance)}`,
     ];
   };
 
@@ -790,7 +789,6 @@ export function FreightTab({
     const advanceInputMode: AdvanceInputMode = normalizedPlanType === "advance_percent" ? "percent" : "value";
     setEditingReceivableFreight(freight);
     setEditPaymentDueDate(freight.paymentDueDate ?? "");
-    setEditAmountReceived(String(freight.amountReceived ?? 0));
     setEditAdvanceAmount(String(freight.advanceAmount ?? 0));
     setEditReceivableUiPlan(uiPlan);
     setEditAdvanceInputMode(advanceInputMode);
@@ -825,7 +823,7 @@ export function FreightTab({
       }
       setAdvancePercentage(parsed.normalized);
     }
-    const parsedAmountReceived = Number(editAmountReceived || 0);
+    const parsedAmountReceived = Number(latestFreight.amountReceived || 0);
     const parsedAdvanceInput = getAdvanceAmountFromInput(latestFreight.grossValue);
     if (normalizedPlanType === "advance_percent") {
       const parsedAdvancePercent = parsedAdvanceInput.percentage;
@@ -1113,12 +1111,13 @@ export function FreightTab({
           const receivableEnabled = receivableMode !== "off";
           const receivableStatus = getFreightReceivableBadgeState(f);
           const remainingBalance = getFreightRemainingBalance(f);
+          const historicalBalance = getFreightAdjustedBalance(f);
           const advanceAmount = getFreightAdvanceReceived(f);
           const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const canSettleRemaining = isFreightCompleted && uiPlan !== "undefined" && uiPlan !== "paid_in_full" && remainingBalance > 0;
-          const receivableSummaryLines = buildReceivableSummary(f, remainingBalance);
+          const receivableSummaryLines = buildReceivableSummary(f, historicalBalance);
           const paymentContextLine = getPaymentContextLine(f, remainingBalance);
 
           return (
@@ -1258,7 +1257,7 @@ export function FreightTab({
                     <p className="text-xs text-muted-foreground">Adiantamento: <span className="font-mono text-foreground">{formatCurrency(advanceAmount)}</span></p>
                   )}
                   {uiPlan === "advance_and_balance" && (
-                    <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
+                    <p className="text-xs text-muted-foreground">Saldo do frete: <span className="font-mono text-foreground">{formatCurrency(historicalBalance)}</span></p>
                   )}
                   {uiPlan === "paid_on_delivery" && (
                     <p className="text-xs text-muted-foreground">
