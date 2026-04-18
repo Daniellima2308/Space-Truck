@@ -4,11 +4,12 @@ import { Trip, Freight, Vehicle, FREIGHT_STATUS_LABELS, ReceivablePlanType } fro
 import { formatCurrency, formatDate, formatNumber } from "@/lib/calculations";
 import { sortFreightsByOperationalPriority } from "@/lib/freightStatus";
 import {
-  getFreightReceivableStatus,
+  getFreightReceivableBadgeState,
   getFreightRemainingBalance,
   getFreightAdvanceReceived,
+  getFreightReceivableTarget,
   isFreightSettled,
-  type FreightReceivableStatus,
+  type FreightReceivableBadgeState,
 } from "@/lib/freightReceivables";
 import { parseAdvancePercentInput } from "@/lib/freightReceivableInput";
 import { CityAutocomplete } from "@/components/CityAutocomplete";
@@ -30,7 +31,7 @@ import {
 import { DeleteConfirmDialog } from "@/components/trip/DeleteConfirmDialog";
 import { FreightUpdateResult, StartFreightResult } from "@/context/app-context";
 import type { FreightEditableInput } from "@/context/mutations/useFreightMutations";
-import { FontAwesomeIcon, iconCheckCircle2, iconChevronDown, iconClock3, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconReceipt, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
+import { FontAwesomeIcon, iconCheck, iconCheckCircle2, iconChevronDown, iconClock3, iconLoader2, iconMapPin, iconPlayCircle, iconPlus, iconReceipt, iconTrash2, iconRuler, iconWallet, iconPencil } from "@/lib/icons";
 
 interface QuickBalanceAdjustmentSectionProps {
   expanded: boolean;
@@ -175,6 +176,7 @@ export function FreightTab({
   const [km, setKm] = useState("");
   const [gross, setGross] = useState("");
   const [isModeChooserOpen, setIsModeChooserOpen] = useState(false);
+  const [selectedModeChoice, setSelectedModeChoice] = useState<"off" | "basic" | "complete" | null>(null);
   const [postCreateFreightId, setPostCreateFreightId] = useState<string | null>(null);
   const [postCreateModeFreight, setPostCreateModeFreight] = useState<Freight | null>(null);
   const [isSavingMode, setIsSavingMode] = useState(false);
@@ -271,16 +273,22 @@ export function FreightTab({
     in_progress: "bg-warning/15 text-warning border-warning/30",
     completed: "bg-profit/15 text-profit border-profit/30",
   };
-  const receivableStatusClass: Record<FreightReceivableStatus, string> = {
-    pending: "bg-secondary text-muted-foreground border-border",
-    partial: "bg-info/15 text-info border-info/30",
+  const receivableStatusClass: Record<FreightReceivableBadgeState, string> = {
+    undefined: "bg-secondary text-muted-foreground border-border",
+    after_delivery: "bg-secondary text-muted-foreground border-border",
+    awaiting_balance: "bg-info/15 text-info border-info/30",
+    awaiting_proof: "bg-warning/15 text-warning border-warning/30",
+    due_today: "bg-warning/15 text-warning border-warning/30",
     overdue: "bg-expense/15 text-expense border-expense/30",
     received: "bg-profit/15 text-profit border-profit/30",
   };
-  const receivableStatusLabel: Record<FreightReceivableStatus, string> = {
-    pending: "Pendente",
-    partial: "Aguardando saldo",
-    overdue: "Saldo atrasado",
+  const receivableStatusLabel: Record<FreightReceivableBadgeState, string> = {
+    undefined: "Não definido",
+    after_delivery: "Após descarga",
+    awaiting_balance: "Aguardando saldo",
+    awaiting_proof: "Aguardando canhoto",
+    due_today: "Vence hoje",
+    overdue: "Atrasado",
     received: "Quitado",
   };
   const normalizeBalanceReleaseMode = (
@@ -346,7 +354,9 @@ export function FreightTab({
     if (uiPlan === "paid_on_delivery") {
       return freight.status === "completed" && !freight.paymentDueDate
         ? "Falta definir previsão após descarga"
-        : "Pagamento previsto após a descarga";
+        : freight.status === "completed"
+          ? "Pagamento previsto após a descarga"
+          : "Pagamento após descarga";
     }
     return `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)} • Saldo ${formatCurrency(remainingBalance)}`;
   };
@@ -362,9 +372,6 @@ export function FreightTab({
     }
     if (releaseMode === "physical_proof") {
       return "Necessário enviar canhoto físico";
-    }
-    if (releaseMode !== "none" && releaseMode !== "direct_delivery") {
-      return "Canhoto não necessário";
     }
     return null;
   };
@@ -424,10 +431,12 @@ export function FreightTab({
 
   const handleSelectReceivableMode = async (mode: "off" | "basic" | "complete") => {
     if (isSavingMode) return;
+    setSelectedModeChoice(mode);
     if (mode === "off") {
       setIsModeChooserOpen(false);
       setPostCreateFreightId(null);
       setPostCreateModeFreight(null);
+      setSelectedModeChoice(null);
       return;
     }
     if (!postCreateModeFreight) {
@@ -458,6 +467,7 @@ export function FreightTab({
       setIsModeChooserOpen(false);
       setPostCreateModeFreight(null);
       setPostCreateFreightId(null);
+      setSelectedModeChoice(null);
     } catch (error) {
       const message =
         error instanceof Error
@@ -470,6 +480,7 @@ export function FreightTab({
       });
     } finally {
       setIsSavingMode(false);
+      setSelectedModeChoice(null);
     }
   };
 
@@ -831,9 +842,20 @@ export function FreightTab({
     const parsedAdvanceAmount = normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent"
       ? parsedAdvanceInput.amount
       : 0;
-    const normalizedAmountReceived = normalizedPlanType === "paid_in_full"
-      ? latestFreight.grossValue
-      : parsedAmountReceived;
+    const receivableTarget = getFreightReceivableTarget({
+      grossValue: latestFreight.grossValue,
+      receivablePlanType: normalizedPlanType,
+      balanceAdjustments: latestFreight.balanceAdjustments,
+    });
+    const normalizedAmountReceived = (() => {
+      if (normalizedPlanType === "paid_in_full") {
+        return receivableTarget;
+      }
+      if (normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent") {
+        return Math.max(parsedAmountReceived, parsedAdvanceAmount);
+      }
+      return parsedAmountReceived;
+    })();
     const parsedQuickAdjustmentAmount = Number(quickAdjustmentAmount || 0);
     if (!Number.isFinite(normalizedAmountReceived) || normalizedAmountReceived < 0) {
       toast({
@@ -1030,7 +1052,7 @@ export function FreightTab({
         {sortedFreights.map((f: Freight) => {
           const receivableMode = f.receivableMode ?? "off";
           const receivableEnabled = receivableMode !== "off";
-          const receivableStatus = getFreightReceivableStatus(f);
+          const receivableStatus = getFreightReceivableBadgeState(f);
           const remainingBalance = getFreightRemainingBalance(f);
           const advanceAmount = getFreightAdvanceReceived(f);
           const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
@@ -1173,7 +1195,9 @@ export function FreightTab({
                     <p className="text-xs text-muted-foreground">Saldo: <span className="font-mono text-foreground">{formatCurrency(remainingBalance)}</span></p>
                   )}
                   {uiPlan === "paid_on_delivery" && (
-                    <p className="text-xs text-muted-foreground">Saldo liberado após descarga</p>
+                    <p className="text-xs text-muted-foreground">
+                      {isFreightCompleted ? "Aguardando quitação após descarga" : "Pagamento após descarga, sem saldo exibido por enquanto"}
+                    </p>
                   )}
                   {uiPlan === "paid_in_full" && (
                     <p className="text-xs text-muted-foreground">Frete sem saldo pendente</p>
@@ -1421,6 +1445,9 @@ export function FreightTab({
 
             <label className="space-y-1 text-sm text-foreground">
               <span className="text-xs font-medium text-muted-foreground">Como este frete será pago?</span>
+              <p className="text-[11px] text-muted-foreground">
+                Escolha a lógica de recebimento. Você pode ajustar depois sem perder histórico.
+              </p>
               <div className="grid grid-cols-1 gap-2">
                 {([
                   { value: "undefined", label: "Não definido" },
@@ -1487,7 +1514,7 @@ export function FreightTab({
                         onChange={(e) => setEditAdvanceAmount(e.target.value)}
                         className="input-field"
                         disabled={isSavingReceivable}
-                        placeholder="Ex.: 3600"
+                        placeholder="Ex.: 3.600,00"
                       />
                       <p className="text-[11px] text-muted-foreground">
                         Valor informado: <span className="font-mono text-foreground">{formatCurrency(Number(editAdvanceAmount || 0))}</span>
@@ -1544,13 +1571,14 @@ export function FreightTab({
                 )}
 
                 <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Quem paga</span>
+                  <span className="text-xs font-medium text-muted-foreground">Quem paga (opcional)</span>
                   <input
                     type="text"
                     value={editPayerName}
                     onChange={(e) => setEditPayerName(e.target.value)}
                     className="input-field"
                     disabled={isSavingReceivable}
+                    placeholder="Ex.: Embarcador da carga"
                   />
                 </label>
               </>
@@ -1630,6 +1658,7 @@ export function FreightTab({
           setIsModeChooserOpen(false);
           setPostCreateFreightId(null);
           setPostCreateModeFreight(null);
+          setSelectedModeChoice(null);
         }}
       >
         <DialogContent className="sm:max-w-md">
@@ -1640,24 +1669,52 @@ export function FreightTab({
             </DialogDescription>
           </DialogHeader>
           <div className="grid gap-2">
-            <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("off")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
-              Não usar
-              <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                Deixa o frete limpo, sem controle de recebimento.
-              </span>
-            </button>
-            <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("basic")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
-              Básico
-              <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                Ativa recebimento sem burocracia. Você define a forma de recebimento depois.
-              </span>
-            </button>
-            <button type="button" disabled={isSavingMode} onClick={() => void handleSelectReceivableMode("complete")} className="min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold">
-              Completo
-              <span className="mt-1 block text-xs font-normal text-muted-foreground">
-                Ativa recebimento completo. Forma de recebimento e pós-entrega ficam configuráveis depois.
-              </span>
-            </button>
+            {([
+              {
+                value: "off",
+                label: "Não usar",
+                description: "Deixa o frete limpo, sem controle de recebimento.",
+              },
+              {
+                value: "basic",
+                label: "Básico",
+                description: "Ativa recebimento sem burocracia. Você define a forma de recebimento depois.",
+              },
+              {
+                value: "complete",
+                label: "Completo",
+                description: "Ativa recebimento completo. Forma de recebimento e pós-entrega ficam configuráveis depois.",
+              },
+            ] as const).map((option) => {
+              const isSelected = selectedModeChoice === option.value;
+              return (
+                <button
+                  key={option.value}
+                  type="button"
+                  disabled={isSavingMode}
+                  onClick={() => void handleSelectReceivableMode(option.value)}
+                  className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm font-semibold transition-all ${
+                    isSelected
+                      ? "border-primary bg-primary/10 shadow-sm"
+                      : "border-border/70 hover:border-primary/40 hover:bg-secondary/30"
+                  }`}
+                >
+                  <span className="flex items-center justify-between gap-2">
+                    <span>{option.label}</span>
+                    <span
+                      className={`inline-flex h-5 w-5 items-center justify-center rounded-full border ${
+                        isSelected ? "border-primary bg-primary text-primary-foreground" : "border-border text-transparent"
+                      }`}
+                    >
+                      <FontAwesomeIcon icon={iconCheck} className="h-3 w-3" />
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-xs font-normal text-muted-foreground">
+                    {option.description}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         </DialogContent>
       </Dialog>

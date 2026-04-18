@@ -286,7 +286,12 @@ describe("FreightTab", () => {
       <FreightTab
         trip={{
           ...tripBase,
-          freights: [makeFreight("f-1", "in_progress", new Date().toISOString())],
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+            },
+          ],
         }}
         vehicle={driverOwnerVehicle}
         isOpen
@@ -303,7 +308,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
     const dialog = screen.getByRole("dialog");
     fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.change(within(dialog).getByPlaceholderText("Ex.: 3600"), { target: { value: "-5" } });
+    fireEvent.change(within(dialog).getByPlaceholderText("Ex.: 3.600,00"), { target: { value: "-5" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
@@ -487,7 +492,7 @@ describe("FreightTab", () => {
     expect(screen.queryByText("Comissão")).not.toBeInTheDocument();
   });
 
-  it("badge financeiro pending usa rótulo financeiro", () => {
+  it("badge financeiro evita rótulo genérico pendente", () => {
     render(
       <FreightTab
         trip={{
@@ -503,8 +508,8 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText("Pendente")).toBeInTheDocument();
-    expect(screen.queryByText("Canhoto pendente")).not.toBeInTheDocument();
+    expect(screen.queryByText("Pendente")).not.toBeInTheDocument();
+    expect(screen.getByText(/Não definido|Aguardando saldo|Após descarga/)).toBeInTheDocument();
   });
 
   it("modo não usar remove ação e resumo de recebimento do card", () => {
@@ -618,7 +623,8 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText("Pagamento previsto após a descarga")).toBeInTheDocument();
+    expect(screen.getByText("Pagamento após descarga")).toBeInTheDocument();
+    expect(screen.getByText("Após descarga")).toBeInTheDocument();
   });
 
   it("não mostra aviso de canhoto quando modo é entrega direta", () => {
@@ -872,7 +878,91 @@ describe("FreightTab", () => {
       expect(updateFreight).toHaveBeenCalledWith(
         "trip-1",
         "f-1",
-        expect.objectContaining({ advanceAmount: 3600, receivablePlanType: "advance_percent" }),
+        expect.objectContaining({ advanceAmount: 3600, amountReceived: 3600, receivablePlanType: "advance_percent" }),
+      );
+    });
+  });
+
+  it("sincroniza amountReceived com adiantamento em valor", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "completed", new Date().toISOString()), grossValue: 5000 }],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.change(within(dialog).getByPlaceholderText("Ex.: 3.600,00"), {
+      target: { value: "2500" },
+    });
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          advanceAmount: 2500,
+          amountReceived: 2500,
+          receivablePlanType: "advance_value",
+        }),
+      );
+    });
+  });
+
+  it("pago integralmente persiste amountReceived como meta real do frete", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              grossValue: 1000,
+              balanceAdjustments: [{ type: "increase", amount: 100 }],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    const dialog = screen.getByRole("dialog");
+    fireEvent.click(within(dialog).getByRole("button", { name: "Pago integralmente" }));
+    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          receivablePlanType: "paid_in_full",
+          amountReceived: 1100,
+        }),
       );
     });
   });
@@ -955,6 +1045,7 @@ describe("FreightTab", () => {
         "f-1",
         expect.objectContaining({
           advanceAmount: expectedAdvance,
+          amountReceived: expectedAdvance,
           receivablePlanType: "advance_percent",
         }),
       );

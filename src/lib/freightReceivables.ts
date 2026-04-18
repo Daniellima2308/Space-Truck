@@ -1,6 +1,14 @@
 import { Freight } from "@/types";
 
 export type FreightReceivableStatus = "received" | "partial" | "overdue" | "pending";
+export type FreightReceivableBadgeState =
+  | "undefined"
+  | "after_delivery"
+  | "awaiting_balance"
+  | "awaiting_proof"
+  | "due_today"
+  | "overdue"
+  | "received";
 export type FreightPaymentForecastState =
   | "no_forecast"
   | "on_track"
@@ -49,15 +57,14 @@ function getDueDateTimestamp(paymentDueDate?: string): number | null {
 }
 
 export function getFreightRemainingBalance(
-  freight: Pick<Freight, "grossValue" | "amountReceived" | "receivablePlanType">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "receivablePlanType" | "balanceAdjustments">,
 ): number {
   if (freight.receivablePlanType === "undefined") {
     return 0;
   }
-  const grossValue = normalizeAmount(freight.grossValue);
-  const amountReceived = normalizeAmount(freight.amountReceived);
-
-  return Math.max(0, grossValue - amountReceived);
+  const target = getFreightReceivableTarget(freight);
+  const amountReceived = getFreightTotalReceived(freight);
+  return Math.max(0, target - amountReceived);
 }
 
 export function getFreightAdvanceReceived(
@@ -118,9 +125,23 @@ export function getFreightReceivableTarget(
 }
 
 export function getFreightTotalReceived(
-  freight: Pick<Freight, "amountReceived">,
+  freight: Pick<
+    Freight,
+    "amountReceived" | "advanceAmount" | "receivablePlanType" | "grossValue" | "balanceAdjustments"
+  >,
 ): number {
-  return normalizeAmount(freight.amountReceived);
+  const amountReceived = normalizeAmount(freight.amountReceived);
+  const advanceAmount = normalizeAmount(freight.advanceAmount);
+  const planType = freight.receivablePlanType ?? "undefined";
+
+  if (planType === "undefined") return 0;
+  if (planType === "paid_in_full") {
+    return getFreightReceivableTarget(freight);
+  }
+  if (planType === "advance_value" || planType === "advance_percent") {
+    return Math.max(amountReceived, advanceAmount);
+  }
+  return amountReceived;
 }
 
 export function isFreightLockedByProof(
@@ -133,23 +154,25 @@ export function isFreightLockedByProof(
 }
 
 export function isFreightSettled(
-  freight: Pick<Freight, "grossValue" | "amountReceived" | "balanceAdjustments">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "balanceAdjustments" | "receivablePlanType">,
 ): boolean {
   const target = getFreightReceivableTarget(freight);
   if (target <= 0) return true;
   return getFreightTotalReceived(freight) >= target;
 }
 
-export function getFreightReceivedPercentage(freight: Pick<Freight, "grossValue" | "amountReceived">): number {
+export function getFreightReceivedPercentage(
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "receivablePlanType" | "balanceAdjustments">,
+): number {
   const grossValue = normalizeAmount(freight.grossValue);
   if (grossValue <= 0) return 0;
 
-  const amountReceived = normalizeAmount(freight.amountReceived);
+  const amountReceived = getFreightTotalReceived(freight);
   return Math.min(100, (amountReceived / grossValue) * 100);
 }
 
 export function isFreightOverdue(
-  freight: Pick<Freight, "grossValue" | "amountReceived" | "paymentDueDate" | "balanceAdjustments">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "paymentDueDate" | "balanceAdjustments" | "receivablePlanType">,
   referenceDate = new Date(),
 ): boolean {
   if (isFreightSettled(freight)) return false;
@@ -186,12 +209,50 @@ export function getFreightReceivableStatus(
   return "pending";
 }
 
+function isDueToday(paymentDueDate: string | undefined, referenceDate: Date): boolean {
+  const dueMs = getDueDateTimestamp(paymentDueDate);
+  if (dueMs === null) return false;
+  const dueDate = new Date(dueMs);
+  return (
+    dueDate.getFullYear() === referenceDate.getFullYear() &&
+    dueDate.getMonth() === referenceDate.getMonth() &&
+    dueDate.getDate() === referenceDate.getDate()
+  );
+}
+
+export function getFreightReceivableBadgeState(
+  freight: Pick<
+    Freight,
+    | "grossValue"
+    | "amountReceived"
+    | "advanceAmount"
+    | "paymentDueDate"
+    | "deliveryProofStatus"
+    | "balanceReleaseMode"
+    | "balanceAdjustments"
+    | "receivablePlanType"
+    | "status"
+  >,
+  referenceDate = new Date(),
+): FreightReceivableBadgeState {
+  const planType = freight.receivablePlanType ?? "undefined";
+  if (planType === "undefined") return "undefined";
+  if (planType === "paid_on_delivery" && freight.status !== "completed") {
+    return "after_delivery";
+  }
+  if (isFreightSettled(freight)) return "received";
+  if (isFreightLockedByProof(freight)) return "awaiting_proof";
+  if (isFreightOverdue(freight, referenceDate)) return "overdue";
+  if (isDueToday(freight.paymentDueDate, referenceDate)) return "due_today";
+  return "awaiting_balance";
+}
+
 function startOfDay(date: Date): Date {
   return new Date(date.getFullYear(), date.getMonth(), date.getDate());
 }
 
 export function getFreightPaymentForecastState(
-  freight: Pick<Freight, "grossValue" | "amountReceived" | "paymentDueDate" | "balanceAdjustments">,
+  freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "paymentDueDate" | "balanceAdjustments" | "receivablePlanType">,
   referenceDate = new Date(),
 ): FreightPaymentForecastState {
   if (isFreightSettled(freight)) return "settled";

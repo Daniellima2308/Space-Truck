@@ -4,6 +4,7 @@ import {
   getFreightPlannedBalance,
   getFreightReceivableTarget,
   getFreightReceivableStatus,
+  getFreightReceivableBadgeState,
   getFreightReceivedPercentage,
   getFreightTotalReceived,
   getFreightRemainingBalance,
@@ -16,10 +17,10 @@ import {
 describe("freightReceivables", () => {
   it("calcula saldo restante sem negativo", () => {
     expect(
-      getFreightRemainingBalance({ grossValue: 1000, amountReceived: 250 }),
+      getFreightRemainingBalance({ grossValue: 1000, amountReceived: 250, receivablePlanType: "paid_on_delivery", advanceAmount: 0 }),
     ).toBe(750);
     expect(
-      getFreightRemainingBalance({ grossValue: 1000, amountReceived: 1200 }),
+      getFreightRemainingBalance({ grossValue: 1000, amountReceived: 1200, receivablePlanType: "paid_on_delivery", advanceAmount: 0 }),
     ).toBe(0);
   });
 
@@ -35,16 +36,16 @@ describe("freightReceivables", () => {
 
   it("calcula percentual recebido limitado a 100", () => {
     expect(
-      getFreightReceivedPercentage({ grossValue: 1000, amountReceived: 500 }),
+      getFreightReceivedPercentage({ grossValue: 1000, amountReceived: 500, receivablePlanType: "paid_on_delivery" }),
     ).toBe(50);
     expect(
-      getFreightReceivedPercentage({ grossValue: 1000, amountReceived: 5000 }),
+      getFreightReceivedPercentage({ grossValue: 1000, amountReceived: 5000, receivablePlanType: "paid_on_delivery" }),
     ).toBe(100);
     expect(
-      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 0 }),
+      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 0, receivablePlanType: "paid_on_delivery" }),
     ).toBe(0);
     expect(
-      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 1000 }),
+      getFreightReceivedPercentage({ grossValue: 0, amountReceived: 1000, receivablePlanType: "paid_on_delivery" }),
     ).toBe(0);
   });
 
@@ -53,35 +54,35 @@ describe("freightReceivables", () => {
 
     expect(
       getFreightReceivableStatus(
-        { grossValue: 1000, amountReceived: 1000, paymentDueDate: "2026-04-01" },
+        { grossValue: 1000, amountReceived: 1000, paymentDueDate: "2026-04-01", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe("received");
 
     expect(
       getFreightReceivableStatus(
-        { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-01" },
+        { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-01", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe("overdue");
 
     expect(
       getFreightReceivableStatus(
-        { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-30" },
+        { grossValue: 1000, amountReceived: 300, paymentDueDate: "2026-04-30", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe("partial");
 
     expect(
       getFreightReceivableStatus(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-04-01" },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-04-01", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe("overdue");
 
     expect(
       getFreightReceivableStatus(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-04-30" },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-04-30", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe("pending");
@@ -91,14 +92,14 @@ describe("freightReceivables", () => {
     const referenceDate = new Date("2026-04-08T12:00:00.000Z");
     expect(
       isFreightOverdue(
-        { grossValue: 500, amountReceived: 100, paymentDueDate: "2026-04-01" },
+        { grossValue: 500, amountReceived: 100, paymentDueDate: "2026-04-01", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe(true);
 
     expect(
       isFreightOverdue(
-        { grossValue: 500, amountReceived: 500, paymentDueDate: "2026-04-01" },
+        { grossValue: 500, amountReceived: 500, paymentDueDate: "2026-04-01", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe(false);
@@ -111,13 +112,13 @@ describe("freightReceivables", () => {
 
     expect(
       isFreightOverdue(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate, receivablePlanType: "paid_on_delivery" },
         almostEndOfDay,
       ),
     ).toBe(false);
     expect(
       isFreightOverdue(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: dueDate, receivablePlanType: "paid_on_delivery" },
         nextDay,
       ),
     ).toBe(true);
@@ -128,13 +129,13 @@ describe("freightReceivables", () => {
 
     expect(
       isFreightOverdue(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-02-30" },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026-02-30", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe(false);
     expect(
       isFreightOverdue(
-        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026/04/08" },
+        { grossValue: 1000, amountReceived: 0, paymentDueDate: "2026/04/08", receivablePlanType: "paid_on_delivery" },
         referenceDate,
       ),
     ).toBe(false);
@@ -154,7 +155,34 @@ describe("freightReceivables", () => {
     expect(getFreightAdvanceReceived(freight)).toBe(700);
     expect(getFreightPlannedBalance(freight)).toBe(1300);
     expect(getFreightAdjustedBalance(freight)).toBe(1250);
-    expect(getFreightTotalReceived(freight)).toBe(950);
+    expect(getFreightTotalReceived({ ...freight, receivablePlanType: "advance_value" })).toBe(950);
+  });
+
+  it("trata adiantamento como recebido no plano de adiantamento", () => {
+    const freight = {
+      grossValue: 2000,
+      amountReceived: 0,
+      advanceAmount: 700,
+      receivablePlanType: "advance_value" as const,
+      balanceAdjustments: [],
+    };
+
+    expect(getFreightTotalReceived(freight)).toBe(700);
+    expect(getFreightRemainingBalance(freight)).toBe(1300);
+  });
+
+  it("pago integralmente considera target quitado, incluindo ajustes", () => {
+    const freight = {
+      grossValue: 1000,
+      amountReceived: 0,
+      advanceAmount: 0,
+      receivablePlanType: "paid_in_full" as const,
+      balanceAdjustments: [{ type: "increase" as const, amount: 100 }],
+    };
+
+    expect(getFreightReceivableTarget(freight)).toBe(1100);
+    expect(getFreightTotalReceived(freight)).toBe(1100);
+    expect(getFreightRemainingBalance(freight)).toBe(0);
   });
 
   it("mantém regras de planned/adjusted balance para paid_in_full e paid_on_delivery", () => {
@@ -196,6 +224,7 @@ describe("freightReceivables", () => {
 
     expect(getFreightReceivableTarget(freight)).toBe(0);
     expect(getFreightReceivableStatus(freight, referenceDate)).toBe("pending");
+    expect(getFreightReceivableBadgeState({ ...freight, status: "in_progress" })).toBe("undefined");
   });
 
   it("identifica bloqueio por canhoto conforme modo de liberação", () => {
@@ -224,14 +253,15 @@ describe("freightReceivables", () => {
   });
 
   it("reconhece frete quitado", () => {
-    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1500 })).toBe(true);
-    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1499.99 })).toBe(false);
+    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1500, receivablePlanType: "paid_on_delivery" })).toBe(true);
+    expect(isFreightSettled({ grossValue: 1500, amountReceived: 1499.99, receivablePlanType: "paid_on_delivery" })).toBe(false);
   });
 
   it("considera balanceAdjustments na meta real de quitação e status", () => {
     const freight = {
       grossValue: 1000,
       amountReceived: 930,
+      receivablePlanType: "paid_on_delivery" as const,
       balanceAdjustments: [
         { type: "increase" as const, amount: 80 },
         { type: "discount" as const, amount: 50 },
@@ -263,10 +293,52 @@ describe("freightReceivables", () => {
     ).toBe("pending");
   });
 
+  it("resume badge de recebimento em estados enxutos", () => {
+    expect(
+      getFreightReceivableBadgeState({
+        grossValue: 1000,
+        amountReceived: 0,
+        advanceAmount: 0,
+        paymentDueDate: undefined,
+        receivablePlanType: "paid_on_delivery",
+        status: "in_progress",
+      }),
+    ).toBe("after_delivery");
+
+    expect(
+      getFreightReceivableBadgeState(
+        {
+          grossValue: 1000,
+          amountReceived: 200,
+          advanceAmount: 0,
+          paymentDueDate: "2026-04-11",
+          receivablePlanType: "paid_on_delivery",
+          status: "completed",
+        },
+        new Date("2026-04-11T08:00:00.000Z"),
+      ),
+    ).toBe("due_today");
+
+    expect(
+      getFreightReceivableBadgeState(
+        {
+          grossValue: 1000,
+          amountReceived: 200,
+          advanceAmount: 0,
+          paymentDueDate: "2026-04-10",
+          receivablePlanType: "paid_on_delivery",
+          status: "completed",
+        },
+        new Date("2026-04-11T08:00:00.000Z"),
+      ),
+    ).toBe("overdue");
+  });
+
   it("deriva estados visuais da previsão de pagamento", () => {
     const base = {
       grossValue: 1000,
       amountReceived: 200,
+      receivablePlanType: "paid_on_delivery" as const,
       balanceAdjustments: [],
     };
 
