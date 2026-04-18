@@ -1096,6 +1096,41 @@ describe("FreightTab", () => {
     expect(screen.getByLabelText("Observação do ajuste")).toBeInTheDocument();
   });
 
+  it("campo de ajuste usa máscara monetária com entrada da direita para esquerda", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [{ ...makeFreight("f-1", "completed", new Date().toISOString()), receivablePlanType: "advance_value" }],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
+
+    const adjustmentInput = screen.getByLabelText("Valor do ajuste");
+    const getNormalizedInputValue = () =>
+      (adjustmentInput as HTMLInputElement).value.replace(/\u00a0/g, " ");
+    expect(getNormalizedInputValue()).toBe("R$ 0,00");
+
+    fireEvent.change(adjustmentInput, { target: { value: "2" } });
+    expect(getNormalizedInputValue()).toBe("R$ 0,02");
+
+    fireEvent.change(adjustmentInput, { target: { value: "20" } });
+    expect(getNormalizedInputValue()).toBe("R$ 0,20");
+
+    fireEvent.change(adjustmentInput, { target: { value: "200" } });
+    expect(getNormalizedInputValue()).toBe("R$ 2,00");
+  });
+
   it("oculta previsão de pagamento para frete em andamento e mostra após conclusão", () => {
     const { unmount } = render(
       <FreightTab

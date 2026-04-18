@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "@/components/ui/use-toast";
 import { Trip, Freight, Vehicle, FREIGHT_STATUS_LABELS, ReceivablePlanType } from "@/types";
 import { formatCurrency, formatDate, formatNumber } from "@/lib/calculations";
@@ -61,21 +61,32 @@ function QuickBalanceAdjustmentSection({
   disabled = false,
   showOptionalTitle = false,
 }: QuickBalanceAdjustmentSectionProps) {
+  const amountInputRef = useRef<HTMLInputElement | null>(null);
+  const amountDisplayValue = adjustmentAmount || "R$ 0,00";
+
+  const moveCaretToEnd = () => {
+    const input = amountInputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
   const handleAmountInputChange = (value: string) => {
-    if (value.trim() === "") {
-      onChangeAmount("");
-      return;
-    }
-    const normalized = value
-      .replace(/[^\d,.-]/g, "")
-      .replace(/\.(?=.*\.)/g, "")
-      .replace(",", ".");
-    const parsed = Number(normalized);
-    if (!Number.isFinite(parsed) || parsed < 0) {
+    if (value.includes("-")) {
       onChangeAmount(value);
+      requestAnimationFrame(moveCaretToEnd);
       return;
     }
-    onChangeAmount(formatCurrency(parsed));
+    const digitsOnly = value.replace(/\D/g, "");
+    if (!digitsOnly) {
+      onChangeAmount("");
+      requestAnimationFrame(moveCaretToEnd);
+      return;
+    }
+    const parsedCents = Number(digitsOnly);
+    const parsedValue = parsedCents / 100;
+    onChangeAmount(formatCurrency(parsedValue));
+    requestAnimationFrame(moveCaretToEnd);
   };
 
   return (
@@ -122,11 +133,13 @@ function QuickBalanceAdjustmentSection({
               </button>
             </div>
             <input
+              ref={amountInputRef}
               type="text"
               inputMode="decimal"
               placeholder="R$ 0,00"
-              value={adjustmentAmount}
+              value={amountDisplayValue}
               onChange={(e) => handleAmountInputChange(e.target.value)}
+              onFocus={moveCaretToEnd}
               className="input-field"
               aria-label="Valor do ajuste"
               disabled={disabled}
