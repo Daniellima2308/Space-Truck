@@ -171,6 +171,20 @@ describe("freightReceivables", () => {
     expect(getFreightRemainingBalance(freight)).toBe(1300);
   });
 
+  it("não marca como quitado quando adiantamento ainda deixa saldo aberto", () => {
+    const freight = {
+      grossValue: 4500,
+      amountReceived: 3600,
+      advanceAmount: 3600,
+      receivablePlanType: "advance_value" as const,
+      balanceAdjustments: [],
+    };
+
+    expect(getFreightRemainingBalance(freight)).toBe(900);
+    expect(isFreightSettled(freight)).toBe(false);
+    expect(getFreightReceivableBadgeState({ ...freight, status: "completed" })).toBe("awaiting_balance");
+  });
+
   it("pago integralmente considera target quitado, incluindo ajustes", () => {
     const freight = {
       grossValue: 1000,

@@ -598,7 +598,7 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText("Forma de recebimento não definida")).toBeInTheDocument();
+    expect(screen.getByText("Sem configuração de recebimento")).toBeInTheDocument();
   });
 
   it("resume corretamente frete que recebe só na entrega", () => {
@@ -625,6 +625,35 @@ describe("FreightTab", () => {
 
     expect(screen.getByText("Pagamento após descarga")).toBeInTheDocument();
     expect(screen.getByText("Após descarga")).toBeInTheDocument();
+  });
+
+  it("resume adiantamento e saldo em duas linhas no card", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.getByText(/Adiantamento R\$\s*3\.600,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo R\$\s*900,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Adiantamento .*•.*Saldo/)).not.toBeInTheDocument();
   });
 
   it("não mostra aviso de canhoto quando modo é entrega direta", () => {
@@ -711,6 +740,48 @@ describe("FreightTab", () => {
 
     fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
     expect(screen.getByText("Necessário enviar foto do canhoto")).toBeInTheDocument();
+  });
+
+  it("permite marcar saldo como pago após conclusão e fecha o recebimento", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: "Marcar saldo como pago" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledWith(
+        "trip-1",
+        "f-1",
+        expect.objectContaining({
+          amountReceived: 4500,
+        }),
+      );
+    });
   });
 
   it("não envia createdAt nos payloads de UI ao criar frete", async () => {
