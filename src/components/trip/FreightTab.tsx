@@ -412,8 +412,8 @@ export function FreightTab({
   const buildReceivableSummary = (
     freight: Freight,
     originalBalance: number,
-    adjustedBalance: number,
-    adjustmentsNet: number,
+    hasAdjustments: boolean,
+    hasMailReminder: boolean,
   ): string[] => {
     const uiPlan = getUiPlanFromPlanType(freight.receivablePlanType ?? "undefined");
     if (uiPlan === "undefined") return ["Sem configuração de recebimento"];
@@ -429,17 +429,11 @@ export function FreightTab({
       `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)}`,
       `Saldo ${formatCurrency(originalBalance)}`,
     ];
-    if (adjustmentsNet !== 0) {
-      const adjustmentCount = Array.isArray(freight.balanceAdjustments) ? freight.balanceAdjustments.length : 0;
-      if (adjustmentCount === 1 && freight.balanceAdjustments?.[0]) {
-        const latestAdjustment = freight.balanceAdjustments[0];
-        lines.push(
-          `${latestAdjustment.type === "discount" ? "Desconto" : "Acréscimo"} de ${formatCurrency(latestAdjustment.amount)}`,
-        );
-      } else {
-        lines.push(`Ajustes (${adjustmentCount}) ${adjustmentsNet > 0 ? "+" : "-"}${formatCurrency(Math.abs(adjustmentsNet))}`);
-      }
-      lines.push(`Saldo reajustado ${formatCurrency(adjustedBalance)}`);
+    if (hasAdjustments || hasMailReminder) {
+      const hints: string[] = [];
+      if (hasAdjustments) hints.push("com ajuste");
+      if (hasMailReminder) hints.push("lembrete ativo");
+      lines.push(hints.join(" • "));
     }
     return lines;
   };
@@ -874,6 +868,10 @@ export function FreightTab({
   };
 
   const openReceivableDialog = (freight: Freight) => {
+    if (editingReceivableFreight?.id === freight.id) {
+      setEditingReceivableFreight(null);
+      return;
+    }
     const normalizedPlanType = freight.receivablePlanType ?? "undefined";
     const uiPlan = getUiPlanFromPlanType(normalizedPlanType);
     const advanceInputMode: AdvanceInputMode = normalizedPlanType === "advance_percent" ? "percent" : "value";
@@ -1268,6 +1266,8 @@ export function FreightTab({
           const originalBalance = getFreightPlannedBalance(f);
           const adjustmentsNet = getFreightAdjustmentsNet(f);
           const reminderLabel = getMailReminderLabel(mailReminderByFreight[f.id]);
+          const hasAdjustments = Array.isArray(f.balanceAdjustments) && f.balanceAdjustments.length > 0;
+          const hasMailReminder = Boolean(reminderLabel);
           const advanceAmount = getFreightAdvanceReceived(f);
           const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
           const isFreightCompleted = f.status === "completed";
@@ -1276,8 +1276,8 @@ export function FreightTab({
           const receivableSummaryLines = buildReceivableSummary(
             f,
             originalBalance,
-            historicalBalance,
-            adjustmentsNet,
+            hasAdjustments,
+            hasMailReminder,
           );
           const paymentContextLine = getPaymentContextLine(f, remainingBalance);
 
@@ -1428,6 +1428,17 @@ export function FreightTab({
                       </span>
                     </p>
                   )}
+                  {uiPlan === "advance_and_balance" && hasAdjustments && (
+                    <div className="space-y-1 rounded-md border border-border/60 bg-secondary/20 p-2">
+                      <p className="text-[11px] font-medium text-muted-foreground">Histórico de ajustes</p>
+                      {f.balanceAdjustments?.map((adjustment, index) => (
+                        <p key={`${adjustment.type}-${adjustment.amount}-${index}`} className="text-xs text-foreground">
+                          {adjustment.type === "discount" ? "Desconto" : "Acréscimo"} de {formatCurrency(adjustment.amount)}
+                          {adjustment.note ? ` • ${adjustment.note}` : ""}
+                        </p>
+                      ))}
+                    </div>
+                  )}
                   {uiPlan === "advance_and_balance" && (
                     <p className="text-xs text-muted-foreground">Saldo reajustado: <span className="font-mono text-foreground">{formatCurrency(historicalBalance)}</span></p>
                   )}
@@ -1455,7 +1466,7 @@ export function FreightTab({
                         onClick={() => openReceivableDialog(f)}
                         className="inline-flex min-h-[44px] items-center gap-1 rounded-md border border-border/70 px-2.5 py-1.5 text-xs font-semibold text-foreground hover:bg-secondary"
                       >
-                        <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Ajustar recebimento"}
+                        <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {editingReceivableFreight?.id === f.id ? "Fechar edição" : (receivableMode === "basic" ? "Registrar recebimento" : "Editar recebimento")}
                       </button>
                       {canSettleRemaining && (
                         <button
@@ -1466,6 +1477,276 @@ export function FreightTab({
                           {isSettlingBalance ? "Quitando..." : "Marcar saldo como pago"}
                         </button>
                       )}
+                    </div>
+                  )}
+                  {isOpen && editingReceivableFreight?.id === f.id && (
+                    <div className="mt-2 space-y-3 rounded-lg border border-border/60 bg-secondary/20 p-3">
+                      <label className="space-y-1 text-sm text-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">Como este frete será pago?</span>
+                        <div className="grid grid-cols-1 gap-2">
+                          {([
+                            { value: "undefined", label: "Não definido" },
+                            { value: "advance_and_balance", label: "Adiantamento e saldo" },
+                            { value: "paid_in_full", label: "Pago integralmente" },
+                            { value: "paid_on_delivery", label: "Pagamento após a descarga" },
+                          ] as const).map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setEditReceivableUiPlan(option.value)}
+                              className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm ${
+                                editReceivableUiPlan === option.value
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                              }`}
+                              disabled={isSavingReceivable}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                      </label>
+
+                      {editReceivableUiPlan === "advance_and_balance" && (
+                        <>
+                          <label className="space-y-1 text-sm text-foreground">
+                            <span className="text-xs font-medium text-muted-foreground">Como digitar o adiantamento</span>
+                            <div className="grid grid-cols-2 gap-2">
+                              <button
+                                type="button"
+                                onClick={() => setEditAdvanceInputMode("value")}
+                                className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
+                                  editAdvanceInputMode === "value"
+                                    ? "border-primary bg-primary/10 text-foreground"
+                                    : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                                }`}
+                                disabled={isSavingReceivable}
+                              >
+                                Valor
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditAdvanceInputMode("percent")}
+                                className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
+                                  editAdvanceInputMode === "percent"
+                                    ? "border-primary bg-primary/10 text-foreground"
+                                    : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                                }`}
+                                disabled={isSavingReceivable}
+                              >
+                                %
+                              </button>
+                            </div>
+                          </label>
+                          {editAdvanceInputMode === "value" ? (
+                            <input
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              value={editAdvanceAmount}
+                              onChange={(e) => setEditAdvanceAmount(e.target.value)}
+                              className="input-field"
+                              disabled={isSavingReceivable}
+                              placeholder="Ex.: 3.600,00"
+                            />
+                          ) : (
+                            <input
+                              type="text"
+                              value={advancePercentage}
+                              onChange={(e) => setAdvancePercentage(e.target.value)}
+                              className="input-field"
+                              disabled={isSavingReceivable}
+                              aria-label="Porcentagem do adiantamento"
+                              placeholder="Ex.: 80, 80% ou 80/20"
+                            />
+                          )}
+                          {editAdvanceInputMode === "percent" && (
+                            <div>
+                              {(() => {
+                                const parsed = parseAdvancePercentInput(advancePercentage);
+                                const grossValue = editingReceivableFreight?.grossValue ?? 0;
+                                if (parsed.value === null) {
+                                  return (
+                                    <p className="text-[11px] text-warning">
+                                      {parsed.error}
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p className="text-[11px] text-muted-foreground">
+                                    {`${parsed.value}% de ${formatCurrency(grossValue)} = `}
+                                    <span className="font-mono text-foreground">
+                                      {formatCurrency((grossValue * parsed.value) / 100)}
+                                    </span>
+                                  </p>
+                                );
+                              })()}
+                            </div>
+                          )}
+                        </>
+                      )}
+
+                      <label className="space-y-1 text-sm text-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">Quem paga (opcional)</span>
+                        <input
+                          type="text"
+                          value={editPayerName}
+                          onChange={(e) => setEditPayerName(e.target.value)}
+                          className="input-field"
+                          disabled={isSavingReceivable}
+                          placeholder="Ex.: Embarcador da carga"
+                        />
+                      </label>
+
+                      {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
+                        <label className="space-y-1 text-sm text-foreground">
+                          <span className="text-xs font-medium text-muted-foreground">Canhoto para liberar saldo</span>
+                          <div className="grid grid-cols-1 gap-2">
+                            {([
+                              { value: "none", label: "Canhoto: não precisa" },
+                              { value: "proof_photo", label: "Canhoto: enviar foto" },
+                              { value: "physical_proof", label: "Canhoto: enviar físico" },
+                            ] as const).map((option) => (
+                              <button
+                                key={option.value}
+                                type="button"
+                                onClick={() => setEditBalanceReleaseMode(option.value)}
+                                className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm ${
+                                  editBalanceReleaseMode === option.value
+                                    ? "border-primary bg-primary/10 text-foreground"
+                                    : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                                }`}
+                                disabled={isSavingReceivable}
+                              >
+                                {option.label}
+                              </button>
+                            ))}
+                          </div>
+                        </label>
+                      )}
+
+                      {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
+                        <QuickBalanceAdjustmentSection
+                          expanded={showQuickAdjustment}
+                          onExpand={() => setShowQuickAdjustment(true)}
+                          adjustmentType={quickAdjustmentType}
+                          onChangeType={setQuickAdjustmentType}
+                          adjustmentAmount={quickAdjustmentAmount}
+                          onChangeAmount={setQuickAdjustmentAmount}
+                          adjustmentNote={quickAdjustmentNote}
+                          onChangeNote={setQuickAdjustmentNote}
+                          disabled={isSavingReceivable}
+                          showOptionalTitle
+                        />
+                      )}
+                      {showQuickAdjustment && (
+                        <div className="flex flex-wrap gap-2">
+                          <button
+                            type="button"
+                            onClick={handleApplyQuickAdjustmentDraft}
+                            className="min-h-[44px] rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
+                            disabled={isSavingReceivable}
+                          >
+                            {editingQuickAdjustmentIndex !== null ? "Atualizar ajuste" : "Adicionar ajuste"}
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowQuickAdjustment(false);
+                              setEditingQuickAdjustmentIndex(null);
+                              setQuickAdjustmentType("discount");
+                              setQuickAdjustmentAmount("");
+                              setQuickAdjustmentNote("");
+                            }}
+                            className="min-h-[44px] rounded-md border border-border px-3 py-2 text-xs font-semibold"
+                            disabled={isSavingReceivable}
+                          >
+                            Cancelar ajuste
+                          </button>
+                        </div>
+                      )}
+                      {Array.isArray(draftBalanceAdjustments) && draftBalanceAdjustments.length > 0 && (
+                        <div className="space-y-2">
+                          {draftBalanceAdjustments.map((adjustment, index) => (
+                            <div key={`${adjustment.type}-${adjustment.amount}-${index}`} className="rounded-md border border-border/60 bg-background p-2">
+                              <p className="text-xs text-foreground">
+                                {adjustment.type === "discount" ? "Desconto" : "Acréscimo"} de {formatCurrency(adjustment.amount)}
+                              </p>
+                              <div className="mt-1 flex gap-2">
+                                <button type="button" onClick={() => handleEditAdjustment(index)} className="min-h-[44px] rounded border border-border px-2 py-1 text-xs font-semibold">Editar</button>
+                                <button type="button" onClick={() => handleDeleteAdjustment(index)} className="min-h-[44px] rounded border border-expense/30 px-2 py-1 text-xs font-semibold text-expense">Excluir</button>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+
+                      {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
+                        <label className="space-y-1 text-sm text-foreground">
+                          <span className="text-xs font-medium text-muted-foreground">Previsão do saldo</span>
+                          <input
+                            type="date"
+                            value={editPaymentDueDate}
+                            onChange={(e) => setEditPaymentDueDate(e.target.value)}
+                            className="input-field"
+                            disabled={isSavingReceivable}
+                          />
+                        </label>
+                      )}
+
+                      <label className="space-y-1 text-sm text-foreground">
+                        <span className="text-xs font-medium text-muted-foreground">Lembrete de correio</span>
+                        <div className="grid grid-cols-2 gap-2">
+                          {([
+                            { value: "off", label: "Sem lembrete" },
+                            { value: "tomorrow", label: "Amanhã" },
+                            { value: "day_after_tomorrow", label: "Depois de amanhã" },
+                            { value: "pick_date", label: "Escolher dia" },
+                          ] as const).map((option) => (
+                            <button
+                              key={option.value}
+                              type="button"
+                              onClick={() => setEditMailReminderChoice(option.value)}
+                              className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-medium ${
+                                editMailReminderChoice === option.value
+                                  ? "border-primary bg-primary/10 text-foreground"
+                                  : "border-border/70 text-muted-foreground hover:bg-secondary/40"
+                              }`}
+                              disabled={isSavingReceivable}
+                            >
+                              {option.label}
+                            </button>
+                          ))}
+                        </div>
+                        {editMailReminderChoice === "pick_date" && (
+                          <input
+                            type="date"
+                            value={editMailReminderDate}
+                            onChange={(e) => setEditMailReminderDate(e.target.value)}
+                            className="input-field"
+                            disabled={isSavingReceivable}
+                          />
+                        )}
+                      </label>
+
+                      <div className="flex flex-wrap gap-2">
+                        <button
+                          type="button"
+                          className="min-h-[44px] rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                          onClick={handleSaveReceivable}
+                          disabled={isSavingReceivable}
+                        >
+                          {isSavingReceivable ? "Salvando..." : "Salvar recebimento"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => setEditingReceivableFreight(null)}
+                          className="min-h-[44px] rounded-md border border-border px-3 py-2 text-xs font-semibold"
+                          disabled={isSavingReceivable}
+                        >
+                          Cancelar
+                        </button>
+                      </div>
                     </div>
                   )}
                 </div>
@@ -1508,12 +1789,6 @@ export function FreightTab({
                       {isSettlingBalance ? "Quitando..." : "Recebi o saldo"}
                     </button>
                   )}
-                <button
-                  onClick={() => openReceivableDialog(f)}
-                  className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
-                >
-                  <FontAwesomeIcon icon={iconReceipt} className="w-3.5 h-3.5" /> Abrir painel de recebimento
-                </button>
                 </>
               )}
             </div>
@@ -1688,334 +1963,6 @@ export function FreightTab({
         </DialogContent>
       </Dialog>
 
-      <Dialog
-        open={!!editingReceivableFreight}
-        onOpenChange={(open) => !open && !isSavingReceivable && setEditingReceivableFreight(null)}
-      >
-        <DialogContent className="bottom-0 top-auto flex h-[92vh] w-[calc(100%-1rem)] max-w-md translate-x-[-50%] translate-y-0 flex-col gap-0 overflow-hidden rounded-t-2xl rounded-b-none p-0 data-[state=closed]:slide-out-to-bottom data-[state=open]:slide-in-from-bottom sm:top-[50%] sm:h-auto sm:max-h-[85vh] sm:w-full sm:translate-y-[-50%] sm:rounded-2xl">
-          <DialogHeader className="shrink-0 space-y-1 border-b border-border/60 px-4 py-3 pr-10 text-left">
-            <DialogTitle>{(editingReceivableFreight?.receivableMode ?? "off") === "basic" ? "Registrar recebimento" : "Painel de recebimento"}</DialogTitle>
-            <DialogDescription>
-              Área separada para organizar previsão, recebimentos e ajustes sem poluir o card principal.
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3">
-            <div className="rounded-md border border-border/60 bg-secondary/30 p-2 text-xs text-muted-foreground">
-              {editingReceivableFreight && `${editingReceivableFreight.origin} → ${editingReceivableFreight.destination}`}
-            </div>
-
-            <label className="space-y-1 text-sm text-foreground">
-              <span className="text-xs font-medium text-muted-foreground">Como este frete será pago?</span>
-              <p className="text-[11px] text-muted-foreground">
-                Escolha a lógica de recebimento. Você pode ajustar depois sem perder histórico.
-              </p>
-              <div className="grid grid-cols-1 gap-2">
-                {([
-                  { value: "undefined", label: "Não definido" },
-                  { value: "advance_and_balance", label: "Adiantamento e saldo" },
-                  { value: "paid_in_full", label: "Pago integralmente" },
-                  { value: "paid_on_delivery", label: "Pagamento após a descarga" },
-                ] as const).map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setEditReceivableUiPlan(option.value)}
-                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                      editReceivableUiPlan === option.value
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border/70 bg-background text-muted-foreground hover:bg-secondary/40"
-                    }`}
-                    disabled={isSavingReceivable}
-                    aria-label={option.label}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </label>
-
-            {(editingReceivableFreight?.receivableMode ?? "off") !== "off" && editReceivableUiPlan !== "undefined" && (
-              <>
-                {editReceivableUiPlan === "advance_and_balance" && (
-                <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Como digitar o adiantamento</span>
-                  <div className="grid grid-cols-2 gap-2">
-                    <button
-                      type="button"
-                      onClick={() => setEditAdvanceInputMode("value")}
-                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
-                        editAdvanceInputMode === "value"
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
-                      }`}
-                      disabled={isSavingReceivable}
-                    >
-                      Valor
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setEditAdvanceInputMode("percent")}
-                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-sm font-medium ${
-                        editAdvanceInputMode === "percent"
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
-                      }`}
-                      disabled={isSavingReceivable}
-                    >
-                      %
-                    </button>
-                  </div>
-                  {editAdvanceInputMode === "value" && (
-                    <>
-                      <input
-                        type="number"
-                        min="0"
-                        step="0.01"
-                        value={editAdvanceAmount}
-                        onChange={(e) => setEditAdvanceAmount(e.target.value)}
-                        className="input-field"
-                        disabled={isSavingReceivable}
-                        placeholder="Ex.: 3.600,00"
-                      />
-                      <p className="text-[11px] text-muted-foreground">
-                        Valor informado: <span className="font-mono text-foreground">{formatCurrency(Number(editAdvanceAmount || 0))}</span>
-                      </p>
-                    </>
-                  )}
-                  {editAdvanceInputMode === "percent" && (
-                    <div className="space-y-2">
-                      <input
-                        type="text"
-                        value={advancePercentage}
-                        onChange={(e) => setAdvancePercentage(e.target.value)}
-                        className="input-field"
-                        disabled={isSavingReceivable}
-                        aria-label="Porcentagem do adiantamento"
-                        placeholder="Ex.: 80, 80% ou 80/20"
-                      />
-                      <div className="flex flex-wrap gap-2">
-                        {[80, 70, 60].map((pct) => (
-                          <button
-                            key={pct}
-                            type="button"
-                            onClick={() => setAdvancePercentage(`${pct}/${100 - pct}`)}
-                            className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold text-muted-foreground min-h-[44px]"
-                            disabled={isSavingReceivable}
-                          >
-                            {pct}/{100 - pct}
-                          </button>
-                        ))}
-                      </div>
-                      {(() => {
-                        const parsed = parseAdvancePercentInput(advancePercentage);
-                        const grossValue = editingReceivableFreight?.grossValue ?? 0;
-                        if (parsed.value === null) {
-                          return (
-                            <p className="text-[11px] text-warning">
-                              {parsed.error}
-                            </p>
-                          );
-                        }
-
-                        return (
-                          <p className="text-[11px] text-muted-foreground">
-                            {`${parsed.value}% de ${formatCurrency(grossValue)} = `}
-                            <span className="font-mono text-foreground">
-                              {formatCurrency((grossValue * parsed.value) / 100)}
-                            </span>
-                          </p>
-                        );
-                      })()}
-                    </div>
-                  )}
-                </label>
-                )}
-
-                <label className="space-y-1 text-sm text-foreground">
-                  <span className="text-xs font-medium text-muted-foreground">Quem paga (opcional)</span>
-                  <input
-                    type="text"
-                    value={editPayerName}
-                    onChange={(e) => setEditPayerName(e.target.value)}
-                    className="input-field"
-                    disabled={isSavingReceivable}
-                    placeholder="Ex.: Embarcador da carga"
-                  />
-                </label>
-              </>
-            )}
-
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && <label className="space-y-1 text-sm text-foreground">
-              <span className="text-xs font-medium text-muted-foreground">Canhoto para liberar saldo</span>
-              <div className="grid grid-cols-1 gap-2">
-                {([
-                  { value: "none", label: "Canhoto: não precisa" },
-                  { value: "proof_photo", label: "Canhoto: enviar foto" },
-                  { value: "physical_proof", label: "Canhoto: enviar físico" },
-                ] as const).map((option) => (
-                  <button
-                    key={option.value}
-                    type="button"
-                    onClick={() => setEditBalanceReleaseMode(option.value)}
-                    className={`min-h-[44px] rounded-lg border px-3 py-2 text-left text-sm transition-colors ${
-                      editBalanceReleaseMode === option.value
-                        ? "border-primary bg-primary/10 text-foreground"
-                        : "border-border/70 text-muted-foreground hover:bg-secondary/40"
-                    }`}
-                    disabled={isSavingReceivable}
-                  >
-                    {option.label}
-                  </button>
-                ))}
-              </div>
-            </label>}
-
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
-              <div className="space-y-2 rounded-md border border-border/60 bg-secondary/20 p-2">
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs font-medium text-muted-foreground">Ajustes no saldo</p>
-                  {Array.isArray(draftBalanceAdjustments) && draftBalanceAdjustments.length > 0 && (
-                    <span className="text-[11px] text-muted-foreground">{draftBalanceAdjustments.length} ajuste(s)</span>
-                  )}
-                </div>
-                {Array.isArray(draftBalanceAdjustments) && draftBalanceAdjustments.length > 0 ? (
-                  <div className="space-y-2">
-                    {draftBalanceAdjustments.map((adjustment, index) => (
-                      <div key={`${adjustment.type}-${adjustment.amount}-${index}`} className="rounded-md border border-border/70 bg-background p-2">
-                        <p className="text-xs font-medium text-foreground">
-                          {adjustment.type === "discount" ? "Desconto" : "Acréscimo"} de {formatCurrency(adjustment.amount)}
-                        </p>
-                        {adjustment.note && <p className="mt-0.5 text-[11px] text-muted-foreground">{adjustment.note}</p>}
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => handleEditAdjustment(index)}
-                            className="min-h-[44px] rounded-md border border-border px-2 py-1 text-xs font-semibold text-foreground"
-                            disabled={isSavingReceivable}
-                          >
-                            Editar ajuste
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => handleDeleteAdjustment(index)}
-                            className="min-h-[44px] rounded-md border border-expense/30 px-2 py-1 text-xs font-semibold text-expense"
-                            disabled={isSavingReceivable}
-                          >
-                            Excluir ajuste
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <p className="text-[11px] text-muted-foreground">Nenhum ajuste lançado.</p>
-                )}
-
-                <QuickBalanceAdjustmentSection
-                  expanded={showQuickAdjustment}
-                  onExpand={() => setShowQuickAdjustment(true)}
-                  adjustmentType={quickAdjustmentType}
-                  onChangeType={setQuickAdjustmentType}
-                  adjustmentAmount={quickAdjustmentAmount}
-                  onChangeAmount={setQuickAdjustmentAmount}
-                  adjustmentNote={quickAdjustmentNote}
-                  onChangeNote={setQuickAdjustmentNote}
-                  disabled={isSavingReceivable}
-                  showOptionalTitle
-                />
-                {showQuickAdjustment && (
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      onClick={handleApplyQuickAdjustmentDraft}
-                      className="min-h-[44px] rounded-md bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground"
-                      disabled={isSavingReceivable}
-                    >
-                      {editingQuickAdjustmentIndex !== null ? "Atualizar ajuste" : "Adicionar ajuste"}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowQuickAdjustment(false);
-                        setEditingQuickAdjustmentIndex(null);
-                        setQuickAdjustmentType("discount");
-                        setQuickAdjustmentAmount("");
-                        setQuickAdjustmentNote("");
-                      }}
-                      className="min-h-[44px] rounded-md border border-border px-3 py-2 text-xs font-semibold"
-                      disabled={isSavingReceivable}
-                    >
-                      Cancelar
-                    </button>
-                  </div>
-                )}
-              </div>
-            )}
-
-            {editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
-              <label className="space-y-1 text-sm text-foreground">
-                <span className="text-xs font-medium text-muted-foreground">Previsão do saldo</span>
-                <input
-                  type="date"
-                  value={editPaymentDueDate}
-                  onChange={(e) => setEditPaymentDueDate(e.target.value)}
-                  className="input-field"
-                  disabled={isSavingReceivable}
-                />
-              </label>
-            )}
-
-            {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && (
-              <label className="space-y-1 text-sm text-foreground">
-                <span className="text-xs font-medium text-muted-foreground">Lembrete de correio</span>
-                <div className="grid grid-cols-2 gap-2">
-                  {([
-                    { value: "off", label: "Sem lembrete" },
-                    { value: "tomorrow", label: "Amanhã" },
-                    { value: "day_after_tomorrow", label: "Depois de amanhã" },
-                    { value: "pick_date", label: "Escolher dia" },
-                  ] as const).map((option) => (
-                    <button
-                      key={option.value}
-                      type="button"
-                      onClick={() => setEditMailReminderChoice(option.value)}
-                      className={`min-h-[44px] rounded-lg border px-3 py-2 text-xs font-medium ${
-                        editMailReminderChoice === option.value
-                          ? "border-primary bg-primary/10 text-foreground"
-                          : "border-border/70 text-muted-foreground hover:bg-secondary/40"
-                      }`}
-                      disabled={isSavingReceivable}
-                    >
-                      {option.label}
-                    </button>
-                  ))}
-                </div>
-                {editMailReminderChoice === "pick_date" && (
-                  <input
-                    type="date"
-                    value={editMailReminderDate}
-                    onChange={(e) => setEditMailReminderDate(e.target.value)}
-                    className="input-field"
-                    disabled={isSavingReceivable}
-                  />
-                )}
-              </label>
-            )}
-          </div>
-
-          <DialogFooter className="shrink-0 border-t border-border/60 px-4 py-3 sm:flex-col sm:space-x-0">
-            <button
-              type="button"
-              className="w-full rounded-md bg-primary px-3 py-2 text-sm font-semibold text-primary-foreground min-h-[44px] disabled:opacity-60"
-              onClick={handleSaveReceivable}
-              disabled={isSavingReceivable}
-            >
-              {isSavingReceivable ? "Salvando..." : "Salvar recebimento"}
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
 
       <Dialog
         open={isModeChooserOpen}

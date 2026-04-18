@@ -306,10 +306,10 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.change(within(dialog).getByPlaceholderText("Ex.: 3.600,00"), { target: { value: "-5" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.change(screen.getByPlaceholderText("Ex.: 3.600,00"), { target: { value: "-5" } });
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
@@ -344,12 +344,13 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledTimes(1);
-      expect(screen.getByText("Painel de recebimento")).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: "Salvar recebimento" })).toBeInTheDocument();
     });
   });
 
@@ -381,7 +382,8 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
@@ -558,7 +560,7 @@ describe("FreightTab", () => {
     expect(screen.queryByRole("button", { name: /Abrir painel de recebimento/i })).not.toBeInTheDocument();
   });
 
-  it("modo básico mostra ação para abrir painel de recebimento", () => {
+  it("modo básico permite editar recebimento no card expandido", () => {
     render(
       <FreightTab
         trip={{
@@ -574,7 +576,8 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByRole("button", { name: /Abrir painel de recebimento/i })).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento/i })).toBeInTheDocument();
   });
 
   it("não assume saldo automático quando forma de recebimento ainda não foi definida", () => {
@@ -682,7 +685,9 @@ describe("FreightTab", () => {
       />,
     );
 
-    expect(screen.getByText(/Saldo reajustado R\$\s*800,00/)).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByText(/Saldo reajustado:/)).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s*800,00/)).toBeInTheDocument();
     expect(screen.queryByText(/Saldo R\$\s*0,00/)).not.toBeInTheDocument();
   });
 
@@ -712,8 +717,11 @@ describe("FreightTab", () => {
     );
 
     expect(screen.getByText(/Saldo R\$\s*900,00/)).toBeInTheDocument();
+    expect(screen.queryByText(/Desconto de R\$\s*100,00/)).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
     expect(screen.getByText(/Desconto de R\$\s*100,00/)).toBeInTheDocument();
-    expect(screen.getByText(/Saldo reajustado R\$\s*800,00/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo reajustado:/)).toBeInTheDocument();
+    expect(screen.getByText(/R\$\s*800,00/)).toBeInTheDocument();
   });
 
   it("permite excluir ajuste já lançado no painel e salva sem o item removido", async () => {
@@ -745,10 +753,10 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento/i }));
-    const dialog = await screen.findByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Excluir ajuste" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Excluir" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -979,15 +987,15 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
 
-    expect(within(dialog).getByRole("button", { name: "Adicionar desconto ou acréscimo" })).toBeInTheDocument();
-    expect(within(dialog).queryByRole("button", { name: "Desconto" })).not.toBeInTheDocument();
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
-    expect(within(dialog).getByRole("button", { name: "Desconto" })).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Valor do ajuste")).toBeInTheDocument();
-    expect(within(dialog).getByLabelText("Observação do ajuste")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Desconto" })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar desconto ou acréscimo" }));
+    expect(screen.getByRole("button", { name: "Desconto" })).toBeInTheDocument();
+    expect(screen.getByLabelText("Valor do ajuste")).toBeInTheDocument();
+    expect(screen.getByLabelText("Observação do ajuste")).toBeInTheDocument();
   });
 
   it("oculta previsão de pagamento para frete em andamento e mostra após conclusão", () => {
@@ -1006,9 +1014,9 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    let dialog = screen.getByRole("dialog");
-    expect(within(dialog).queryByText("Previsão do saldo")).not.toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    expect(screen.queryByText("Previsão do saldo")).not.toBeInTheDocument();
     unmount();
 
     render(
@@ -1026,9 +1034,9 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Previsão do saldo")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    expect(screen.getByText("Previsão do saldo")).toBeInTheDocument();
   });
 
   it("usa nova linguagem simplificada de canhoto no pós-conclusão", () => {
@@ -1047,14 +1055,13 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    expect(within(dialog).getByText("Canhoto para liberar saldo")).toBeInTheDocument();
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
 
-    expect(within(dialog).getByText("Canhoto: não precisa")).toBeInTheDocument();
-    expect(within(dialog).getByText("Canhoto: enviar foto")).toBeInTheDocument();
-    expect(within(dialog).getByText("Canhoto: enviar físico")).toBeInTheDocument();
-    expect(within(dialog).queryByText("Status do canhoto")).not.toBeInTheDocument();
+    expect(screen.getByText("Canhoto: não precisa")).toBeInTheDocument();
+    expect(screen.getByText("Canhoto: enviar foto")).toBeInTheDocument();
+    expect(screen.getByText("Canhoto: enviar físico")).toBeInTheDocument();
+    expect(screen.queryByText("Status do canhoto")).not.toBeInTheDocument();
   });
 
   it("permite adiantamento por percentual e persiste valor convertido", async () => {
@@ -1077,14 +1084,14 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "%" }));
-    fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.click(screen.getByRole("button", { name: "%" }));
+    fireEvent.change(screen.getByLabelText("Porcentagem do adiantamento"), {
       target: { value: "80/20" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -1115,13 +1122,13 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.change(within(dialog).getByPlaceholderText("Ex.: 3.600,00"), {
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.change(screen.getByPlaceholderText("Ex.: 3.600,00"), {
       target: { value: "2500" },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -1162,10 +1169,10 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Pago integralmente" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Pago integralmente" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -1201,14 +1208,14 @@ describe("FreightTab", () => {
         />,
       );
 
-      fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-      const dialog = screen.getByRole("dialog");
-      fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-      fireEvent.click(within(dialog).getByRole("button", { name: "%" }));
-      fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+      fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+        fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+      fireEvent.click(screen.getByRole("button", { name: "%" }));
+      fireEvent.change(screen.getByLabelText("Porcentagem do adiantamento"), {
         target: { value: invalidPercent },
       });
-      fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+      fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
       await waitFor(() => {
         expect(updateFreight).not.toHaveBeenCalled();
@@ -1242,14 +1249,14 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "%" }));
-    fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.click(screen.getByRole("button", { name: "%" }));
+    fireEvent.change(screen.getByLabelText("Porcentagem do adiantamento"), {
       target: { value: percent },
     });
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -1291,11 +1298,11 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "%" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "Salvar recebimento" }));
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.click(screen.getByRole("button", { name: "%" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledWith(
@@ -1325,11 +1332,11 @@ describe("FreightTab", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Abrir painel de recebimento|Registrar recebimento/i }));
-    const dialog = screen.getByRole("dialog");
-    fireEvent.click(within(dialog).getByRole("button", { name: "Adiantamento e saldo" }));
-    fireEvent.click(within(dialog).getByRole("button", { name: "%" }));
-    fireEvent.change(within(dialog).getByLabelText("Porcentagem do adiantamento"), {
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.click(screen.getByRole("button", { name: "%" }));
+    fireEvent.change(screen.getByLabelText("Porcentagem do adiantamento"), {
       target: { value: "abc" },
     });
 
