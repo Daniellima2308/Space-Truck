@@ -691,6 +691,37 @@ describe("FreightTab", () => {
     expect(screen.queryByText(/Saldo R\$\s*0,00/)).not.toBeInTheDocument();
   });
 
+  it("sem ajustes salvos não mostra bloco de reajuste no expandido", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+              balanceAdjustments: [],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.queryByText(/^Ajustes:/)).not.toBeInTheDocument();
+    expect(screen.queryByText("Histórico de ajustes")).not.toBeInTheDocument();
+    expect(screen.queryByText(/Saldo reajustado:/)).not.toBeInTheDocument();
+  });
+
   it("mostra história do saldo com ajuste aplicado no card de recebimento", () => {
     render(
       <FreightTab
@@ -719,9 +750,46 @@ describe("FreightTab", () => {
     expect(screen.getByText(/Saldo R\$\s*900,00/)).toBeInTheDocument();
     expect(screen.queryByText(/Desconto de R\$\s*100,00/)).not.toBeInTheDocument();
     fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByText(/^Ajustes:/)).toBeInTheDocument();
+    expect(screen.getByText("Histórico de ajustes")).toBeInTheDocument();
     expect(screen.getByText(/Desconto de R\$\s*100,00/)).toBeInTheDocument();
     expect(screen.getByText(/Saldo reajustado:/)).toBeInTheDocument();
     expect(screen.getByText(/R\$\s*800,00/)).toBeInTheDocument();
+  });
+
+  it("com ajustes que se anulam mantém bloco completo de reajuste visível", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              amountReceived: 3600,
+              balanceAdjustments: [
+                { type: "discount", amount: 100 },
+                { type: "increase", amount: 100 },
+              ],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    expect(screen.getByText(/^Ajustes:/)).toBeInTheDocument();
+    expect(screen.getByText("Histórico de ajustes")).toBeInTheDocument();
+    expect(screen.getByText(/Saldo reajustado:/)).toBeInTheDocument();
+    expect(screen.getByText(/Saldo original:/)).toBeInTheDocument();
   });
 
   it("permite excluir ajuste já lançado no painel e salva sem o item removido", async () => {

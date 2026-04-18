@@ -1420,7 +1420,7 @@ export function FreightTab({
                   {uiPlan === "advance_and_balance" && (
                     <p className="text-xs text-muted-foreground">Saldo original: <span className="font-mono text-foreground">{formatCurrency(originalBalance)}</span></p>
                   )}
-                  {uiPlan === "advance_and_balance" && adjustmentsNet !== 0 && (
+                  {uiPlan === "advance_and_balance" && hasAdjustments && (
                     <p className="text-xs text-muted-foreground">
                       Ajustes:{" "}
                       <span className="font-mono text-foreground">
@@ -1439,7 +1439,7 @@ export function FreightTab({
                       ))}
                     </div>
                   )}
-                  {uiPlan === "advance_and_balance" && (
+                  {uiPlan === "advance_and_balance" && hasAdjustments && (
                     <p className="text-xs text-muted-foreground">Saldo reajustado: <span className="font-mono text-foreground">{formatCurrency(historicalBalance)}</span></p>
                   )}
                   {uiPlan === "paid_on_delivery" && (
