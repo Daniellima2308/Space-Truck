@@ -276,6 +276,7 @@ export function FreightTab({
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
   const advanceAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const grossInputRef = useRef<HTMLInputElement | null>(null);
 
   const parseCurrencyInputValue = (value: string): number => {
     if (!value.trim()) return 0;
@@ -308,6 +309,30 @@ export function FreightTab({
     const parsedValue = Number(digitsOnly) / 100;
     setEditAdvanceAmount(formatCurrency(parsedValue));
     requestAnimationFrame(moveAdvanceAmountCaretToEnd);
+  };
+
+  const moveGrossCaretToEnd = () => {
+    const input = grossInputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
+  const handleGrossInputChange = (value: string) => {
+    if (value.includes("-")) {
+      setGross(value);
+      requestAnimationFrame(moveGrossCaretToEnd);
+      return;
+    }
+    const digitsOnly = value.replace(/\D/g, "");
+    if (!digitsOnly) {
+      setGross("");
+      requestAnimationFrame(moveGrossCaretToEnd);
+      return;
+    }
+    const parsedValue = Number(digitsOnly) / 100;
+    setGross(formatCurrency(parsedValue));
+    requestAnimationFrame(moveGrossCaretToEnd);
   };
 
   const defaultCommission = useMemo(
@@ -529,8 +554,18 @@ export function FreightTab({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!origin || !dest || !km || !gross || isSubmitting) return;
+    if (!origin || !dest || !km || isSubmitting) return;
     if (showCommissionInput && !comm) return;
+
+    const parsedGrossValue = parseCurrencyInputValue(gross);
+    if (!Number.isFinite(parsedGrossValue) || parsedGrossValue <= 0) {
+      toast({
+        title: "Valor bruto inválido",
+        description: "Informe um valor bruto maior que zero.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     const commissionPercent = showCommissionInput ? Number.parseFloat(comm) : 0;
     try {
@@ -539,7 +574,7 @@ export function FreightTab({
         origin,
         destination: dest,
         kmInitial: Number.parseFloat(km),
-        grossValue: Number.parseFloat(gross),
+        grossValue: parsedGrossValue,
         paymentDueDate: undefined,
         amountReceived: 0,
         receivableMode: "off",
@@ -1922,11 +1957,12 @@ export function FreightTab({
               />
               <input
                 placeholder="Valor Bruto (R$)"
-                type="number"
-                step="0.01"
-                min="0.01"
-                value={gross}
-                onChange={(e) => setGross(e.target.value)}
+                ref={grossInputRef}
+                type="text"
+                inputMode="decimal"
+                value={gross || "R$ 0,00"}
+                onChange={(e) => handleGrossInputChange(e.target.value)}
+                onFocus={moveGrossCaretToEnd}
                 className="input-field"
                 disabled={isSubmitting}
               />

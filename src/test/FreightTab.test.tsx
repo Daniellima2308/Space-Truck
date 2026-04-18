@@ -248,6 +248,37 @@ describe("FreightTab", () => {
     });
   });
 
+  it("campo de valor bruto no novo frete usa máscara monetária tipo calculadora", async () => {
+    const addFreight = vi.fn().mockResolvedValue(undefined);
+
+    render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={addFreight}
+        {...getDefaultProps()}
+      />,
+    );
+
+    const grossInput = screen.getByPlaceholderText("Valor Bruto (R$)");
+    const getNormalizedGross = () =>
+      (grossInput as HTMLInputElement).value.replace(/\u00a0/g, " ");
+
+    expect(getNormalizedGross()).toBe("R$ 0,00");
+
+    fireEvent.change(grossInput, { target: { value: "2" } });
+    expect(getNormalizedGross()).toBe("R$ 0,02");
+
+    fireEvent.change(grossInput, { target: { value: "20" } });
+    expect(getNormalizedGross()).toBe("R$ 0,20");
+
+    fireEvent.change(grossInput, { target: { value: "200" } });
+    expect(getNormalizedGross()).toBe("R$ 2,00");
+  });
+
   it.each([
     { buttonLabel: "Não usar", expectedMode: null },
     { buttonLabel: "Básico", expectedMode: "basic" as const },
