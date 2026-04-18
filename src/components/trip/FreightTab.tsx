@@ -276,6 +276,7 @@ export function FreightTab({
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
   const advanceAmountInputRef = useRef<HTMLInputElement | null>(null);
+  const kmInputRef = useRef<HTMLInputElement | null>(null);
   const grossInputRef = useRef<HTMLInputElement | null>(null);
 
   const parseCurrencyInputValue = (value: string): number => {
@@ -285,6 +286,20 @@ export function FreightTab({
       ? sanitized.replace(/\./g, "").replace(",", ".")
       : sanitized.replace(/\.(?=.*\.)/g, "");
     return Number(normalized);
+  };
+
+  const formatKmIntegerInput = (value: string): string => {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (!digitsOnly) return "";
+    return Number(digitsOnly).toLocaleString("pt-BR", {
+      maximumFractionDigits: 0,
+    });
+  };
+
+  const parseKmInputValue = (value: string): number => {
+    const digitsOnly = value.replace(/\D/g, "");
+    if (!digitsOnly) return 0;
+    return Number(digitsOnly);
   };
 
   const moveAdvanceAmountCaretToEnd = () => {
@@ -309,6 +324,18 @@ export function FreightTab({
     const parsedValue = Number(digitsOnly) / 100;
     setEditAdvanceAmount(formatCurrency(parsedValue));
     requestAnimationFrame(moveAdvanceAmountCaretToEnd);
+  };
+
+  const moveKmCaretToEnd = () => {
+    const input = kmInputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
+  const handleKmInputChange = (value: string) => {
+    setKm(formatKmIntegerInput(value));
+    requestAnimationFrame(moveKmCaretToEnd);
   };
 
   const moveGrossCaretToEnd = () => {
@@ -557,6 +584,16 @@ export function FreightTab({
     if (!origin || !dest || !km || isSubmitting) return;
     if (showCommissionInput && !comm) return;
 
+    const parsedKmInitial = parseKmInputValue(km);
+    if (!Number.isFinite(parsedKmInitial) || parsedKmInitial < 0) {
+      toast({
+        title: "KM inicial inválido",
+        description: "Informe um KM inicial válido, sem casas decimais.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const parsedGrossValue = parseCurrencyInputValue(gross);
     if (!Number.isFinite(parsedGrossValue) || parsedGrossValue <= 0) {
       toast({
@@ -573,7 +610,7 @@ export function FreightTab({
       const createdFreight = await addFreight(trip.id, {
         origin,
         destination: dest,
-        kmInitial: Number.parseFloat(km),
+        kmInitial: parsedKmInitial,
         grossValue: parsedGrossValue,
         paymentDueDate: undefined,
         amountReceived: 0,
@@ -1949,10 +1986,12 @@ export function FreightTab({
               <div className="space-y-1">
                 <input
                   placeholder="KM Inicial"
-                  type="number"
-                  min="0"
+                  ref={kmInputRef}
+                  type="text"
+                  inputMode="numeric"
                   value={km}
-                  onChange={(e) => setKm(e.target.value)}
+                  onChange={(e) => handleKmInputChange(e.target.value)}
+                  onFocus={moveKmCaretToEnd}
                   className="input-field"
                   disabled={isSubmitting}
                 />

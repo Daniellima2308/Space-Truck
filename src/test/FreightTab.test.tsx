@@ -300,6 +300,34 @@ describe("FreightTab", () => {
     ).toBeInTheDocument();
   });
 
+  it("campo KM Inicial aplica máscara de milhar sem decimais", () => {
+    render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    const kmInput = screen.getByPlaceholderText("KM Inicial");
+
+    fireEvent.change(kmInput, { target: { value: "1" } });
+    expect(kmInput).toHaveValue("1");
+
+    fireEvent.change(kmInput, { target: { value: "12" } });
+    expect(kmInput).toHaveValue("12");
+
+    fireEvent.change(kmInput, { target: { value: "1234" } });
+    expect(kmInput).toHaveValue("1.234");
+
+    fireEvent.change(kmInput, { target: { value: "123456" } });
+    expect(kmInput).toHaveValue("123.456");
+  });
+
   it.each([
     { buttonLabel: "Não usar", expectedMode: null },
     { buttonLabel: "Básico", expectedMode: "basic" as const },
