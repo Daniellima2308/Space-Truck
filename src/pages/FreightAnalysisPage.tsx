@@ -209,7 +209,7 @@ const FreightAnalysisPage = () => {
   const [distanceKmInput, setDistanceKmInput] = useState("");
   const [loadingRoute, setLoadingRoute] = useState(false);
   const [offeredValueInput, setOfferedValueInput] = useState("");
-  const [commissionPercentInput, setCommissionPercentInput] = useState("17");
+  const [commissionPercentInput, setCommissionPercentInput] = useState("");
   const [dieselPriceInput, setDieselPriceInput] = useState("");
   const [avgKmPerLiterInput, setAvgKmPerLiterInput] = useState("");
   const [cargoType, setCargoType] = useState("geral");
@@ -222,6 +222,7 @@ const FreightAnalysisPage = () => {
   const [valePedagio, setValePedagio] = useState(false);
   const [avgSpeedInput, setAvgSpeedInput] = useState("");
   const [isAvgSpeedFocused, setIsAvgSpeedFocused] = useState(false);
+  const [isCommissionFocused, setIsCommissionFocused] = useState(false);
   const [shareModalOpen, setShareModalOpen] = useState(false);
   const [summaryMode, setSummaryMode] = useState<"short" | "complete">("short");
   const routeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -459,14 +460,26 @@ const FreightAnalysisPage = () => {
               </div>
               <div>
                 <label className="text-xs text-muted-foreground">Comissão (%)</label>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={commissionPercentInput}
-                  onChange={(e) => setCommissionPercentInput(formatPercentInput(e.target.value))}
-                  placeholder="comissão do motorista ou sua retirada"
-                  className="input-field"
-                />
+                <div className="relative">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={commissionPercentInput}
+                    onFocus={() => setIsCommissionFocused(true)}
+                    onBlur={() => setIsCommissionFocused(false)}
+                    onChange={(e) => setCommissionPercentInput(formatPercentInput(e.target.value))}
+                    placeholder="Ex: 15%"
+                    className="input-field pr-10"
+                  />
+                  {(isCommissionFocused || !!commissionPercentInput.trim()) && (
+                    <span className="pointer-events-none absolute inset-y-0 right-3 inline-flex items-center text-xs font-medium text-muted-foreground">
+                      %
+                    </span>
+                  )}
+                </div>
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  Comissão do motorista ou sua retirada.
+                </p>
               </div>
               <div>
                 <label className="text-xs text-muted-foreground flex items-center gap-1.5">
