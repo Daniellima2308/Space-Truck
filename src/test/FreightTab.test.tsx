@@ -744,6 +744,7 @@ describe("FreightTab", () => {
 
   it("permite marcar saldo como pago após conclusão e fecha o recebimento", async () => {
     const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(
       <FreightTab
         trip={{

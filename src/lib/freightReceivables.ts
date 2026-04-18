@@ -144,6 +144,19 @@ export function getFreightTotalReceived(
   return amountReceived;
 }
 
+export function getFreightAmountReceivedForSettlement(
+  freight: Pick<
+    Freight,
+    "amountReceived" | "advanceAmount" | "receivablePlanType" | "grossValue" | "balanceAdjustments"
+  >,
+): number {
+  const currentAmountReceived = normalizeAmount(freight.amountReceived);
+  const target = getFreightReceivableTarget(freight);
+  const totalReceived = getFreightTotalReceived(freight);
+  if (target <= totalReceived) return currentAmountReceived;
+  return Math.max(currentAmountReceived, target);
+}
+
 export function isFreightLockedByProof(
   freight: Pick<Freight, "deliveryProofStatus" | "balanceReleaseMode">,
 ): boolean {

@@ -1,6 +1,7 @@
 import {
   getFreightAdjustedBalance,
   getFreightAdvanceReceived,
+  getFreightAmountReceivedForSettlement,
   getFreightPlannedBalance,
   getFreightReceivableTarget,
   getFreightReceivableStatus,
@@ -197,6 +198,38 @@ describe("freightReceivables", () => {
     expect(getFreightReceivableTarget(freight)).toBe(1100);
     expect(getFreightTotalReceived(freight)).toBe(1100);
     expect(getFreightRemainingBalance(freight)).toBe(0);
+  });
+
+  it("calcula amountReceived de quitação sem perder base já recebida", () => {
+    expect(
+      getFreightAmountReceivedForSettlement({
+        grossValue: 4500,
+        amountReceived: 3150,
+        advanceAmount: 3150,
+        receivablePlanType: "advance_value",
+        balanceAdjustments: [],
+      }),
+    ).toBe(4500);
+
+    expect(
+      getFreightAmountReceivedForSettlement({
+        grossValue: 4500,
+        amountReceived: 3150,
+        advanceAmount: 3150,
+        receivablePlanType: "advance_value",
+        balanceAdjustments: [{ type: "discount", amount: 100 }],
+      }),
+    ).toBe(4400);
+
+    expect(
+      getFreightAmountReceivedForSettlement({
+        grossValue: 4500,
+        amountReceived: 3150,
+        advanceAmount: 3150,
+        receivablePlanType: "advance_value",
+        balanceAdjustments: [{ type: "increase", amount: 200 }],
+      }),
+    ).toBe(4700);
   });
 
   it("mantém regras de planned/adjusted balance para paid_in_full e paid_on_delivery", () => {

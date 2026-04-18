@@ -7,6 +7,7 @@ import {
   getFreightReceivableBadgeState,
   getFreightRemainingBalance,
   getFreightAdvanceReceived,
+  getFreightAmountReceivedForSettlement,
   getFreightReceivableTarget,
   isFreightSettled,
   type FreightReceivableBadgeState,
@@ -909,20 +910,14 @@ export function FreightTab({
         note: quickAdjustmentNote.trim() || undefined,
       });
     }
-    const nextTarget = getFreightReceivableTarget({
-      grossValue: latestFreight.grossValue,
-      receivablePlanType: normalizedPlanType,
-      balanceAdjustments: nextAdjustments,
-    });
-    const currentReceivedForPlan = (() => {
-      if (normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent") {
-        return Math.max(normalizedAmountReceived, parsedAdvanceAmount);
-      }
-      return normalizedAmountReceived;
-    })();
-    if (shouldSettleRemaining && nextTarget > currentReceivedForPlan) {
-      const remainingToSettle = nextTarget - currentReceivedForPlan;
-      normalizedAmountReceived = normalizedAmountReceived + remainingToSettle;
+    if (shouldSettleRemaining) {
+      normalizedAmountReceived = getFreightAmountReceivedForSettlement({
+        grossValue: latestFreight.grossValue,
+        receivablePlanType: normalizedPlanType,
+        balanceAdjustments: nextAdjustments,
+        advanceAmount: parsedAdvanceAmount,
+        amountReceived: normalizedAmountReceived,
+      });
     }
 
     try {
@@ -970,25 +965,25 @@ export function FreightTab({
     await persistReceivable();
   };
 
-  const handleMarkRemainingAsPaid = async (freight: Freight) => {
+  const handleMarkRemainingAsPaid = async (freight: Freight, options?: { requireConfirm?: boolean }) => {
     if (isSettlingBalance || isSavingReceivable) return;
     const latestFreight = getLatestFreight(freight.id) ?? freight;
     const remainingBalance = getFreightRemainingBalance(latestFreight);
     if (remainingBalance <= 0) return;
+    if (options?.requireConfirm !== false) {
+      const confirmed = window.confirm("Confirmar quitação do saldo deste frete?");
+      if (!confirmed) return;
+    }
 
     try {
       setIsSettlingBalance(true);
-      const target = getFreightReceivableTarget({
+      const nextAmountReceived = getFreightAmountReceivedForSettlement({
         grossValue: latestFreight.grossValue,
         receivablePlanType: latestFreight.receivablePlanType ?? "undefined",
         balanceAdjustments: latestFreight.balanceAdjustments,
+        amountReceived: latestFreight.amountReceived,
+        advanceAmount: latestFreight.advanceAmount,
       });
-      const currentReceived = Math.max(
-        Number(latestFreight.amountReceived || 0),
-        Number(latestFreight.advanceAmount || 0),
-      );
-      const remainingToSettle = Math.max(0, target - currentReceived);
-      const nextAmountReceived = Number(latestFreight.amountReceived || 0) + remainingToSettle;
 
       await updateFreight(trip.id, latestFreight.id, {
         origin: latestFreight.origin,
@@ -1122,6 +1117,7 @@ export function FreightTab({
           const uiPlan = getUiPlanFromPlanType(f.receivablePlanType ?? "undefined");
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
+          const canSettleRemaining = isFreightCompleted && uiPlan !== "undefined" && uiPlan !== "paid_in_full" && remainingBalance > 0;
           const receivableSummaryLines = buildReceivableSummary(f, remainingBalance);
           const paymentContextLine = getPaymentContextLine(f, remainingBalance);
 
@@ -1287,7 +1283,7 @@ export function FreightTab({
                       >
                         <FontAwesomeIcon icon={iconPencil} className="w-3.5 h-3.5" /> {receivableMode === "basic" ? "Registrar recebimento" : "Ajustar recebimento"}
                       </button>
-                      {isFreightCompleted && uiPlan !== "paid_in_full" && uiPlan !== "undefined" && remainingBalance > 0 && (
+                      {canSettleRemaining && (
                         <button
                           onClick={() => void handleMarkRemainingAsPaid(f)}
                           disabled={isSettlingBalance}
@@ -1328,12 +1324,23 @@ export function FreightTab({
                 </button>
               )}
               {receivableEnabled && !isReceivableExpanded && (
+                <>
+                  {canSettleRemaining && (
+                    <button
+                      onClick={() => void handleMarkRemainingAsPaid(f)}
+                      disabled={isSettlingBalance}
+                      className="inline-flex min-h-[44px] items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
+                    >
+                      {isSettlingBalance ? "Quitando..." : "Recebi o saldo"}
+                    </button>
+                  )}
                 <button
                   onClick={() => openReceivableDialog(f)}
                   className="inline-flex min-h-[44px] items-center gap-1 rounded-md border px-2.5 py-1.5 text-xs font-semibold hover:bg-secondary"
                 >
                   <FontAwesomeIcon icon={iconReceipt} className="w-3.5 h-3.5" /> Abrir painel de recebimento
                 </button>
+                </>
               )}
             </div>
           )}
