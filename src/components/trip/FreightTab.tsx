@@ -1946,15 +1946,20 @@ export function FreightTab({
                 onChange={setDest}
                 className="input-field"
               />
-              <input
-                placeholder="KM Inicial"
-                type="number"
-                min="0"
-                value={km}
-                onChange={(e) => setKm(e.target.value)}
-                className="input-field"
-                disabled={isSubmitting}
-              />
+              <div className="space-y-1">
+                <input
+                  placeholder="KM Inicial"
+                  type="number"
+                  min="0"
+                  value={km}
+                  onChange={(e) => setKm(e.target.value)}
+                  className="input-field"
+                  disabled={isSubmitting}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Use o KM do painel no momento de iniciar este frete.
+                </p>
+              </div>
               <input
                 placeholder="Valor Bruto (R$)"
                 ref={grossInputRef}

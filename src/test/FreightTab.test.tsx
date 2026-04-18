@@ -282,6 +282,24 @@ describe("FreightTab", () => {
     expect(getNormalizedGross()).toBe("R$ 2,00");
   });
 
+  it("mostra ajuda contextual abaixo do campo KM Inicial no novo frete", () => {
+    render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Use o KM do painel no momento de iniciar este frete."),
+    ).toBeInTheDocument();
+  });
+
   it.each([
     { buttonLabel: "Não usar", expectedMode: null },
     { buttonLabel: "Básico", expectedMode: "basic" as const },
