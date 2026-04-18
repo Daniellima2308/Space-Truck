@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { Trip, Fueling } from "@/types";
 import { formatCurrency, formatNumber } from "@/lib/calculations";
 import { Switch } from "@/components/ui/switch";
@@ -28,17 +28,79 @@ function FuelForm({
   isEdit: boolean;
   isSubmitting: boolean;
 }) {
+  const valueInputRef = useRef<HTMLInputElement | null>(null);
+  const litersInputRef = useRef<HTMLInputElement | null>(null);
+  const kmInputRef = useRef<HTMLInputElement | null>(null);
   const [station, setStation] = useState(initial?.stationName || "");
-  const [value, setValue] = useState(initial?.totalValue != null ? String(initial.originalTotalValue ?? initial.totalValue) : "");
-  const [liters, setLiters] = useState(initial?.liters != null ? String(initial.liters) : "");
-  const [kmCur, setKmCur] = useState(initial?.kmCurrent != null ? String(initial.kmCurrent) : "");
+  const [value, setValue] = useState(
+    initial?.totalValue != null ? formatCurrency(initial.originalTotalValue ?? initial.totalValue) : "",
+  );
+  const [liters, setLiters] = useState(initial?.liters != null ? String(initial.liters).replace(".", ",") : "");
+  const [kmCur, setKmCur] = useState(
+    initial?.kmCurrent != null
+      ? Number(initial.kmCurrent).toLocaleString("pt-BR", { maximumFractionDigits: 0 })
+      : "",
+  );
   const [date, setDate] = useState(initial?.date || new Date().toISOString().slice(0, 10));
   const [fullTank, setFullTank] = useState(initial?.fullTank ?? true);
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(initial?.receiptUrl);
 
+  const moveCaretToEnd = (inputRef: React.RefObject<HTMLInputElement | null>) => {
+    const input = inputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
+  const parseCurrencyInputValue = (input: string): number => {
+    if (!input.trim()) return 0;
+    const sanitized = input.replace(/[^\d,.-]/g, "");
+    const normalized = sanitized.includes(",")
+      ? sanitized.replace(/\./g, "").replace(",", ".")
+      : sanitized.replace(/\.(?=.*\.)/g, "");
+    return Number(normalized);
+  };
+
+  const formatCurrencyInputValue = (input: string): string => {
+    const digitsOnly = input.replace(/\D/g, "");
+    if (!digitsOnly) return "";
+    return formatCurrency(Number(digitsOnly) / 100);
+  };
+
+  const parseDecimalPtBrValue = (input: string): number => {
+    if (!input.trim()) return 0;
+    const normalized = input.replace(/\s/g, "").replace(/\./g, "").replace(",", ".");
+    return Number(normalized);
+  };
+
+  const formatLitersInputValue = (input: string): string => {
+    const sanitized = input.replace(/[^\d.,]/g, "").replace(/\./g, ",");
+    if (!sanitized) return "";
+
+    const [integerPartRaw, ...fractionParts] = sanitized.split(",");
+    const hasSeparator = sanitized.includes(",");
+    const integerPart = integerPartRaw.replace(/^0+(?=\d)/, "") || "0";
+    const fractionPart = fractionParts.join("").slice(0, 2);
+
+    if (!hasSeparator) return integerPartRaw ? integerPart : "";
+    return `${integerPart},${fractionPart}`;
+  };
+
+  const formatKmIntegerInput = (input: string): string => {
+    const digitsOnly = input.replace(/\D/g, "");
+    if (!digitsOnly) return "";
+    return Number(digitsOnly).toLocaleString("pt-BR", { maximumFractionDigits: 0 });
+  };
+
+  const parseKmInputValue = (input: string): number => {
+    const digitsOnly = input.replace(/\D/g, "");
+    if (!digitsOnly) return 0;
+    return Number(digitsOnly);
+  };
+
   const calcPricePerLiter = () => {
-    const v = parseFloat(value);
-    const l = parseFloat(liters);
+    const v = parseCurrencyInputValue(value);
+    const l = parseDecimalPtBrValue(liters);
     if (v > 0 && l > 0) return (v / l).toFixed(3);
     return "";
   };
@@ -46,11 +108,18 @@ function FuelForm({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!station || !value || !liters || !kmCur || isSubmitting) return;
+
+    const totalValue = parseCurrencyInputValue(value);
+    const litersValue = parseDecimalPtBrValue(liters);
+    const kmCurrent = parseKmInputValue(kmCur);
+
+    if (!(totalValue > 0) || !(litersValue > 0) || !(kmCurrent >= 0)) return;
+
     await onSubmit({
       stationName: station,
-      totalValue: parseFloat(value),
-      liters: parseFloat(liters),
-      kmCurrent: parseFloat(kmCur),
+      totalValue,
+      liters: litersValue,
+      kmCurrent,
       date,
       fullTank,
       receiptUrl,
@@ -61,9 +130,45 @@ function FuelForm({
     <form onSubmit={handleSubmit} className="gradient-card rounded-xl p-4 space-y-3">
       <div className="grid grid-cols-2 gap-3">
         <input placeholder="Nome do Posto" value={station} onChange={(e) => setStation(e.target.value)} className="input-field col-span-2" disabled={isSubmitting} />
-        <input placeholder="Valor Total (R$)" type="number" step="0.01" min="0.01" value={value} onChange={(e) => setValue(e.target.value)} className="input-field" disabled={isSubmitting} />
-        <input placeholder="Litros" type="number" step="0.01" min="0.01" value={liters} onChange={(e) => setLiters(e.target.value)} className="input-field" disabled={isSubmitting} />
-        <input placeholder="Odômetro Atual (KM)" type="number" min="0" value={kmCur} onChange={(e) => setKmCur(e.target.value)} className="input-field" disabled={isSubmitting} />
+        <input
+          ref={valueInputRef}
+          placeholder="Valor Total (R$)"
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => setValue(formatCurrencyInputValue(e.target.value))}
+          onFocus={() => {
+            if (!value.trim()) setValue(formatCurrency(0));
+            requestAnimationFrame(() => moveCaretToEnd(valueInputRef));
+          }}
+          onBlur={() => {
+            if (parseCurrencyInputValue(value) <= 0) setValue("");
+          }}
+          className="input-field"
+          disabled={isSubmitting}
+        />
+        <input
+          ref={litersInputRef}
+          placeholder="Litros"
+          type="text"
+          inputMode="decimal"
+          value={liters}
+          onChange={(e) => setLiters(formatLitersInputValue(e.target.value))}
+          onFocus={() => requestAnimationFrame(() => moveCaretToEnd(litersInputRef))}
+          className="input-field"
+          disabled={isSubmitting}
+        />
+        <input
+          ref={kmInputRef}
+          placeholder="Odômetro Atual (KM)"
+          type="text"
+          inputMode="numeric"
+          value={kmCur}
+          onChange={(e) => setKmCur(formatKmIntegerInput(e.target.value))}
+          onFocus={() => requestAnimationFrame(() => moveCaretToEnd(kmInputRef))}
+          className="input-field"
+          disabled={isSubmitting}
+        />
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-field" disabled={isSubmitting} />
       </div>
       {calcPricePerLiter() && (

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Trip, Expense, ExpenseCategory, EXPENSE_CATEGORY_LABELS } from "@/types";
 import { formatCurrency, formatDate } from "@/lib/calculations";
 import { ReceiptUpload } from "@/components/ReceiptUpload";
@@ -28,28 +28,53 @@ function ExpenseForm({
   isEdit: boolean;
   isSubmitting: boolean;
 }) {
+  const valueInputRef = useRef<HTMLInputElement | null>(null);
   const [cat, setCat] = useState<ExpenseCategory>(initial?.category ?? "pedagio");
   const [desc, setDesc] = useState(initial?.description ?? "");
-  const [value, setValue] = useState(initial?.value != null ? String(initial.value) : "");
+  const [value, setValue] = useState(initial?.value != null ? formatCurrency(initial.value) : "");
   const [date, setDate] = useState(initial?.date ?? new Date().toISOString().slice(0, 10));
   const [receiptUrl, setReceiptUrl] = useState<string | undefined>(initial?.receiptUrl);
 
   useEffect(() => {
     setCat(initial?.category ?? "pedagio");
     setDesc(initial?.description ?? "");
-    setValue(initial?.value != null ? String(initial.value) : "");
+    setValue(initial?.value != null ? formatCurrency(initial.value) : "");
     setDate(initial?.date ?? new Date().toISOString().slice(0, 10));
     setReceiptUrl(initial?.receiptUrl);
   }, [initial]);
 
+  const moveValueCaretToEnd = () => {
+    const input = valueInputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
+  const parseCurrencyInputValue = (input: string): number => {
+    if (!input.trim()) return 0;
+    const sanitized = input.replace(/[^\d,.-]/g, "");
+    const normalized = sanitized.includes(",")
+      ? sanitized.replace(/\./g, "").replace(",", ".")
+      : sanitized.replace(/\.(?=.*\.)/g, "");
+    return Number(normalized);
+  };
+
+  const formatCurrencyInputValue = (input: string): string => {
+    const digitsOnly = input.replace(/\D/g, "");
+    if (!digitsOnly) return "";
+    return formatCurrency(Number(digitsOnly) / 100);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!value || isSubmitting) return;
+    const expenseValue = parseCurrencyInputValue(value);
+    if (!(expenseValue > 0)) return;
     const finalDesc = desc.trim() || EXPENSE_CATEGORY_LABELS[cat];
     await onSubmit({
       category: cat,
       description: finalDesc,
-      value: parseFloat(value),
+      value: expenseValue,
       date,
       receiptUrl,
     });
@@ -62,7 +87,23 @@ function ExpenseForm({
           {Object.entries(EXPENSE_CATEGORY_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
         </select>
         <input placeholder="Descrição (opcional)" value={desc} onChange={(e) => setDesc(e.target.value)} className="input-field col-span-2" disabled={isSubmitting} />
-        <input placeholder="Valor (R$)" type="number" step="0.01" min="0.01" value={value} onChange={(e) => setValue(e.target.value)} className="input-field" disabled={isSubmitting} />
+        <input
+          ref={valueInputRef}
+          placeholder="Valor (R$)"
+          type="text"
+          inputMode="decimal"
+          value={value}
+          onChange={(e) => setValue(formatCurrencyInputValue(e.target.value))}
+          onFocus={() => {
+            if (!value.trim()) setValue(formatCurrency(0));
+            requestAnimationFrame(moveValueCaretToEnd);
+          }}
+          onBlur={() => {
+            if (parseCurrencyInputValue(value) <= 0) setValue("");
+          }}
+          className="input-field"
+          disabled={isSubmitting}
+        />
         <input type="date" value={date} onChange={(e) => setDate(e.target.value)} className="input-field" disabled={isSubmitting} />
       </div>
       <ReceiptUpload value={receiptUrl} onChange={setReceiptUrl} />
