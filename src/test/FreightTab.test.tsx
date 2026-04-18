@@ -310,6 +310,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
     fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
     fireEvent.change(screen.getByPlaceholderText("Ex.: 3.600,00"), { target: { value: "-5" } });
+    expect(screen.getByText("Informe um adiantamento válido, maior ou igual a zero.")).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 
     await waitFor(() => {
@@ -351,6 +352,55 @@ describe("FreightTab", () => {
     await waitFor(() => {
       expect(updateFreight).toHaveBeenCalledTimes(1);
       expect(screen.getByRole("button", { name: "Salvar recebimento" })).toBeInTheDocument();
+    });
+  });
+
+  it("mostra aviso inline quando adiantamento em valor ultrapassa o bruto", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              grossValue: 1000,
+              receivablePlanType: "advance_value",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
+    fireEvent.change(screen.getByPlaceholderText("Ex.: 3.600,00"), {
+      target: { value: "R$ 1.500,00" },
+    });
+
+    expect(screen.getByText("O adiantamento não pode ser maior que o valor bruto do frete.")).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).not.toHaveBeenCalled();
+      expect(toastMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Adiantamento inválido",
+          description: "O adiantamento não pode ser maior que o valor bruto do frete.",
+        }),
+      );
     });
   });
 
@@ -1259,7 +1309,7 @@ describe("FreightTab", () => {
     fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
     fireEvent.click(screen.getByRole("button", { name: "Adiantamento e saldo" }));
     fireEvent.change(screen.getByPlaceholderText("Ex.: 3.600,00"), {
-      target: { value: "2500" },
+      target: { value: "R$ 2.500,00" },
     });
     fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
 

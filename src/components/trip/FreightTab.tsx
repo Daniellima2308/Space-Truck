@@ -275,14 +275,39 @@ export function FreightTab({
   const [isDeletingFreight, setIsDeletingFreight] = useState(false);
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
+  const advanceAmountInputRef = useRef<HTMLInputElement | null>(null);
 
   const parseCurrencyInputValue = (value: string): number => {
     if (!value.trim()) return 0;
-    const normalized = value
-      .replace(/[^\d,.-]/g, "")
-      .replace(/\.(?=.*\.)/g, "")
-      .replace(",", ".");
+    const sanitized = value.replace(/[^\d,.-]/g, "");
+    const normalized = sanitized.includes(",")
+      ? sanitized.replace(/\./g, "").replace(",", ".")
+      : sanitized.replace(/\.(?=.*\.)/g, "");
     return Number(normalized);
+  };
+
+  const moveAdvanceAmountCaretToEnd = () => {
+    const input = advanceAmountInputRef.current;
+    if (!input) return;
+    const cursorPosition = input.value.length;
+    input.setSelectionRange(cursorPosition, cursorPosition);
+  };
+
+  const handleAdvanceAmountInputChange = (value: string) => {
+    if (value.includes("-")) {
+      setEditAdvanceAmount(value);
+      requestAnimationFrame(moveAdvanceAmountCaretToEnd);
+      return;
+    }
+    const digitsOnly = value.replace(/\D/g, "");
+    if (!digitsOnly) {
+      setEditAdvanceAmount("");
+      requestAnimationFrame(moveAdvanceAmountCaretToEnd);
+      return;
+    }
+    const parsedValue = Number(digitsOnly) / 100;
+    setEditAdvanceAmount(formatCurrency(parsedValue));
+    requestAnimationFrame(moveAdvanceAmountCaretToEnd);
   };
 
   const defaultCommission = useMemo(
@@ -382,7 +407,7 @@ export function FreightTab({
       }
       return { amount: (grossValue * parsed.value) / 100, percentage: parsed.value, parseError: undefined };
     }
-    return { amount: Number(editAdvanceAmount || 0), percentage: null, parseError: undefined };
+    return { amount: parseCurrencyInputValue(editAdvanceAmount), percentage: null, parseError: undefined };
   };
 
   const formatPercentFromAdvance = (advanceAmount: number, grossValue: number): string => {
@@ -915,7 +940,11 @@ export function FreightTab({
     const advanceInputMode: AdvanceInputMode = normalizedPlanType === "advance_percent" ? "percent" : "value";
     setEditingReceivableFreight(freight);
     setEditPaymentDueDate(freight.paymentDueDate ?? "");
-    setEditAdvanceAmount(String(freight.advanceAmount ?? 0));
+    setEditAdvanceAmount(
+      freight.advanceAmount && freight.advanceAmount > 0
+        ? formatCurrency(freight.advanceAmount)
+        : "",
+    );
     setEditReceivableUiPlan(uiPlan);
     setEditAdvanceInputMode(advanceInputMode);
     setAdvancePercentage(
@@ -1577,16 +1606,45 @@ export function FreightTab({
                             </div>
                           </label>
                           {editAdvanceInputMode === "value" ? (
-                            <input
-                              type="number"
-                              min="0"
-                              step="0.01"
-                              value={editAdvanceAmount}
-                              onChange={(e) => setEditAdvanceAmount(e.target.value)}
-                              className="input-field"
-                              disabled={isSavingReceivable}
-                              placeholder="Ex.: 3.600,00"
-                            />
+                            <div className="space-y-1">
+                              <input
+                                ref={advanceAmountInputRef}
+                                type="text"
+                                inputMode="decimal"
+                                value={editAdvanceAmount || "R$ 0,00"}
+                                onChange={(e) => handleAdvanceAmountInputChange(e.target.value)}
+                                onFocus={moveAdvanceAmountCaretToEnd}
+                                className="input-field"
+                                disabled={isSavingReceivable}
+                                placeholder="Ex.: 3.600,00"
+                              />
+                              {(() => {
+                                const grossValue = editingReceivableFreight?.grossValue ?? 0;
+                                if (!editAdvanceAmount.trim()) return null;
+                                const parsedAdvance = parseCurrencyInputValue(editAdvanceAmount);
+                                if (!Number.isFinite(parsedAdvance) || parsedAdvance < 0) {
+                                  return (
+                                    <p className="text-[11px] text-warning">
+                                      Informe um adiantamento válido, maior ou igual a zero.
+                                    </p>
+                                  );
+                                }
+                                if (parsedAdvance > grossValue) {
+                                  return (
+                                    <p className="text-[11px] text-warning">
+                                      O adiantamento não pode ser maior que o valor bruto do frete.
+                                    </p>
+                                  );
+                                }
+                                return (
+                                  <p className="text-[11px] text-muted-foreground">
+                                    Adiantamento: <span className="font-mono text-foreground">{formatCurrency(parsedAdvance)}</span>
+                                    {" "}de{" "}
+                                    <span className="font-mono text-foreground">{formatCurrency(grossValue)}</span>
+                                  </p>
+                                );
+                              })()}
+                            </div>
                           ) : (
                             <input
                               type="text"
