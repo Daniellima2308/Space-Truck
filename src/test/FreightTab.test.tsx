@@ -660,6 +660,36 @@ describe("FreightTab", () => {
     expect(screen.queryByText(/Adiantamento .*•.*Saldo/)).not.toBeInTheDocument();
   });
 
+  it("mostra ajustes ao lado do saldo no card fechado com sinal e valor real", () => {
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              receivablePlanType: "advance_value",
+              grossValue: 4500,
+              advanceAmount: 3600,
+              balanceAdjustments: [
+                { type: "increase", amount: 100 },
+                { type: "discount", amount: 50 },
+              ],
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(screen.getByText(/Saldo R\$\s*900,00 \+ R\$\s*100,00 - R\$\s*50,00/)).toBeInTheDocument();
+  });
+
   it("mantém saldo histórico visível mesmo quando saldo já foi quitado", () => {
     render(
       <FreightTab

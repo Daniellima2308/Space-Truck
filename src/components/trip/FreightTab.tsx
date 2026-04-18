@@ -425,16 +425,16 @@ export function FreightTab({
           ? "Pagamento previsto após a descarga"
           : "Pagamento após descarga"];
     }
+    const adjustmentParts = hasAdjustments
+      ? (freight.balanceAdjustments ?? []).map((adjustment) => (
+        `${adjustment.type === "discount" ? "-" : "+"} ${formatCurrency(adjustment.amount)}`
+      ))
+      : [];
     const lines = [
       `Adiantamento ${formatCurrency(freight.advanceAmount ?? 0)}`,
-      `Saldo ${formatCurrency(originalBalance)}`,
+      `Saldo ${formatCurrency(originalBalance)}${adjustmentParts.length > 0 ? ` ${adjustmentParts.join(" ")}` : ""}`,
     ];
-    if (hasAdjustments || hasMailReminder) {
-      const hints: string[] = [];
-      if (hasAdjustments) hints.push("com ajuste");
-      if (hasMailReminder) hints.push("lembrete ativo");
-      lines.push(hints.join(" • "));
-    }
+    if (hasMailReminder) lines.push("lembrete ativo");
     return lines;
   };
 
