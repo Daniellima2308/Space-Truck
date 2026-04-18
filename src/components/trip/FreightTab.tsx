@@ -1999,27 +1999,32 @@ export function FreightTab({
                   Use o KM do painel no momento de iniciar este frete.
                 </p>
               </div>
-              <input
-                placeholder="Valor Bruto (R$)"
-                ref={grossInputRef}
-                type="text"
-                inputMode="decimal"
-                value={gross}
-                onChange={(e) => handleGrossInputChange(e.target.value)}
-                onFocus={() => {
-                  if (!gross.trim()) {
-                    setGross(formatCurrency(0));
-                  }
-                  requestAnimationFrame(moveGrossCaretToEnd);
-                }}
-                onBlur={() => {
-                  if (parseCurrencyInputValue(gross) <= 0) {
-                    setGross("");
-                  }
-                }}
-                className="input-field"
-                disabled={isSubmitting}
-              />
+              <div className="space-y-1">
+                <input
+                  placeholder="Valor Bruto (R$)"
+                  ref={grossInputRef}
+                  type="text"
+                  inputMode="decimal"
+                  value={gross}
+                  onChange={(e) => handleGrossInputChange(e.target.value)}
+                  onFocus={() => {
+                    if (!gross.trim()) {
+                      setGross(formatCurrency(0));
+                    }
+                    requestAnimationFrame(moveGrossCaretToEnd);
+                  }}
+                  onBlur={() => {
+                    if (parseCurrencyInputValue(gross) <= 0) {
+                      setGross("");
+                    }
+                  }}
+                  className="input-field"
+                  disabled={isSubmitting}
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  Informe o valor acertado do seu frete.
+                </p>
+              </div>
             </div>
 
             {showToggle && (

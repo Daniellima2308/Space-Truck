@@ -300,6 +300,24 @@ describe("FreightTab", () => {
     ).toBeInTheDocument();
   });
 
+  it("mostra ajuda contextual abaixo do campo Valor Bruto no novo frete", () => {
+    render(
+      <FreightTab
+        trip={tripBase}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        {...getDefaultProps()}
+      />,
+    );
+
+    expect(
+      screen.getByText("Informe o valor acertado do seu frete."),
+    ).toBeInTheDocument();
+  });
+
   it("campo KM Inicial aplica máscara de milhar sem decimais", () => {
     render(
       <FreightTab
