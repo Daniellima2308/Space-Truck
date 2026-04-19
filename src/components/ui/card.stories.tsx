@@ -1,11 +1,11 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 
 const meta = {
-  title: "UI/Card",
+  title: "Foundation/Data Display/Card",
   component: Card,
   tags: ["autodocs"],
 } satisfies Meta<typeof Card>;
@@ -16,9 +16,9 @@ type Story = StoryObj<typeof meta>;
 
 export const SummaryBlock: Story = {
   render: () => (
-    <Card className="max-w-sm">
+    <Card className="w-full max-w-sm">
       <CardHeader>
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <CardTitle>Viagem BR-116</CardTitle>
           <Badge variant="secondary">Hoje</Badge>
         </div>
@@ -29,6 +29,22 @@ export const SummaryBlock: Story = {
       </CardContent>
       <CardFooter>
         <Button size="sm">Ver detalhes</Button>
+      </CardFooter>
+    </Card>
+  ),
+};
+
+export const EmptyState: Story = {
+  render: () => (
+    <Card className="w-full max-w-sm">
+      <CardHeader>
+        <CardTitle>Sem viagem ativa</CardTitle>
+        <CardDescription>Quando você iniciar uma rota, o resumo aparece aqui.</CardDescription>
+      </CardHeader>
+      <CardFooter>
+        <Button variant="outline" size="sm">
+          Criar viagem
+        </Button>
       </CardFooter>
     </Card>
   ),

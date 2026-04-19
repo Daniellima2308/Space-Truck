@@ -3,7 +3,7 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 import { Badge } from "@/components/ui/badge";
 
 const meta = {
-  title: "UI/Badge",
+  title: "Foundation/Data Display/Badge",
   component: Badge,
   args: {
     children: "Em rota",
@@ -28,5 +28,12 @@ export const Outline: Story = {
   args: {
     variant: "outline",
     children: "Pendente",
+  },
+};
+
+export const EmptyState: Story = {
+  args: {
+    variant: "outline",
+    children: "Sem viagens",
   },
 };
