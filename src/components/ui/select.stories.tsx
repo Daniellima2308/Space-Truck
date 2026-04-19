@@ -43,7 +43,7 @@ export const Disabled: Story = {
 
 export const OpenForReview: Story = {
   render: () => (
-    <Select defaultValue="sudeste" open onOpenChange={() => undefined}>
+    <Select defaultValue="sudeste" defaultOpen>
       <SelectTrigger>
         <SelectValue placeholder="Selecione a região" />
       </SelectTrigger>

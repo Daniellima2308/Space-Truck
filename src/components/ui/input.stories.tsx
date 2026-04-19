@@ -19,25 +19,31 @@ export const Default: Story = {};
 
 export const Filled: Story = {
   args: {
-    value: "123456",
+    defaultValue: "123456",
   },
 };
 
 export const Disabled: Story = {
   args: {
+    defaultValue: "123456",
     disabled: true,
-    value: "123456",
   },
 };
 
 export const ErrorHint: Story = {
-  render: (args) => (
-    <div className="space-y-2">
-      <Input {...args} aria-invalid />
-      <p className="text-xs text-destructive">KM inválido. Use apenas números.</p>
-    </div>
-  ),
+  render: (args) => {
+    const descriptionId = "input-error-hint";
+
+    return (
+      <div className="space-y-2">
+        <Input {...args} aria-invalid aria-describedby={descriptionId} />
+        <p id={descriptionId} className="text-xs text-destructive">
+          KM inválido. Use apenas números.
+        </p>
+      </div>
+    );
+  },
   args: {
-    value: "12A",
+    defaultValue: "12A",
   },
 };

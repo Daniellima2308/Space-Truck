@@ -1,12 +1,23 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "@/components/ui/button";
-import { Sheet, SheetContent, SheetDescription, SheetFooter, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from "@/components/ui/sheet";
 
 const meta = {
   title: "Components/Overlay/Sheet",
   component: Sheet,
   tags: ["autodocs"],
+  parameters: {
+    mobileFrame: false,
+  },
 } satisfies Meta<typeof Sheet>;
 
 export default meta;
@@ -15,7 +26,7 @@ type Story = StoryObj<typeof meta>;
 
 export const RightPanelOpen: Story = {
   render: () => (
-    <Sheet open>
+    <Sheet defaultOpen>
       <SheetContent side="right" className="w-[320px]">
         <SheetHeader>
           <SheetTitle>Filtros de viagem</SheetTitle>
@@ -36,7 +47,7 @@ export const RightPanelOpen: Story = {
 
 export const BottomSheetOpen: Story = {
   render: () => (
-    <Sheet open>
+    <Sheet defaultOpen>
       <SheetContent side="bottom" className="mx-auto max-w-md rounded-t-lg">
         <SheetHeader>
           <SheetTitle>Parada sugerida</SheetTitle>
@@ -45,6 +56,22 @@ export const BottomSheetOpen: Story = {
         <SheetFooter className="mt-4">
           <Button size="sm">Entendi</Button>
         </SheetFooter>
+      </SheetContent>
+    </Sheet>
+  ),
+};
+
+export const WithTrigger: Story = {
+  render: () => (
+    <Sheet>
+      <SheetTrigger asChild>
+        <Button>Ver filtros</Button>
+      </SheetTrigger>
+      <SheetContent side="right" className="w-[320px]">
+        <SheetHeader>
+          <SheetTitle>Filtros de viagem</SheetTitle>
+          <SheetDescription>Abrir via trigger para comportamento padrão de uso.</SheetDescription>
+        </SheetHeader>
       </SheetContent>
     </Sheet>
   ),

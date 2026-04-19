@@ -3,19 +3,45 @@ import type { Preview } from "@storybook/react-vite";
 import "../src/index.css";
 
 const preview: Preview = {
+  globalTypes: {
+    theme: {
+      description: "Tema global",
+      toolbar: {
+        icon: "mirror",
+        dynamicTitle: true,
+        items: [
+          { value: "dark", title: "Dark" },
+          { value: "light", title: "Light" },
+        ],
+      },
+    },
+  },
   decorators: [
-    (Story) => {
-      document.documentElement.classList.add("dark");
+    (Story, context) => {
+      const theme = context.globals.theme === "light" ? "light" : "dark";
+      const mobileFrame = context.parameters.mobileFrame !== false;
 
       return (
-        <div className="dark min-h-screen bg-background px-3 py-4 text-foreground sm:px-6">
-          <div className="mx-auto w-full max-w-sm sm:max-w-md">
-            <Story />
+        <div className={theme === "dark" ? "dark" : undefined}>
+          <div className="min-h-screen bg-background px-3 py-4 text-foreground sm:px-6">
+            {mobileFrame ? (
+              <div className="mx-auto w-full max-w-sm sm:max-w-md">
+                <Story />
+              </div>
+            ) : (
+              <Story />
+            )}
           </div>
         </div>
       );
     },
   ],
+  initialGlobals: {
+    theme: "dark",
+    backgrounds: {
+      value: "dark-app",
+    },
+  },
   parameters: {
     options: {
       storySort: {
@@ -30,13 +56,12 @@ const preview: Preview = {
         date: /Date$/i,
       },
     },
-    layout: "centered",
+    layout: "fullscreen",
     backgrounds: {
-      default: "dark-app",
-      values: [
-        { name: "dark-app", value: "hsl(222 14% 11%)" },
-        { name: "light-app", value: "hsl(240 11% 96%)" },
-      ],
+      options: {
+        "dark-app": { name: "dark-app", value: "hsl(222 14% 11%)" },
+        "light-app": { name: "light-app", value: "hsl(240 11% 96%)" },
+      },
     },
     docs: {
       source: {
@@ -46,6 +71,7 @@ const preview: Preview = {
     chromatic: {
       pauseAnimationAtEnd: true,
     },
+    mobileFrame: true,
   },
 };
 
