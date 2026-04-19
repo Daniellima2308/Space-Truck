@@ -6,7 +6,7 @@ const meta = {
   title: "UI/Badge",
   component: Badge,
   args: {
-    children: "Em rota",
+    children: "Em rota (teste Chromatic)",
   },
   tags: ["autodocs"],
 } satisfies Meta<typeof Badge>;
