@@ -12,7 +12,9 @@
     "test": "node scripts/run-vitest.mjs run",
     "test:watch": "node scripts/run-vitest.mjs",
     "test:coverage": "node scripts/run-vitest.mjs run --coverage",
-    "verify": "npm run build && npm run lint && npm test"
+    "verify": "npm run build && npm run lint && npm test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
   },
   "dependencies": {
     "@fortawesome/fontawesome-svg-core": "^7.2.0",
@@ -74,6 +76,9 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.32.0",
+    "@storybook/addon-a11y": "^10.3.5",
+    "@storybook/addon-docs": "^10.3.5",
+    "@storybook/react-vite": "^10.3.5",
     "@tailwindcss/typography": "^0.5.16",
     "@testing-library/jest-dom": "^6.6.0",
     "@testing-library/react": "^16.0.0",
@@ -89,6 +94,7 @@
     "globals": "^15.15.0",
     "jsdom": "^20.0.3",
     "postcss": "^8.5.6",
+    "storybook": "^10.3.5",
     "tailwindcss": "^3.4.17",
     "typescript": "^5.8.3",
     "typescript-eslint": "^8.38.0",
