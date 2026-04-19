@@ -256,7 +256,7 @@ export function FreightTab({
   const [isSavingKm, setIsSavingKm] = useState(false);
   const [isSavingRouteReview, setIsSavingRouteReview] = useState(false);
   const [isSavingReceivable, setIsSavingReceivable] = useState(false);
-  const [isSettlingBalance, setIsSettlingBalance] = useState(false);
+  const [settlingFreightIds, setSettlingFreightIds] = useState<string[]>([]);
   const [postCompletionForecastFreight, setPostCompletionForecastFreight] = useState<Freight | null>(null);
   const [completionForecastDate, setCompletionForecastDate] = useState("");
   const [completionBalanceReleaseMode, setCompletionBalanceReleaseMode] = useState<Freight["balanceReleaseMode"]>("none");
@@ -275,9 +275,20 @@ export function FreightTab({
   const [isDeletingFreight, setIsDeletingFreight] = useState(false);
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
+  const settlingFreightIdsRef = useRef<Set<string>>(new Set());
   const advanceAmountInputRef = useRef<HTMLInputElement | null>(null);
   const kmInputRef = useRef<HTMLInputElement | null>(null);
   const grossInputRef = useRef<HTMLInputElement | null>(null);
+
+  const setFreightSettlingState = (freightId: string, isSettling: boolean) => {
+    const current = settlingFreightIdsRef.current;
+    if (isSettling) {
+      current.add(freightId);
+    } else {
+      current.delete(freightId);
+    }
+    setSettlingFreightIds(Array.from(current));
+  };
 
   const parseCurrencyInputValue = (value: string): number => {
     if (!value.trim()) return 0;
@@ -499,6 +510,14 @@ export function FreightTab({
       return formatDate(reminder.date);
     }
     return null;
+  };
+
+  const canPersistMailReminder = (
+    receivablePlanType: ReceivablePlanType,
+    balanceReleaseMode: Freight["balanceReleaseMode"],
+  ): boolean => {
+    if (receivablePlanType === "undefined" || receivablePlanType === "paid_in_full") return false;
+    return balanceReleaseMode === "physical_proof";
   };
 
   const receivablePlanLabel: Record<ReceivableUiPlan, string> = {
@@ -823,7 +842,15 @@ export function FreightTab({
       });
       return;
     }
-    if (completionMailReminder === "pick_date" && !completionMailReminderDate) {
+    const shouldPersistReminder = canPersistMailReminder(
+      latestFreight.receivablePlanType ?? "undefined",
+      completionBalanceReleaseMode,
+    );
+    if (
+      shouldPersistReminder &&
+      completionMailReminder === "pick_date" &&
+      !completionMailReminderDate
+    ) {
       toast({
         title: "Lembrete de correio incompleto",
         description: "Escolha uma data para salvar esse lembrete.",
@@ -862,7 +889,7 @@ export function FreightTab({
         receivableMode: latestFreight.receivableMode,
         commissionPercent: latestFreight.commissionPercent,
       });
-      if (completionMailReminder === "off") {
+      if (completionMailReminder === "off" || !shouldPersistReminder) {
         const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
         persistMailReminderState(nextState);
       } else {
@@ -1059,6 +1086,13 @@ export function FreightTab({
       setQuickAdjustmentNote("");
       setQuickAdjustmentType("discount");
       setShowQuickAdjustment(false);
+      return;
+    }
+    if (
+      editingQuickAdjustmentIndex !== null &&
+      editingQuickAdjustmentIndex > adjustmentIndex
+    ) {
+      setEditingQuickAdjustmentIndex(editingQuickAdjustmentIndex - 1);
     }
   };
 
@@ -1137,10 +1171,13 @@ export function FreightTab({
     const parsedAdvanceAmount = normalizedPlanType === "advance_value" || normalizedPlanType === "advance_percent"
       ? parsedAdvanceInput.amount
       : 0;
+    const nextAdjustments = Array.isArray(draftBalanceAdjustments)
+      ? draftBalanceAdjustments
+      : [];
     const currentTarget = getFreightReceivableTarget({
       grossValue: latestFreight.grossValue,
       receivablePlanType: normalizedPlanType,
-      balanceAdjustments: latestFreight.balanceAdjustments,
+      balanceAdjustments: nextAdjustments,
     });
     let normalizedAmountReceived = (() => {
       if (normalizedPlanType === "paid_in_full") {
@@ -1175,7 +1212,15 @@ export function FreightTab({
       });
       return;
     }
-    if (editMailReminderChoice === "pick_date" && !editMailReminderDate) {
+    const shouldPersistReminder = canPersistMailReminder(
+      normalizedPlanType,
+      editBalanceReleaseMode,
+    );
+    if (
+      shouldPersistReminder &&
+      editMailReminderChoice === "pick_date" &&
+      !editMailReminderDate
+    ) {
       toast({
         title: "Lembrete de correio incompleto",
         description: "Escolha uma data para salvar esse lembrete.",
@@ -1183,9 +1228,6 @@ export function FreightTab({
       });
       return;
     }
-    const nextAdjustments = Array.isArray(draftBalanceAdjustments)
-      ? draftBalanceAdjustments
-      : [];
     if (shouldSettleRemaining) {
       normalizedAmountReceived = getFreightAmountReceivedForSettlement({
         grossValue: latestFreight.grossValue,
@@ -1221,7 +1263,7 @@ export function FreightTab({
         return;
       }
 
-      if (editMailReminderChoice === "off") {
+      if (editMailReminderChoice === "off" || !shouldPersistReminder) {
         const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
         persistMailReminderState(nextState);
       } else {
@@ -1254,7 +1296,8 @@ export function FreightTab({
   };
 
   const handleMarkRemainingAsPaid = async (freight: Freight, options?: { requireConfirm?: boolean }) => {
-    if (isSettlingBalance || isSavingReceivable) return;
+    if (isSavingReceivable) return;
+    if (settlingFreightIdsRef.current.size > 0) return;
     const latestFreight = getLatestFreight(freight.id) ?? freight;
     const remainingBalance = getFreightRemainingBalance(latestFreight);
     if (remainingBalance <= 0) return;
@@ -1264,7 +1307,7 @@ export function FreightTab({
     }
 
     try {
-      setIsSettlingBalance(true);
+      setFreightSettlingState(latestFreight.id, true);
       const nextAmountReceived = getFreightAmountReceivedForSettlement({
         grossValue: latestFreight.grossValue,
         receivablePlanType: latestFreight.receivablePlanType ?? "undefined",
@@ -1288,8 +1331,18 @@ export function FreightTab({
         receivablePlanType: latestFreight.receivablePlanType,
         commissionPercent: latestFreight.commissionPercent,
       });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Não foi possível quitar o saldo agora.";
+      toast({
+        title: "Não foi possível quitar agora",
+        description: message,
+        variant: "destructive",
+      });
     } finally {
-      setIsSettlingBalance(false);
+      setFreightSettlingState(latestFreight.id, false);
     }
   };
 
@@ -1412,6 +1465,8 @@ export function FreightTab({
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const canSettleRemaining = isFreightCompleted && uiPlan !== "undefined" && uiPlan !== "paid_in_full" && remainingBalance > 0;
+          const isSettlingAnyFreight = settlingFreightIds.length > 0;
+          const isSettlingThisFreight = settlingFreightIds.includes(f.id);
           const receivableSummaryLines = buildReceivableSummary(
             f,
             originalBalance,
@@ -1610,10 +1665,10 @@ export function FreightTab({
                       {canSettleRemaining && (
                         <button
                           onClick={() => void handleMarkRemainingAsPaid(f)}
-                          disabled={isSettlingBalance}
+                          disabled={isSettlingAnyFreight}
                           className="inline-flex min-h-[44px] items-center rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                         >
-                          {isSettlingBalance ? "Quitando..." : "Marcar saldo como pago"}
+                          {isSettlingThisFreight ? "Quitando..." : "Marcar saldo como pago"}
                         </button>
                       )}
                     </div>
@@ -1754,17 +1809,19 @@ export function FreightTab({
                         </>
                       )}
 
-                      <label className="space-y-1 text-sm text-foreground">
-                        <span className="text-xs font-medium text-muted-foreground">Quem paga (opcional)</span>
-                        <input
-                          type="text"
-                          value={editPayerName}
-                          onChange={(e) => setEditPayerName(e.target.value)}
-                          className="input-field"
-                          disabled={isSavingReceivable}
-                          placeholder="Ex.: Embarcador da carga"
-                        />
-                      </label>
+                      {editReceivableUiPlan !== "undefined" && (
+                        <label className="space-y-1 text-sm text-foreground">
+                          <span className="text-xs font-medium text-muted-foreground">Quem paga (opcional)</span>
+                          <input
+                            type="text"
+                            value={editPayerName}
+                            onChange={(e) => setEditPayerName(e.target.value)}
+                            className="input-field"
+                            disabled={isSavingReceivable}
+                            placeholder="Ex.: Embarcador da carga"
+                          />
+                        </label>
+                      )}
 
                       {(editingReceivableFreight?.receivableMode ?? "off") === "complete" && editingReceivableFreight?.status === "completed" && editReceivableUiPlan !== "undefined" && editReceivableUiPlan !== "paid_in_full" && (
                         <label className="space-y-1 text-sm text-foreground">
@@ -1951,10 +2008,10 @@ export function FreightTab({
                   {canSettleRemaining && (
                     <button
                       onClick={() => void handleMarkRemainingAsPaid(f)}
-                      disabled={isSettlingBalance}
+                      disabled={isSettlingAnyFreight}
                       className="inline-flex min-h-[44px] items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                     >
-                      {isSettlingBalance ? "Quitando..." : "Recebi o saldo"}
+                      {isSettlingThisFreight ? "Quitando..." : "Recebi o saldo"}
                     </button>
                   )}
                 </>

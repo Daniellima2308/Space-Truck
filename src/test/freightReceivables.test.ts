@@ -50,6 +50,26 @@ describe("freightReceivables", () => {
     ).toBe(0);
   });
 
+  it("calcula percentual recebido com base no target ajustado", () => {
+    expect(
+      getFreightReceivedPercentage({
+        grossValue: 1000,
+        amountReceived: 500,
+        receivablePlanType: "paid_on_delivery",
+        balanceAdjustments: [{ type: "discount", amount: 200 }],
+      }),
+    ).toBe(62.5);
+
+    expect(
+      getFreightReceivedPercentage({
+        grossValue: 1000,
+        amountReceived: 500,
+        receivablePlanType: "paid_on_delivery",
+        balanceAdjustments: [{ type: "increase", amount: 250 }],
+      }),
+    ).toBe(40);
+  });
+
   it("deriva status conforme regra da PR4", () => {
     const referenceDate = new Date("2026-04-08T12:00:00.000Z");
 

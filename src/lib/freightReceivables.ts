@@ -177,11 +177,11 @@ export function isFreightSettled(
 export function getFreightReceivedPercentage(
   freight: Pick<Freight, "grossValue" | "amountReceived" | "advanceAmount" | "receivablePlanType" | "balanceAdjustments">,
 ): number {
-  const grossValue = normalizeAmount(freight.grossValue);
-  if (grossValue <= 0) return 0;
+  const target = getFreightReceivableTarget(freight);
+  if (target <= 0) return 0;
 
   const amountReceived = getFreightTotalReceived(freight);
-  return Math.min(100, (amountReceived / grossValue) * 100);
+  return Math.min(100, (amountReceived / target) * 100);
 }
 
 export function isFreightOverdue(
