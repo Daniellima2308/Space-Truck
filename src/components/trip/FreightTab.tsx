@@ -256,7 +256,7 @@ export function FreightTab({
   const [isSavingKm, setIsSavingKm] = useState(false);
   const [isSavingRouteReview, setIsSavingRouteReview] = useState(false);
   const [isSavingReceivable, setIsSavingReceivable] = useState(false);
-  const [settlingFreightId, setSettlingFreightId] = useState<string | null>(null);
+  const [settlingFreightIds, setSettlingFreightIds] = useState<string[]>([]);
   const [postCompletionForecastFreight, setPostCompletionForecastFreight] = useState<Freight | null>(null);
   const [completionForecastDate, setCompletionForecastDate] = useState("");
   const [completionBalanceReleaseMode, setCompletionBalanceReleaseMode] = useState<Freight["balanceReleaseMode"]>("none");
@@ -275,9 +275,20 @@ export function FreightTab({
   const [isDeletingFreight, setIsDeletingFreight] = useState(false);
   const [mailReminderByFreight, setMailReminderByFreight] = useState<Record<string, FreightMailReminder>>({});
   const { toast } = useToast();
+  const settlingFreightIdsRef = useRef<Set<string>>(new Set());
   const advanceAmountInputRef = useRef<HTMLInputElement | null>(null);
   const kmInputRef = useRef<HTMLInputElement | null>(null);
   const grossInputRef = useRef<HTMLInputElement | null>(null);
+
+  const setFreightSettlingState = (freightId: string, isSettling: boolean) => {
+    const current = settlingFreightIdsRef.current;
+    if (isSettling) {
+      current.add(freightId);
+    } else {
+      current.delete(freightId);
+    }
+    setSettlingFreightIds(Array.from(current));
+  };
 
   const parseCurrencyInputValue = (value: string): number => {
     if (!value.trim()) return 0;
@@ -831,7 +842,15 @@ export function FreightTab({
       });
       return;
     }
-    if (completionMailReminder === "pick_date" && !completionMailReminderDate) {
+    const shouldPersistReminder = canPersistMailReminder(
+      latestFreight.receivablePlanType ?? "undefined",
+      completionBalanceReleaseMode,
+    );
+    if (
+      shouldPersistReminder &&
+      completionMailReminder === "pick_date" &&
+      !completionMailReminderDate
+    ) {
       toast({
         title: "Lembrete de correio incompleto",
         description: "Escolha uma data para salvar esse lembrete.",
@@ -870,10 +889,6 @@ export function FreightTab({
         receivableMode: latestFreight.receivableMode,
         commissionPercent: latestFreight.commissionPercent,
       });
-      const shouldPersistReminder = canPersistMailReminder(
-        latestFreight.receivablePlanType ?? "undefined",
-        completionBalanceReleaseMode,
-      );
       if (completionMailReminder === "off" || !shouldPersistReminder) {
         const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
         persistMailReminderState(nextState);
@@ -1197,7 +1212,15 @@ export function FreightTab({
       });
       return;
     }
-    if (editMailReminderChoice === "pick_date" && !editMailReminderDate) {
+    const shouldPersistReminder = canPersistMailReminder(
+      normalizedPlanType,
+      editBalanceReleaseMode,
+    );
+    if (
+      shouldPersistReminder &&
+      editMailReminderChoice === "pick_date" &&
+      !editMailReminderDate
+    ) {
       toast({
         title: "Lembrete de correio incompleto",
         description: "Escolha uma data para salvar esse lembrete.",
@@ -1240,10 +1263,6 @@ export function FreightTab({
         return;
       }
 
-      const shouldPersistReminder = canPersistMailReminder(
-        normalizedPlanType,
-        editBalanceReleaseMode,
-      );
       if (editMailReminderChoice === "off" || !shouldPersistReminder) {
         const { [latestFreight.id]: _, ...nextState } = mailReminderByFreight;
         persistMailReminderState(nextState);
@@ -1277,7 +1296,8 @@ export function FreightTab({
   };
 
   const handleMarkRemainingAsPaid = async (freight: Freight, options?: { requireConfirm?: boolean }) => {
-    if (settlingFreightId === freight.id || isSavingReceivable) return;
+    if (isSavingReceivable) return;
+    if (settlingFreightIdsRef.current.size > 0) return;
     const latestFreight = getLatestFreight(freight.id) ?? freight;
     const remainingBalance = getFreightRemainingBalance(latestFreight);
     if (remainingBalance <= 0) return;
@@ -1287,7 +1307,7 @@ export function FreightTab({
     }
 
     try {
-      setSettlingFreightId(latestFreight.id);
+      setFreightSettlingState(latestFreight.id, true);
       const nextAmountReceived = getFreightAmountReceivedForSettlement({
         grossValue: latestFreight.grossValue,
         receivablePlanType: latestFreight.receivablePlanType ?? "undefined",
@@ -1322,7 +1342,7 @@ export function FreightTab({
         variant: "destructive",
       });
     } finally {
-      setSettlingFreightId(null);
+      setFreightSettlingState(latestFreight.id, false);
     }
   };
 
@@ -1445,6 +1465,8 @@ export function FreightTab({
           const isFreightCompleted = f.status === "completed";
           const isReceivableExpanded = expandedReceivableId === f.id;
           const canSettleRemaining = isFreightCompleted && uiPlan !== "undefined" && uiPlan !== "paid_in_full" && remainingBalance > 0;
+          const isSettlingAnyFreight = settlingFreightIds.length > 0;
+          const isSettlingThisFreight = settlingFreightIds.includes(f.id);
           const receivableSummaryLines = buildReceivableSummary(
             f,
             originalBalance,
@@ -1643,10 +1665,10 @@ export function FreightTab({
                       {canSettleRemaining && (
                         <button
                           onClick={() => void handleMarkRemainingAsPaid(f)}
-                          disabled={settlingFreightId === f.id}
+                          disabled={isSettlingAnyFreight}
                           className="inline-flex min-h-[44px] items-center rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                         >
-                          {settlingFreightId === f.id ? "Quitando..." : "Marcar saldo como pago"}
+                          {isSettlingThisFreight ? "Quitando..." : "Marcar saldo como pago"}
                         </button>
                       )}
                     </div>
@@ -1986,10 +2008,10 @@ export function FreightTab({
                   {canSettleRemaining && (
                     <button
                       onClick={() => void handleMarkRemainingAsPaid(f)}
-                      disabled={settlingFreightId === f.id}
+                      disabled={isSettlingAnyFreight}
                       className="inline-flex min-h-[44px] items-center gap-1 rounded-md bg-primary px-2.5 py-1.5 text-xs font-semibold text-primary-foreground disabled:opacity-60"
                     >
-                      {settlingFreightId === f.id ? "Quitando..." : "Recebi o saldo"}
+                      {isSettlingThisFreight ? "Quitando..." : "Recebi o saldo"}
                     </button>
                   )}
                 </>

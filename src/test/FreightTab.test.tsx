@@ -1222,7 +1222,7 @@ describe("FreightTab", () => {
     expect(screen.getByRole("button", { name: "Marcar saldo como pago" })).toBeInTheDocument();
   });
 
-  it("aplica loading de quitação apenas no frete selecionado", async () => {
+  it("serializa quitação de saldo e bloqueia nova ação enquanto uma quitação está pendente", async () => {
     vi.spyOn(window, "confirm").mockReturnValue(true);
     let resolver: (() => void) | null = null;
     const updateFreight = vi.fn().mockImplementation(
@@ -1271,7 +1271,13 @@ describe("FreightTab", () => {
       expect(screen.getAllByRole("button", { name: /Quitando\.\.\.|Recebi o saldo/ })).toHaveLength(2);
       expect(screen.getAllByRole("button", { name: /Quitando\.\.\./ })).toHaveLength(1);
       expect(screen.getAllByRole("button", { name: "Recebi o saldo" })).toHaveLength(1);
+      expect(updateFreight).toHaveBeenCalledTimes(1);
     });
+
+    const remainingSettleButton = screen.getByRole("button", { name: "Recebi o saldo" });
+    expect(remainingSettleButton).toBeDisabled();
+    fireEvent.click(remainingSettleButton);
+    expect(updateFreight).toHaveBeenCalledTimes(1);
 
     resolver?.();
     await waitFor(() => {
@@ -1510,6 +1516,49 @@ describe("FreightTab", () => {
         }),
       );
     });
+  });
+
+  it("não bloqueia salvar recebimento com 'Escolher dia' sem data quando lembrete não é elegível", async () => {
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "completed", new Date().toISOString()),
+              receivablePlanType: "paid_on_delivery",
+              receivableMode: "complete",
+              balanceReleaseMode: "proof_photo",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={vi.fn().mockResolvedValue({ promotedFreightId: null })}
+      />,
+    );
+
+    fireEvent.click(screen.getAllByRole("button", { name: /Recebimento/i })[0]);
+    fireEvent.click(screen.getByRole("button", { name: /Registrar recebimento|Editar recebimento|Ajustar recebimento/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Canhoto: enviar foto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Escolher dia" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar recebimento" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalledTimes(1);
+    });
+    expect(toastMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Lembrete de correio incompleto",
+      }),
+    );
   });
 
   it("salva paid_in_full com amountReceived alinhado aos ajustes editados no momento", async () => {
@@ -2180,6 +2229,56 @@ describe("FreightTab", () => {
       expect(stored).toContain("\"f-1\"");
       expect(stored).toContain("\"choice\":\"tomorrow\"");
     });
+  });
+
+  it("na etapa pós-entrega não bloqueia 'Escolher dia' sem data quando lembrete não é elegível", async () => {
+    const completeFreight = vi.fn().mockResolvedValue({ promotedFreightId: null });
+    const updateFreight = vi.fn().mockResolvedValue({ status: "updated" });
+    window.localStorage.setItem(
+      "space-truck:freight-mail-reminders:v1",
+      JSON.stringify({ "f-1": { choice: "pick_date" } }),
+    );
+    render(
+      <FreightTab
+        trip={{
+          ...tripBase,
+          freights: [
+            {
+              ...makeFreight("f-1", "in_progress", new Date().toISOString()),
+              grossValue: 1000,
+              receivableMode: "complete",
+              receivablePlanType: "paid_on_delivery",
+              balanceReleaseMode: "proof_photo",
+            },
+          ],
+        }}
+        vehicle={driverOwnerVehicle}
+        isOpen
+        showForm={false}
+        setShowForm={vi.fn()}
+        addFreight={vi.fn().mockResolvedValue(undefined)}
+        updateFreight={updateFreight}
+        deleteFreight={vi.fn().mockResolvedValue(undefined)}
+        startFreight={vi.fn().mockResolvedValue({ status: "started" })}
+        completeFreight={completeFreight}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Concluir/i }));
+    fireEvent.click(screen.getByRole("button", { name: "Concluir e decidir depois" }));
+    await screen.findByRole("button", { name: "Salvar etapa pós-entrega" });
+
+    fireEvent.click(screen.getByRole("button", { name: "Canhoto: enviar foto" }));
+    fireEvent.click(screen.getByRole("button", { name: "Salvar etapa pós-entrega" }));
+
+    await waitFor(() => {
+      expect(updateFreight).toHaveBeenCalled();
+    });
+    expect(toastMock).not.toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: "Lembrete de correio incompleto",
+      }),
+    );
   });
 
   it("salva ajuste válido no pós-entrega em balanceAdjustments", async () => {
