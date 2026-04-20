@@ -16,7 +16,7 @@ const meta = {
   title: "Foundation/Controls/Button",
   component: Button,
   args: {
-    children: "Salvar alteração",
+    children: "Salvar",
   },
   tags: ["autodocs"],
 } satisfies Meta<typeof Button>;
@@ -30,14 +30,21 @@ export const Primary: Story = {};
 export const Secondary: Story = {
   args: {
     variant: "secondary",
-    children: "Voltar",
+    children: "Cancelar",
   },
 };
 
 export const Destructive: Story = {
   args: {
     variant: "destructive",
-    children: "Excluir",
+    children: "Excluir registro",
+  },
+};
+
+export const Outline: Story = {
+  args: {
+    variant: "outline",
+    children: "Ver detalhes",
   },
 };
 

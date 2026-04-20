@@ -6,7 +6,7 @@ const meta = {
   title: "Foundation/Data Display/Badge",
   component: Badge,
   args: {
-    children: "Em rota",
+    children: "Em viagem",
   },
   tags: ["autodocs"],
 } satisfies Meta<typeof Badge>;
@@ -15,25 +15,25 @@ export default meta;
 
 type Story = StoryObj<typeof meta>;
 
-export const Default: Story = {};
+export const InProgress: Story = {};
 
-export const Secondary: Story = {
+export const Planned: Story = {
   args: {
     variant: "secondary",
-    children: "Rascunho",
+    children: "Planejado",
   },
 };
 
-export const Outline: Story = {
+export const PendingReceipt: Story = {
   args: {
     variant: "outline",
-    children: "Pendente",
+    children: "Canhoto pendente",
   },
 };
 
-export const EmptyState: Story = {
+export const VehicleSelected: Story = {
   args: {
-    variant: "outline",
-    children: "Sem viagens",
+    className: "bg-orange-500/20 text-orange-400 border-orange-500/30 text-[10px] font-bold uppercase",
+    children: "Em Viagem",
   },
 };

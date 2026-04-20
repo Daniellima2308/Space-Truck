@@ -6,7 +6,7 @@ const meta = {
   title: "Foundation/Forms/Input",
   component: Input,
   args: {
-    placeholder: "Digite o KM atual",
+    placeholder: "Digite aqui",
   },
   tags: ["autodocs"],
 } satisfies Meta<typeof Input>;
@@ -19,7 +19,7 @@ export const Default: Story = {};
 
 export const Filled: Story = {
   args: {
-    defaultValue: "123456",
+    defaultValue: "ABC1D23",
   },
 };
 
@@ -27,6 +27,15 @@ export const Disabled: Story = {
   args: {
     defaultValue: "123456",
     disabled: true,
+  },
+};
+
+export const NumericInput: Story = {
+  args: {
+    type: "number",
+    defaultValue: "540000",
+    placeholder: "KM atual",
+    inputMode: "numeric",
   },
 };
 
@@ -38,7 +47,7 @@ export const ErrorHint: Story = {
       <div className="space-y-2">
         <Input {...args} aria-invalid aria-describedby={descriptionId} />
         <p id={descriptionId} className="text-xs text-destructive">
-          KM inválido. Use apenas números.
+          Valor inválido. Confira os dados informados.
         </p>
       </div>
     );
