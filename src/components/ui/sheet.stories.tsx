@@ -1,7 +1,7 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
-import { FontAwesomeIcon, iconLightbulb, iconLock, iconMenu, iconMessageCircle, iconUser, iconWallet, iconWrench } from "@/lib/icons";
+import { FontAwesomeIcon, iconLightbulb, iconLock, iconLogOut, iconMenu, iconMessageCircle, iconUser, iconWallet, iconWrench } from "@/lib/icons";
 
 const meta = {
   title: "Foundation/Overlay/Sheet",
@@ -24,9 +24,9 @@ type MenuItemProps = {
 const MenuItem = ({ icon, label }: MenuItemProps) => (
   <button
     type="button"
-    className="w-full min-h-[44px] rounded-lg px-3 py-3 text-left hover:bg-accent transition-colors flex items-center gap-3"
+    className="w-full rounded-lg p-3 flex items-center gap-3 hover:bg-accent/50 transition-colors"
   >
-    <FontAwesomeIcon icon={icon} className="w-4 h-4 text-muted-foreground" />
+    <FontAwesomeIcon icon={icon} className="w-5 h-5 text-muted-foreground" />
     <span className="text-sm font-medium">{label}</span>
   </button>
 );
@@ -47,9 +47,9 @@ const MenuContent = () => (
     <div className="absolute bottom-0 left-0 right-0 p-4 border-t border-border">
       <button
         type="button"
-        className="w-full min-h-[44px] bg-expense/10 hover:bg-expense/20 text-expense rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
+        className="w-full bg-expense/10 hover:bg-expense/20 text-expense rounded-xl p-3 flex items-center justify-center gap-2 text-sm font-bold transition-colors"
       >
-        Sair da Conta
+        <FontAwesomeIcon icon={iconLogOut} className="w-4 h-4" /> Sair da Conta
       </button>
     </div>
   </SheetContent>

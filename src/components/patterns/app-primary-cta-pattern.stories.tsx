@@ -1,7 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
 
-import { FontAwesomeIcon, iconLoader2 } from "@/lib/icons";
-
 const meta = {
   title: "App Patterns/Actions/Primary CTA",
   tags: ["autodocs"],
@@ -22,16 +20,26 @@ export const Idle: Story = {
   ),
 };
 
-export const Loading: Story = {
+export const Saving: Story = {
   render: () => (
     <button
       type="button"
       disabled
       aria-busy
-      className="w-full min-h-[44px] gradient-profit text-primary-foreground rounded-xl py-3 font-bold text-sm disabled:opacity-60 inline-flex items-center justify-center gap-2"
+      className="w-full min-h-[44px] gradient-profit text-primary-foreground rounded-lg py-2.5 font-bold text-sm disabled:opacity-70"
     >
-      <FontAwesomeIcon icon={iconLoader2} className="w-4 h-4 animate-spin" />
       Salvando...
+    </button>
+  ),
+};
+
+export const SendMessage: Story = {
+  render: () => (
+    <button
+      type="button"
+      className="w-full min-h-[44px] gradient-profit text-primary-foreground rounded-xl py-3 font-bold text-sm disabled:opacity-50"
+    >
+      Enviar Mensagem
     </button>
   ),
 };
