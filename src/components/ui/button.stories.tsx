@@ -2,8 +2,18 @@ import type { Meta, StoryObj } from "@storybook/react-vite";
 
 import { Button } from "@/components/ui/button";
 
+const LoadingContent = () => (
+  <>
+    <span
+      aria-hidden
+      className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent"
+    />
+    <span>Salvando...</span>
+  </>
+);
+
 const meta = {
-  title: "UI/Button",
+  title: "Foundation/Controls/Button",
   component: Button,
   args: {
     children: "Salvar",
@@ -20,12 +30,36 @@ export const Primary: Story = {};
 export const Secondary: Story = {
   args: {
     variant: "secondary",
+    children: "Cancelar",
   },
 };
 
 export const Destructive: Story = {
   args: {
     variant: "destructive",
-    children: "Excluir",
+    children: "Excluir registro",
+  },
+};
+
+export const Outline: Story = {
+  args: {
+    variant: "outline",
+    children: "Ver detalhes",
+  },
+};
+
+export const Loading: Story = {
+  args: {
+    disabled: true,
+    "aria-busy": true,
+    children: <LoadingContent />,
+    className: "gap-2",
+  },
+};
+
+export const Disabled: Story = {
+  args: {
+    disabled: true,
+    children: "Indisponível",
   },
 };
