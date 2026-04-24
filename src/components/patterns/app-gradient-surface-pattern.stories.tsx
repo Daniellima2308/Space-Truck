@@ -1,4 +1,5 @@
 import type { Meta, StoryObj } from "@storybook/react-vite";
+import { MemoryRouter } from "react-router-dom";
 
 import { DashboardHistoryPreview } from "@/components/dashboard/DashboardHistoryPreview";
 import { Progress } from "@/components/ui/progress";
@@ -16,7 +17,11 @@ export default meta;
 type Story = StoryObj<typeof meta>;
 
 export const DashboardHistoryEmptyState: Story = {
-  render: () => <DashboardHistoryPreview trips={[]} />,
+  render: () => (
+    <MemoryRouter>
+      <DashboardHistoryPreview trips={[]} />
+    </MemoryRouter>
+  ),
 };
 
 export const MaintenanceOdometerCard: Story = {
