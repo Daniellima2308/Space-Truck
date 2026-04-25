@@ -4,7 +4,7 @@ Este arquivo é a fonte principal de instruções para agentes de IA atuando nes
 
 ## Contexto do produto
 
-O Space Truck é um app de gestão de viagem para caminhoneiros. Não trate o produto como um app genérico de cadastro.
+O Space Truck é um aplicativo de gestão de viagem para caminhoneiros. Não trate o produto como um cadastro genérico.
 
 Toda funcionalidade deve gerar pelo menos uma destas entregas práticas para o caminhoneiro:
 
@@ -22,6 +22,13 @@ Toda funcionalidade deve gerar pelo menos uma destas entregas práticas para o c
 - Não remova arquivos em PRs de auditoria ou documentação, a menos que isso tenha sido pedido explicitamente.
 - Preserve mudanças existentes no workspace que não sejam suas.
 
+## Linguagem e documentação
+
+- Escreva documentação em português do Brasil.
+- Use acentuação correta.
+- Não remova acentos por compatibilidade sem motivo técnico explícito.
+- Preserve nomes de arquivos, comandos, pacotes e APIs exatamente como são.
+
 ## Arquitetura e implementação
 
 - Separe dados brutos, leituras derivadas e UI.
@@ -32,8 +39,8 @@ Toda funcionalidade deve gerar pelo menos uma destas entregas práticas para o c
 
 ## Storybook
 
-- Use o Storybook para componentes base reutilizáveis e padrões reais do app.
-- Não crie telas fake, estados inventados ou stories novas fora do escopo pedido.
+- Use o Storybook para componentes base reutilizáveis e padrões reais do aplicativo.
+- Não crie telas fictícias, estados inventados ou stories novas fora do escopo pedido.
 - Mantenha a separação entre primitives e app patterns.
 - Ao evoluir Storybook, compare com usos reais, especialmente:
   - `src/components/HamburgerMenu.tsx`

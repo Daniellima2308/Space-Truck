@@ -4,7 +4,7 @@ Este é o fluxo oficial para mudanças no Space Truck.
 
 ## Princípios
 
-- O produto é um app de gestão de viagem para caminhoneiros.
+- O produto é um aplicativo de gestão de viagem para caminhoneiros.
 - Cada mudança deve preservar ou melhorar leitura, decisão ou ação prática para o caminhoneiro.
 - O escopo de cada PR deve ser pequeno, revisável e orientado a um objetivo claro.
 - Mudanças de documentação, limpeza, infraestrutura e produto devem ficar em PRs separadas quando possível.
