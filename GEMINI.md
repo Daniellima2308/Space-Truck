@@ -1,44 +1,15 @@
-# Space Truck - Diretrizes para Agentes de IA
+# Diretrizes para Gemini
 
-Este é um app de gestão de viagem para caminhoneiros. Não o trate como um app genérico de cadastro.
+Siga o guia principal de agentes em `AGENTS.md`.
 
-## 🚀 Mandatos Principais
+Este arquivo existe apenas para compatibilidade com ferramentas que procuram instrucoes em `GEMINI.md`. Nao duplique regras aqui. Quando uma regra precisar mudar, atualize primeiro `AGENTS.md` e mantenha este arquivo apenas como ponte.
 
-1. **Utilidade Prática:** Toda funcionalidade deve gerar leitura, decisão ou ação prática para o caminhoneiro.
-2. **Fidelidade ao Produto:** Não invente UI, fluxos ou padrões que não existam no app real. Use a UI real como única fonte de verdade.
-3. **Reuso e Consistência:** Antes de criar ou alterar componentes, procure usos reais no projeto.
-4. **Integridade de Infraestrutura:** Não altere Supabase, autenticação, banco de dados ou variáveis de ambiente sem necessidade clara e explícita.
-5. **Estabilidade de Negócio:** Não altere regras de negócio sem pedido explícito do usuário.
+Resumo operacional:
 
-## 📚 Storybook
-
-- **Foundation:** Apenas componentes base reutilizáveis (primitives).
-- **App Patterns:** Padrões reais e recorrentes do app.
-- **Proibições:** 
-  - Não criar telas fake ou estados inventados.
-  - Não misturar primitives com patterns.
-- **Auditoria:** Compare mudanças com estas referências:
-  - `src/components/HamburgerMenu.tsx`
-  - `src/pages/Dashboard.tsx`
-  - `src/pages/VehiclesPage.tsx`
-  - `src/pages/MaintenancePage.tsx`
-  - `src/pages/NewTripPage.tsx`
-  - `src/components/dashboard/DashboardHistoryPreview.tsx`
-
-## 🧪 Validação e Qualidade
-
-Sempre rode os seguintes comandos quando fizer sentido (antes de finalizar a tarefa):
-- `npm run lint`
-- `npm test`
-- `npm run build-storybook`
-- `npm run build`
-
-*Dica: Sempre rode `npm ci` antes de validar se houver mudanças em dependências.*
-
-## 📝 Resumo de Alterações
-
-Toda entrega deve incluir um resumo com:
-1. Arquivos alterados.
-2. Motivo das alterações.
-3. Riscos identificados.
-4. Próximos passos recomendados.
+- trabalhe sempre em branch, nunca direto na `main`;
+- mantenha o escopo pequeno e alinhado ao pedido;
+- nao altere regra de negocio, Supabase, autenticacao ou dependencias sem pedido explicito;
+- separe dados brutos, leituras derivadas e UI;
+- nao duplique logica de calculo em componentes;
+- rode `npm ci` antes das validacoes;
+- entregue resumo com arquivos alterados, motivo, comandos, riscos e proximos passos.
