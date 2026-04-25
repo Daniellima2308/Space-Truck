@@ -3,6 +3,7 @@
     "dbaeumer.vscode-eslint",
     "bradlc.vscode-tailwindcss",
     "github.vscode-pull-request-github",
+    "github.vscode-github-actions",
     "usernamehw.errorlens",
     "yoavbls.pretty-ts-errors",
     "mikestead.dotenv",
@@ -14,9 +15,21 @@
     "Gruntfuggly.todo-tree",
     "streetsidesoftware.code-spell-checker",
     "streetsidesoftware.code-spell-checker-portuguese-brazilian",
-    "Supabase.supabase-vscode"
+    "supabase.vscode-supabase-extension",
+    "humao.rest-client",
+    "ms-azuretools.vscode-containers",
+    "sonarsource.sonarlint-vscode",
+    "socketsecurity.vscode-socket-security",
+    "pflannery.vscode-versionlens",
+    "coderabbit.coderabbit-vscode",
+    "sourcery.sourcery",
+    "google.geminicodeassist",
+    "continue.continue",
+    "saoudrizwan.claude-dev"
   ],
   "unwantedRecommendations": [
-    "orta.vscode-react-native-storybooks"
+    "orta.vscode-react-native-storybooks",
+    "dudstecnologia.portugol-visualg-vscode",
+    "ms-vscode.azure-repos"
   ]
 }
