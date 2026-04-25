@@ -4,12 +4,13 @@ import { Trip } from "@/types";
 import { FontAwesomeIcon, iconHistory, iconArrowRight, iconPlus } from "@/lib/icons";
 
 interface DashboardHistoryPreviewProps {
-  trips: Trip[];
+  trips?: Trip[] | null;
 }
 
 export function DashboardHistoryPreview({ trips }: DashboardHistoryPreviewProps) {
   const navigate = useNavigate();
-  const hasHistory = trips.length > 0;
+  const safeTrips = Array.isArray(trips) ? trips : [];
+  const hasHistory = safeTrips.length > 0;
 
   return (
     <section>
@@ -34,7 +35,7 @@ export function DashboardHistoryPreview({ trips }: DashboardHistoryPreviewProps)
           <p className="text-xs text-muted-foreground mb-3">
             Independentemente do filtro de período acima
           </p>
-          <TripHistoryList trips={trips} />
+          <TripHistoryList trips={safeTrips} />
         </>
       ) : (
         <div className="gradient-card rounded-xl p-5 text-center space-y-3">
