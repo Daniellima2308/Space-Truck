@@ -1,96 +1,94 @@
-# Welcome to your Lovable project
+# Space Truck
 
-## Project info
+Space Truck é um app de gestão de viagens para caminhoneiros, pensado para apoiar a rotina operacional da estrada com leitura clara, decisão rápida e ação prática.
 
-**URL**: https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID
+O projeto não é tratado como um app genérico de cadastro. As telas, dados e fluxos existem para organizar a operação real: acompanhar viagens, entender custos, registrar eventos importantes, controlar recebíveis e manter a frota pronta para rodar.
 
-## How can I edit this code?
+## Principais áreas do app
 
-There are several ways of editing your application.
+- Viagens
+- Veículos
+- Fretes
+- Abastecimentos
+- Despesas
+- Manutenção
+- Contas e recebíveis
+- PX Digital
+- Storybook e design system
 
-**Use Lovable**
+## Stack técnica
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and start prompting.
+- React
+- TypeScript
+- Vite
+- Tailwind CSS
+- shadcn/ui
+- Supabase
+- Storybook
+- Vitest
 
-Changes made via Lovable will be committed automatically to this repo.
+## Requisitos
 
-**Use your preferred IDE**
+- Node 20.x
+- npm 10.x
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+## Setup local
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
+Instale as dependências a partir do lockfile:
 
 ```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
 npm ci
+```
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Inicie o servidor de desenvolvimento:
+
+```sh
 npm run dev
 ```
 
+## Variáveis de ambiente
 
-## Recommended validation checklist
-
-Before opening a PR, run the same checks used in CI:
+Crie um arquivo `.env.local` na raiz do projeto com as variáveis necessárias para o ambiente local.
 
 ```sh
-npm ci
+VITE_SUPABASE_URL=
+VITE_SUPABASE_PUBLISHABLE_KEY=
+VITE_TOMTOM_API_KEY=
+```
+
+`VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` configuram a conexão com o Supabase. `VITE_TOMTOM_API_KEY` deve ser preenchida quando for necessário usar recursos de rotas ou geocoding.
+
+Não versionar valores reais de segredo ou chaves privadas.
+
+## Comandos úteis
+
+```sh
+npm run dev
 npm run build
 npm run lint
 npm test
+npm run test:watch
+npm run test:coverage
+npm run storybook
+npm run build-storybook
 ```
 
-## Environment variables
+## Fluxo de desenvolvimento
 
-Create a `.env.local` file and configure the TomTom key used by route/geocoding features:
+- Trabalhe sempre em uma branch criada a partir da `main` atualizada.
+- Mantenha PRs pequenas, com objetivo claro e escopo revisável.
+- Valide a mudança antes de abrir a PR.
+- Siga as instruções do `AGENTS.md`.
+- Consulte `docs/development-workflow.md` para o fluxo oficial do projeto.
 
-```sh
-VITE_TOMTOM_API_KEY=your_tomtom_key_here
-```
+## Storybook
 
-**Edit a file directly in GitHub**
+O Storybook documenta componentes base e padrões reais usados no app. Ele deve evoluir com o design system do Space Truck, priorizando componentes, estados e composições que representem a experiência real do produto.
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+Não crie telas fake no Storybook. Novas histórias devem ajudar a validar padrões existentes ou necessidades reais do app.
 
-**Use GitHub Codespaces**
+## Arquivos legados
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+A auditoria inicial de arquivos e pontos de limpeza está registrada em `docs/repository-audit.md`.
 
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/REPLACE_WITH_PROJECT_ID) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
-
-<!-- chore: commit de trigger para novo preview da PR -->
-<!-- chore: novo trigger de preview sem impacto funcional -->
+Esta PR não remove arquivos. Qualquer remoção, arquivamento ou limpeza estrutural deve acontecer em PR própria, com validação específica.
