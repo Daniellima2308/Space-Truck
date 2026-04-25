@@ -1,13 +1,13 @@
 # Fluxo de desenvolvimento
 
-Este e o fluxo oficial para mudancas no Space Truck.
+Este é o fluxo oficial para mudanças no Space Truck.
 
-## Principios
+## Princípios
 
-- O produto e um app de gestao de viagem para caminhoneiros.
-- Cada mudanca deve preservar ou melhorar leitura, decisao ou acao pratica para o caminhoneiro.
-- O escopo de cada PR deve ser pequeno, revisavel e orientado a um objetivo claro.
-- Mudancas de documentacao, limpeza, infraestrutura e produto devem ficar em PRs separadas quando possivel.
+- O produto é um app de gestão de viagem para caminhoneiros.
+- Cada mudança deve preservar ou melhorar leitura, decisão ou ação prática para o caminhoneiro.
+- O escopo de cada PR deve ser pequeno, revisável e orientado a um objetivo claro.
+- Mudanças de documentação, limpeza, infraestrutura e produto devem ficar em PRs separadas quando possível.
 
 ## Branches
 
@@ -23,23 +23,23 @@ Este e o fluxo oficial para mudancas no Space Truck.
 
 Antes de editar, defina:
 
-- objetivo da mudanca;
-- arquivos ou areas que podem ser tocados;
-- arquivos ou areas proibidos;
-- validacoes esperadas.
+- objetivo da mudança;
+- arquivos ou áreas que podem ser tocados;
+- arquivos ou áreas proibidos;
+- validações esperadas.
 
-Durante a implementacao:
+Durante a implementação:
 
-- nao misture refatoracao ampla com ajuste funcional;
-- nao altere regra de negocio sem pedido explicito;
-- nao altere dependencias sem uma PR propria;
-- nao remova arquivos legados sem auditoria e validacao previas;
-- nao duplique logica de calculo em componentes;
+- não misture refatoração ampla com ajuste funcional;
+- não altere regra de negócio sem pedido explícito;
+- não altere dependências sem uma PR própria;
+- não remova arquivos legados sem auditoria e validação prévias;
+- não duplique lógica de cálculo em componentes;
 - mantenha separadas as camadas de dados brutos, leituras derivadas e UI.
 
 ## Comandos locais
 
-Instale dependencias sempre antes de validar:
+Instale as dependências sempre antes de validar:
 
 ```sh
 npm ci
@@ -51,7 +51,7 @@ Desenvolvimento local:
 npm run dev
 ```
 
-Validacao padrao:
+Validação padrão:
 
 ```sh
 npm run build
@@ -66,39 +66,39 @@ npm run storybook
 npm run build-storybook
 ```
 
-Use `npm run build-storybook` quando a PR tocar Storybook, componentes documentados ou configuracao relacionada.
+Use `npm run build-storybook` quando a PR tocar Storybook, componentes documentados ou configuração relacionada.
 
 ## PRs
 
-A descricao da PR deve explicar:
+A descrição da PR deve explicar:
 
 - objetivo;
 - arquivos alterados;
-- motivo das alteracoes;
-- validacoes executadas;
+- motivo das alterações;
+- validações executadas;
 - riscos conhecidos;
-- proximos passos.
+- próximos passos.
 
-Para PRs de documentacao:
+Para PRs de documentação:
 
-- nao altere codigo funcional em `src`;
+- não altere código funcional em `src`;
 - rode pelo menos `npm run lint`;
-- rode `npm run build` quando possivel;
-- registre qualquer validacao nao executada e o motivo.
+- rode `npm run build` quando possível;
+- registre qualquer validação não executada e o motivo.
 
 Para PRs funcionais:
 
 - rode `npm run build`, `npm run lint` e `npm test`;
 - inclua ou ajuste testes conforme o risco;
-- explique qualquer impacto em dados, calculos, autenticacao, Supabase ou fluxo operacional.
+- explique qualquer impacto em dados, cálculos, autenticação, Supabase ou fluxo operacional.
 
-## Revisao
+## Revisão
 
 Ao revisar uma PR, priorize:
 
-- regressao de regra de negocio;
+- regressão de regra de negócio;
 - impacto na rotina real do caminhoneiro;
-- calculos duplicados ou inconsistentes;
+- cálculos duplicados ou inconsistentes;
 - mistura entre dados brutos, leituras derivadas e UI;
-- validacoes ausentes;
-- escopo maior que o necessario.
+- validações ausentes;
+- escopo maior que o necessário.
