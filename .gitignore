@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 coverage
+.codex
+.codex/
+vitest.config.ts.timestamp-*.mjs
 
 # Editor directories and files
 .vscode/*
