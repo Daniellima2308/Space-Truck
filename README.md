@@ -83,7 +83,7 @@ npm run build-storybook
 
 ## Storybook
 
-O Storybook documenta componentes base e padrões reais usados no app. Ele deve evoluir junto com o design system do Space Truck, priorizando componentes, estados e composições que representem a experiência real do produto.
+O Storybook documenta componentes base e padrões reais usados no app. Ele deve evoluir com o design system do Space Truck, priorizando componentes, estados e composições que representem a experiência real do produto.
 
 Não crie telas fake no Storybook. Novas histórias devem ajudar a validar padrões existentes ou necessidades reais do app.
 
