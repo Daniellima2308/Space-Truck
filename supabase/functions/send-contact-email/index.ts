@@ -1,7 +1,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
-const ADMIN_EMAIL = "contato.copiloto@gmail.com";
+const APP_NAME = "Space Truck";
+const ADMIN_EMAIL = Deno.env.get("ADMIN_EMAIL");
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -47,6 +48,13 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (!ADMIN_EMAIL) {
+      return new Response(JSON.stringify({ error: "Missing ADMIN_EMAIL configuration" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Store in database
     if (subject_type === "Sugestão") {
       await supabase.from("suggestions").insert({ user_id: user.id, suggestion: `[${subject_type}] ${message.trim()}` });
@@ -55,7 +63,7 @@ Deno.serve(async (req) => {
     }
 
     // Build mailto fallback URL for the frontend
-    const mailtoSubject = encodeURIComponent(`[Copiloto - ${subject_type}] de ${user.email}`);
+    const mailtoSubject = encodeURIComponent(`[${APP_NAME} - ${subject_type}] de ${user.email}`);
     const mailtoBody = encodeURIComponent(
       `Tipo: ${subject_type}\nDe: ${user.email}\n\nMensagem:\n${message.trim()}`
     );
