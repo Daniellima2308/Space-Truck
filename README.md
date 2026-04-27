@@ -58,7 +58,7 @@ VITE_TOMTOM_API_KEY=
 
 `VITE_SUPABASE_URL` e `VITE_SUPABASE_PUBLISHABLE_KEY` configuram a conexão com o Supabase. `VITE_TOMTOM_API_KEY` deve ser preenchida quando for necessário usar recursos de rotas ou geocoding.
 
-Não versionar valores reais de segredo ou chaves privadas.
+Não versionar valores reais de configuração sensível.
 
 ## Comandos úteis
 
@@ -91,4 +91,4 @@ Não crie telas fake no Storybook. Novas histórias devem ajudar a validar padr�
 
 A auditoria inicial de arquivos e pontos de limpeza está registrada em `docs/repository-audit.md`.
 
-Esta PR não remove arquivos. Qualquer remoção, arquivamento ou limpeza estrutural deve acontecer em PR própria, com validação específica.
+Qualquer remoção, arquivamento ou limpeza estrutural deve acontecer em PR própria, com validação específica e escopo controlado.
