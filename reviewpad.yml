@@ -1,114 +1,115 @@
 api-version: reviewpad.com/v3.x
 
-# Reviewpad configuration for Space Truck.
+# Configuração do Reviewpad para o Space Truck.
 #
-# Intent:
-# - Keep PR review consistent without adding risky automation.
-# - Label PRs by type, area, risk and size.
-# - Surface risky changes early for human review.
-# - Avoid auto-merge or automatic approvals while the project is still evolving.
+# Intenção:
+# - Manter a revisão de PRs mais consistente sem adicionar automações arriscadas.
+# - Rotular PRs por tipo, área, risco e tamanho.
+# - Destacar mudanças sensíveis cedo para revisão humana.
+# - Evitar auto-merge ou aprovações automáticas enquanto o produto ainda evolui.
 #
-# Notes:
-# - Labels are intentionally namespaced to keep the repository organized.
-# - Rules are focused on the current stack: React/Vite, Supabase, Storybook,
-#   GitHub Actions, docs and tests.
-# - Risk labels are applied conservatively and kept exclusive by removing lower
-#   risk labels before assigning a higher one.
-# - This is a non-destructive starter policy: it labels and guides review, but
-#   does not merge, approve or close pull requests automatically.
+# Observações:
+# - Os nomes das labels ficam em inglês por serem identificadores técnicos curtos.
+# - As descrições e comentários ficam em português para manter a documentação interna consistente.
+# - As regras seguem a stack atual: React/Vite, Supabase, Storybook,
+#   GitHub Actions, documentação e testes.
+# - Labels de risco são aplicadas de forma conservadora e exclusiva, removendo
+#   riscos mais baixos antes de atribuir um risco maior.
+# - Esta política é não destrutiva: ela rotula e orienta a revisão, mas não faz
+#   merge, aprovação ou fechamento automático de pull requests.
 
 labels:
   type/feature:
     color: "0E8A16"
-    description: "New user-facing behavior or product capability"
+    description: "Novo comportamento ou funcionalidade visível ao usuário"
   type/fix:
     color: "D73A4A"
-    description: "Bug fix or production behavior correction"
+    description: "Correção de bug ou ajuste de comportamento em produção"
   type/docs:
     color: "0075CA"
-    description: "Documentation-only or documentation-focused change"
+    description: "Mudança focada em documentação"
   type/test:
     color: "5319E7"
-    description: "Test coverage, test infra or validation change"
+    description: "Cobertura, infraestrutura de testes ou validação automatizada"
   type/refactor:
     color: "FBCA04"
-    description: "Code structure change without intended behavior change"
+    description: "Mudança estrutural sem intenção de alterar comportamento"
   type/chore:
     color: "C2E0C6"
-    description: "Maintenance, cleanup or repository hygiene"
+    description: "Manutenção, limpeza ou organização do repositório"
   type/ci:
     color: "BFD4F2"
-    description: "CI, GitHub Actions or automation change"
+    description: "CI, GitHub Actions ou automação"
   type/build:
     color: "D4C5F9"
-    description: "Build, dependencies, package manager or tooling change"
+    description: "Build, dependências, gerenciador de pacotes ou ferramentas"
 
   area/help-center:
     color: "1D76DB"
-    description: "Help Center, support, tickets, Bino assistance or admin support flow"
+    description: "Central de Ajuda, suporte, tickets, Bino ou fluxo administrativo de atendimento"
   area/ui:
     color: "A2EEEF"
-    description: "Visual components, screens or user experience"
+    description: "Componentes visuais, telas ou experiência do usuário"
   area/supabase:
     color: "006B75"
-    description: "Supabase client, database, RLS, migrations or Edge Functions"
+    description: "Cliente Supabase, banco de dados, RLS, migrations ou Edge Functions"
   area/docs:
     color: "0075CA"
-    description: "Documentation and product specification"
+    description: "Documentação e especificação de produto"
   area/tests:
     color: "5319E7"
-    description: "Automated tests and coverage"
+    description: "Testes automatizados e cobertura"
   area/storybook:
     color: "C5DEF5"
-    description: "Storybook stories, preview, visual documentation or Chromatic"
+    description: "Stories, preview, documentação visual ou Chromatic"
   area/config:
     color: "EDEDED"
-    description: "Configuration files and repository setup"
+    description: "Arquivos de configuração e setup do repositório"
   area/github-actions:
     color: "BFD4F2"
-    description: "GitHub Actions workflows"
+    description: "Workflows do GitHub Actions"
 
   risk/low:
     color: "0E8A16"
-    description: "Low-risk change, usually very small and isolated"
+    description: "Mudança de baixo risco, geralmente pequena e isolada"
   risk/medium:
     color: "FBCA04"
-    description: "Moderate risk; needs normal review attention"
+    description: "Risco moderado; exige atenção normal na revisão"
   risk/high:
     color: "D73A4A"
-    description: "High-risk change touching backend, auth, database, billing or secrets"
+    description: "Risco alto por tocar backend, autenticação, banco, cobrança ou segredos"
 
   size/xs:
     color: "C2E0C6"
-    description: "Very small pull request"
+    description: "Pull request muito pequeno"
   size/s:
     color: "BFDADC"
-    description: "Small pull request"
+    description: "Pull request pequeno"
   size/m:
     color: "FBCA04"
-    description: "Medium pull request"
+    description: "Pull request médio"
   size/l:
     color: "F66A0A"
-    description: "Large pull request"
+    description: "Pull request grande"
   size/xl:
     color: "D73A4A"
-    description: "Very large pull request; consider splitting"
+    description: "Pull request muito grande; considerar dividir"
 
   review/security:
     color: "B60205"
-    description: "Needs security-focused review"
+    description: "Precisa de revisão focada em segurança"
   review/database:
     color: "006B75"
-    description: "Needs database/RLS/migration review"
+    description: "Precisa de revisão de banco, RLS ou migration"
   review/manual-check:
     color: "FBCA04"
-    description: "Needs manual product or visual validation"
+    description: "Precisa de validação manual de produto ou visual"
   review/large-pr:
     color: "F66A0A"
-    description: "Large PR; consider splitting or reviewing with extra care"
+    description: "PR grande; considerar dividir ou revisar com cuidado extra"
 
 rules:
-  # Pull request type by title.
+  # Tipo do pull request pelo título.
   - name: title-feat
     kind: pull_request
     spec: '$title() ~= "^feat(\\(.+\\))?: .+"'
@@ -134,7 +135,7 @@ rules:
     kind: pull_request
     spec: '$title() ~= "^build(\\(.+\\))?: .+"'
 
-  # Areas by changed files.
+  # Áreas afetadas pelos arquivos modificados.
   - name: touches-help-center
     kind: patch
     spec: '$hasFilePattern("src/features/help/**") || $hasFilePattern("src/pages/Help*") || $hasFilePattern("src/pages/SupportRequestPage.tsx") || $hasFilePattern("docs/help-center-support.md")'
@@ -160,7 +161,7 @@ rules:
     kind: patch
     spec: '$hasFilePattern(".github/workflows/**")'
 
-  # High attention / risk surfaces.
+  # Superfícies que exigem mais atenção ou revisão de risco.
   - name: touches-security-sensitive
     kind: patch
     spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/context/AuthContext.tsx") || $hasFilePattern("src/context/auth-context.ts") || $hasFilePattern("src/integrations/supabase/**")'
@@ -171,7 +172,7 @@ rules:
     kind: patch
     spec: '$hasFilePattern("package.json") || $hasFilePattern("package-lock.json")'
 
-  # Size gates based on changed lines. Keep this simple and readable.
+  # Classificação simples por quantidade de linhas alteradas.
   - name: size-xs
     kind: patch
     spec: '$size() <= 25'
@@ -189,7 +190,7 @@ rules:
     spec: '$size() > 700'
 
 workflows:
-  # Type labels.
+  # Labels de tipo.
   - name: label type feature
     if:
       - rule: title-feat
@@ -231,7 +232,7 @@ workflows:
     then:
       - $addLabel("type/build")
 
-  # Area labels.
+  # Labels de área.
   - name: label help center changes
     if:
       - rule: touches-help-center
@@ -277,8 +278,8 @@ workflows:
     then:
       - $addLabel("area/github-actions")
 
-  # Size labels. Size no longer increases risk by itself; large docs/test PRs
-  # should be reviewed for readability, not treated as security risk.
+  # Labels de tamanho. Tamanho não aumenta risco sozinho; PRs grandes de docs/testes
+  # devem ser revisadas por legibilidade, não tratadas como risco de segurança.
   - name: label size xs
     if:
       - rule: size-xs
@@ -310,7 +311,7 @@ workflows:
       - $addLabel("size/xl")
       - $addLabel("review/large-pr")
 
-  # Medium-risk review surfaces.
+  # Superfícies de risco médio.
   - name: label config risk
     if:
       - rule: touches-config
@@ -334,8 +335,8 @@ workflows:
       - $removeLabel("risk/high")
       - $addLabel("risk/medium")
 
-  # High-risk review surfaces. These workflows run after medium-risk workflows
-  # so the final risk label remains the highest applicable risk.
+  # Superfícies de risco alto. Esses workflows ficam depois dos de risco médio
+  # para que a label final de risco preserve o maior risco aplicável.
   - name: label security sensitive risk
     if:
       - rule: touches-security-sensitive
