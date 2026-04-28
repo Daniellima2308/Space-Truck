@@ -14,6 +14,7 @@ import {
   iconSparkles,
 } from "@/lib/icons";
 import { helpTopics, type HelpTopic } from "@/features/help/helpTopics";
+import { createSupportRequestPath, type SupportRequestFlowId } from "@/features/help/supportRequestOptions";
 
 type HelpActionId = "quick-help" | "support" | "whatsapp" | "bug" | "suggestion";
 
@@ -24,7 +25,6 @@ type HelpAction = {
   icon: typeof iconHelpCircle;
   tone: "primary" | "default" | "warning";
   statusLabel?: string;
-  disabled?: boolean;
   onClick?: () => void;
 };
 
@@ -42,8 +42,6 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     description: "Abra uma solicitação para nossa equipe analisar.",
     icon: iconMessageCircle,
     tone: "default",
-    statusLabel: "Em breve",
-    disabled: true,
   },
   {
     id: "whatsapp",
@@ -51,8 +49,6 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     description: "Peça para chamarmos você no WhatsApp.",
     icon: iconPhone,
     tone: "default",
-    statusLabel: "Em breve",
-    disabled: true,
   },
   {
     id: "bug",
@@ -60,8 +56,6 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     description: "Avise sobre erro, travamento ou algo errado no app.",
     icon: iconBug,
     tone: "warning",
-    statusLabel: "Em breve",
-    disabled: true,
   },
   {
     id: "suggestion",
@@ -69,31 +63,43 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     description: "Conte uma ideia para melhorar o Space Truck.",
     icon: iconLightbulb,
     tone: "warning",
-    statusLabel: "Em breve",
-    disabled: true,
   },
 ];
+
+const requestFlowByActionId: Partial<Record<HelpActionId, SupportRequestFlowId>> = {
+  support: "suporte",
+  whatsapp: "whatsapp",
+  bug: "problema",
+  suggestion: "sugestao",
+};
 
 export default function HelpCenterPage() {
   const navigate = useNavigate();
   const featuredTopics = useMemo(() => helpTopics.slice(0, 5), []);
   const actions = useMemo<HelpAction[]>(
     () =>
-      helpActions.map((action) =>
-        action.id === "quick-help"
-          ? {
-              ...action,
-              onClick: () => document.getElementById("quick-help")?.scrollIntoView({ behavior: "smooth" }),
-            }
-          : action,
-      ),
-    [],
+      helpActions.map((action) => {
+        if (action.id === "quick-help") {
+          return {
+            ...action,
+            onClick: () => document.getElementById("quick-help")?.scrollIntoView({ behavior: "smooth" }),
+          };
+        }
+
+        return {
+          ...action,
+          statusLabel: "Formulário",
+          onClick: () => navigate(createSupportRequestPath(requestFlowByActionId[action.id] ?? "suporte")),
+        };
+      }),
+    [navigate],
   );
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-3 space-y-4">
         <button
+          type="button"
           onClick={() => navigate("/more")}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
@@ -152,7 +158,7 @@ export default function HelpCenterPage() {
             <div>
               <h3 className="font-bold text-sm">Próximas etapas</h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Esta é a base visual da Central de Ajuda. Tickets, chat, WhatsApp e painel admin serão ativados em fases separadas.
+                Esta fase prepara o formulário de solicitação. O envio real com tickets, Supabase e anti-spam será ativado em uma PR separada.
               </p>
             </div>
           </div>
@@ -167,11 +173,7 @@ function HelpActionCard({ action }: { action: HelpAction }) {
     <button
       type="button"
       onClick={action.onClick}
-      disabled={action.disabled}
-      className={cn(
-        "w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left transition-colors",
-        action.disabled ? "opacity-70 cursor-not-allowed" : "hover:bg-accent/40",
-      )}
+      className="w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left transition-colors hover:bg-accent/40"
     >
       <div
         className={cn(
@@ -187,14 +189,14 @@ function HelpActionCard({ action }: { action: HelpAction }) {
         <div className="flex items-center gap-2 flex-wrap">
           <h3 className="text-sm font-bold">{action.title}</h3>
           {action.statusLabel && (
-            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+            <span className="rounded-full bg-primary/10 px-2 py-0.5 text-[10px] font-bold text-primary">
               {action.statusLabel}
             </span>
           )}
         </div>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{action.description}</p>
       </div>
-      {!action.disabled && <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />}
+      <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />
     </button>
   );
 }
