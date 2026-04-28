@@ -12,6 +12,8 @@ api-version: reviewpad.com/v3.x
 # - Labels are intentionally namespaced to keep the repository organized.
 # - Rules are focused on the current stack: React/Vite, Supabase, Storybook,
 #   GitHub Actions, docs and tests.
+# - Risk labels are applied conservatively and kept exclusive by removing lower
+#   risk labels before assigning a higher one.
 # - This is a non-destructive starter policy: it labels and guides review, but
 #   does not merge, approve or close pull requests automatically.
 
@@ -68,7 +70,7 @@ labels:
 
   risk/low:
     color: "0E8A16"
-    description: "Low-risk change, usually docs, tests or isolated UI"
+    description: "Low-risk change, usually very small and isolated"
   risk/medium:
     color: "FBCA04"
     description: "Moderate risk; needs normal review attention"
@@ -101,6 +103,9 @@ labels:
   review/manual-check:
     color: "FBCA04"
     description: "Needs manual product or visual validation"
+  review/large-pr:
+    color: "F66A0A"
+    description: "Large PR; consider splitting or reviewing with extra care"
 
 rules:
   # Pull request type by title.
@@ -135,7 +140,7 @@ rules:
     spec: '$hasFilePattern("src/features/help/**") || $hasFilePattern("src/pages/Help*") || $hasFilePattern("src/pages/SupportRequestPage.tsx") || $hasFilePattern("docs/help-center-support.md")'
   - name: touches-ui
     kind: patch
-    spec: '$hasFilePattern("src/components/**") || $hasFilePattern("src/pages/**") || $hasFilePattern("src/features/**")'
+    spec: '$hasFilePattern("src/components/**") || $hasFilePattern("src/pages/**")'
   - name: touches-supabase
     kind: patch
     spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/integrations/supabase/**")'
@@ -244,7 +249,6 @@ workflows:
       - rule: touches-supabase
     then:
       - $addLabel("area/supabase")
-      - $addLabel("risk/high")
       - $addLabel("review/security")
   - name: label docs changes
     if:
@@ -267,40 +271,21 @@ workflows:
       - rule: touches-config
     then:
       - $addLabel("area/config")
-      - $addLabel("risk/medium")
   - name: label github actions changes
     if:
       - rule: touches-github-actions
     then:
       - $addLabel("area/github-actions")
-      - $addLabel("risk/medium")
 
-  # Review attention labels.
-  - name: label security sensitive changes
-    if:
-      - rule: touches-security-sensitive
-    then:
-      - $addLabel("review/security")
-      - $addLabel("risk/high")
-  - name: label database changes
-    if:
-      - rule: touches-database
-    then:
-      - $addLabel("review/database")
-      - $addLabel("risk/high")
-  - name: label dependency changes
-    if:
-      - rule: touches-dependencies
-    then:
-      - $addLabel("type/build")
-      - $addLabel("risk/medium")
-
-  # Size labels.
+  # Size labels. Size no longer increases risk by itself; large docs/test PRs
+  # should be reviewed for readability, not treated as security risk.
   - name: label size xs
     if:
       - rule: size-xs
     then:
       - $addLabel("size/xs")
+      - $removeLabel("risk/medium")
+      - $removeLabel("risk/high")
       - $addLabel("risk/low")
   - name: label size small
     if:
@@ -317,10 +302,53 @@ workflows:
       - rule: size-l
     then:
       - $addLabel("size/l")
-      - $addLabel("risk/medium")
+      - $addLabel("review/large-pr")
   - name: label size extra large
     if:
       - rule: size-xl
     then:
       - $addLabel("size/xl")
+      - $addLabel("review/large-pr")
+
+  # Medium-risk review surfaces.
+  - name: label config risk
+    if:
+      - rule: touches-config
+    then:
+      - $removeLabel("risk/low")
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+  - name: label github actions risk
+    if:
+      - rule: touches-github-actions
+    then:
+      - $removeLabel("risk/low")
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+  - name: label dependency risk
+    if:
+      - rule: touches-dependencies
+    then:
+      - $addLabel("type/build")
+      - $removeLabel("risk/low")
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+
+  # High-risk review surfaces. These workflows run after medium-risk workflows
+  # so the final risk label remains the highest applicable risk.
+  - name: label security sensitive risk
+    if:
+      - rule: touches-security-sensitive
+    then:
+      - $addLabel("review/security")
+      - $removeLabel("risk/low")
+      - $removeLabel("risk/medium")
+      - $addLabel("risk/high")
+  - name: label database risk
+    if:
+      - rule: touches-database
+    then:
+      - $addLabel("review/database")
+      - $removeLabel("risk/low")
+      - $removeLabel("risk/medium")
       - $addLabel("risk/high")
