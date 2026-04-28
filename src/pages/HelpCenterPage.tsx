@@ -20,9 +20,12 @@ type HelpAction = {
   description: string;
   icon: typeof iconHelpCircle;
   tone: "primary" | "default" | "warning";
+  statusLabel?: string;
+  disabled?: boolean;
+  onClick?: () => void;
 };
 
-const actions: HelpAction[] = [
+const helpActions: Omit<HelpAction, "onClick">[] = [
   {
     title: "Resolver problema rápido",
     description: "Veja respostas práticas antes de abrir atendimento.",
@@ -34,36 +37,56 @@ const actions: HelpAction[] = [
     description: "Abra uma solicitação para nossa equipe analisar.",
     icon: iconMessageCircle,
     tone: "default",
+    statusLabel: "Em breve",
+    disabled: true,
   },
   {
     title: "Atendimento pelo WhatsApp",
     description: "Peça para chamarmos você no WhatsApp.",
     icon: iconPhone,
     tone: "default",
+    statusLabel: "Em breve",
+    disabled: true,
   },
   {
     title: "Reportar problema",
     description: "Avise sobre erro, travamento ou algo errado no app.",
     icon: iconBug,
     tone: "warning",
+    statusLabel: "Em breve",
+    disabled: true,
   },
   {
     title: "Enviar sugestão",
     description: "Conte uma ideia para melhorar o Space Truck.",
     icon: iconLightbulb,
     tone: "warning",
+    statusLabel: "Em breve",
+    disabled: true,
   },
 ];
 
 export default function HelpCenterPage() {
   const navigate = useNavigate();
   const featuredTopics = useMemo(() => helpTopics.slice(0, 5), []);
+  const actions = useMemo<HelpAction[]>(
+    () =>
+      helpActions.map((action) =>
+        action.title === "Resolver problema rápido"
+          ? {
+              ...action,
+              onClick: () => document.getElementById("quick-help")?.scrollIntoView({ behavior: "smooth" }),
+            }
+          : action,
+      ),
+    [],
+  );
 
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-3 space-y-4">
         <button
-          onClick={() => navigate(-1)}
+          onClick={() => navigate("/more")}
           className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
         >
           <FontAwesomeIcon icon={iconArrowLeft} className="w-4 h-4" />
@@ -99,12 +122,12 @@ export default function HelpCenterPage() {
           </div>
         </section>
 
-        <section>
+        <section id="quick-help">
           <div className="flex items-center justify-between mb-2 px-1">
             <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest">
               Ajuda rápida
             </h2>
-            <span className="text-xs text-muted-foreground">{helpTopics.length} tópicos</span>
+            <span className="text-xs text-muted-foreground">{featuredTopics.length} tópicos</span>
           </div>
           <div className="space-y-2">
             {featuredTopics.map((topic) => (
@@ -133,7 +156,15 @@ export default function HelpCenterPage() {
 
 function HelpActionCard({ action }: { action: HelpAction }) {
   return (
-    <button className="w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left hover:bg-accent/40 transition-colors">
+    <button
+      type="button"
+      onClick={action.onClick}
+      disabled={action.disabled}
+      className={cn(
+        "w-full rounded-2xl border border-border bg-card p-4 flex items-center gap-3 text-left transition-colors",
+        action.disabled ? "opacity-70 cursor-not-allowed" : "hover:bg-accent/40",
+      )}
+    >
       <div
         className={cn(
           "w-11 h-11 rounded-2xl flex items-center justify-center shrink-0",
@@ -145,10 +176,17 @@ function HelpActionCard({ action }: { action: HelpAction }) {
         <FontAwesomeIcon icon={action.icon} className="w-5 h-5" />
       </div>
       <div className="flex-1 min-w-0">
-        <h3 className="text-sm font-bold">{action.title}</h3>
+        <div className="flex items-center gap-2 flex-wrap">
+          <h3 className="text-sm font-bold">{action.title}</h3>
+          {action.statusLabel && (
+            <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold text-muted-foreground">
+              {action.statusLabel}
+            </span>
+          )}
+        </div>
         <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{action.description}</p>
       </div>
-      <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />
+      {!action.disabled && <FontAwesomeIcon icon={iconChevronRight} className="w-4 h-4 text-muted-foreground shrink-0" />}
     </button>
   );
 }
@@ -164,8 +202,8 @@ function HelpTopicCard({ topic }: { topic: HelpTopic }) {
           <h3 className="font-bold text-sm">{topic.title}</h3>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{topic.description}</p>
           <ol className="mt-3 space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
-            {topic.steps.slice(0, 2).map((step) => (
-              <li key={step}>{step}</li>
+            {topic.steps.slice(0, 2).map((step, index) => (
+              <li key={`${topic.id}-${index}`}>{step}</li>
             ))}
           </ol>
         </div>
