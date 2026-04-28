@@ -37,6 +37,10 @@ export type SupportRequestChannelOption = {
   description: string;
 };
 
+export const SUPPORT_REQUEST_ROUTE = "/help/solicitacao/:flowId";
+
+export const createSupportRequestPath = (flowId: SupportRequestFlowId) => `/help/solicitacao/${flowId}`;
+
 export const supportRequestFlows: SupportRequestFlow[] = [
   {
     id: "suporte",
