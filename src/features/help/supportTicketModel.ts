@@ -8,8 +8,6 @@ export const supportTicketCategories = [
   "maintenance",
   "finance",
   "route",
-  "bug",
-  "suggestion",
   "other",
 ] as const;
 export const supportTicketChannels = ["app", "email", "whatsapp"] as const;
@@ -28,16 +26,27 @@ export type SupportTicketChannel = (typeof supportTicketChannels)[number];
 export type SupportTicketStatus = (typeof supportTicketStatuses)[number];
 export type SupportTicketPriority = (typeof supportTicketPriorities)[number];
 
-export type SupportTicketDraft = {
+type SupportTicketDraftBase = {
   type: SupportTicketType;
   category: SupportTicketCategory;
   title: string;
   message: string;
-  preferred_channel: SupportTicketChannel;
   contact_email?: string | null;
-  whatsapp_phone?: string | null;
-  whatsapp_consent?: boolean;
   app_version?: string | null;
   device_info?: Record<string, unknown>;
   metadata?: Record<string, unknown>;
 };
+
+type SupportTicketDraftStandard = SupportTicketDraftBase & {
+  preferred_channel: Exclude<SupportTicketChannel, "whatsapp">;
+  whatsapp_phone?: string | null;
+  whatsapp_consent?: boolean;
+};
+
+type SupportTicketDraftWhatsApp = SupportTicketDraftBase & {
+  preferred_channel: "whatsapp";
+  whatsapp_phone: string;
+  whatsapp_consent: true;
+};
+
+export type SupportTicketDraft = SupportTicketDraftStandard | SupportTicketDraftWhatsApp;
