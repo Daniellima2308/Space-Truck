@@ -5,8 +5,19 @@ import HelpCenterPage from "@/pages/HelpCenterPage";
 
 const scrollIntoView = vi.fn();
 
+const mockedNavigate = vi.fn();
+
+vi.mock("react-router-dom", async () => {
+  const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
+  return {
+    ...actual,
+    useNavigate: () => mockedNavigate,
+  };
+});
+
 beforeEach(() => {
   scrollIntoView.mockClear();
+  mockedNavigate.mockClear();
   Object.defineProperty(window.HTMLElement.prototype, "scrollIntoView", {
     configurable: true,
     value: scrollIntoView,
@@ -42,5 +53,17 @@ describe("HelpCenterPage", () => {
     fireEvent.click(screen.getByRole("button", { name: /Resolver problema rápido/i }));
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth" });
+  });
+
+  it("opens a quick help topic detail page", () => {
+    render(
+      <MemoryRouter>
+        <HelpCenterPage />
+      </MemoryRouter>,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: /Não consigo finalizar uma viagem/i }));
+
+    expect(mockedNavigate).toHaveBeenCalledWith("/help/topico/finish-trip");
   });
 });
