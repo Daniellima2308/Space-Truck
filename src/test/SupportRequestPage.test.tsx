@@ -1,6 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SUPPORT_REQUEST_ROUTE, createSupportRequestPath } from "@/features/help/supportRequestOptions";
 import SupportRequestPage from "@/pages/SupportRequestPage";
 
 const mockedNavigate = vi.fn();
@@ -19,9 +20,9 @@ beforeEach(() => {
 
 const renderSupportRequest = (flowId: string) =>
   render(
-    <MemoryRouter initialEntries={[`/help/solicitacao/${flowId}`]}>
+    <MemoryRouter initialEntries={[createSupportRequestPath(flowId as never)]}>
       <Routes>
-        <Route path="/help/solicitacao/:flowId" element={<SupportRequestPage />} />
+        <Route path={SUPPORT_REQUEST_ROUTE} element={<SupportRequestPage />} />
       </Routes>
     </MemoryRouter>,
   );
@@ -52,6 +53,9 @@ describe("SupportRequestPage", () => {
     renderSupportRequest("whatsapp");
 
     const submitButton = screen.getByRole("button", { name: /Preparar solicitação/i });
+    const consentCheckbox = screen.getByRole("checkbox", {
+      name: /Autorizo o Space Truck a entrar em contato pelo WhatsApp/i,
+    });
     expect(screen.getByText("Contato por WhatsApp")).toBeInTheDocument();
     expect(submitButton).toBeDisabled();
 
@@ -63,6 +67,24 @@ describe("SupportRequestPage", () => {
     });
 
     expect(submitButton).not.toBeDisabled();
+
+    fireEvent.click(consentCheckbox);
+    expect(submitButton).toBeDisabled();
+
+    fireEvent.click(consentCheckbox);
+    expect(submitButton).not.toBeDisabled();
+  });
+
+  it("uses WhatsApp validation only when the selected channel is WhatsApp", () => {
+    renderSupportRequest("whatsapp");
+
+    fireEvent.click(screen.getByRole("button", { name: /E-mail/i }));
+    fireEvent.change(screen.getByPlaceholderText(/Explique o que você precisa/i), {
+      target: { value: "Prefiro receber uma resposta por e-mail." },
+    });
+
+    expect(screen.queryByText("Contato por WhatsApp")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Preparar solicitação/i })).not.toBeDisabled();
   });
 
   it("navigates back to the help center", () => {
