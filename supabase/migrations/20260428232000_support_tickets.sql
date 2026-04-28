@@ -8,7 +8,7 @@
 CREATE TABLE public.support_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_number TEXT NOT NULL UNIQUE DEFAULT (
-    'ST-' || upper(substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 8))
+    'ST-' || upper(substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 12))
   ),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('support', 'suggestion', 'bug', 'whatsapp_request')),
@@ -41,10 +41,10 @@ CREATE TABLE public.support_tickets (
     status IN ('open', 'in_review', 'waiting_contact', 'answered', 'closed')
   ),
   priority TEXT NOT NULL DEFAULT 'normal' CHECK (priority IN ('low', 'normal', 'high', 'urgent')),
-  source TEXT NOT NULL DEFAULT 'app_help_center',
-  app_version TEXT,
-  device_info JSONB NOT NULL DEFAULT '{}'::JSONB,
-  metadata JSONB NOT NULL DEFAULT '{}'::JSONB,
+  source TEXT NOT NULL DEFAULT 'app_help_center' CHECK (char_length(btrim(source)) BETWEEN 1 AND 80),
+  app_version TEXT CHECK (app_version IS NULL OR char_length(btrim(app_version)) <= 40),
+  device_info JSONB NOT NULL DEFAULT '{}'::JSONB CHECK (jsonb_typeof(device_info) = 'object'),
+  metadata JSONB NOT NULL DEFAULT '{}'::JSONB CHECK (jsonb_typeof(metadata) = 'object'),
   created_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   updated_at TIMESTAMPTZ NOT NULL DEFAULT now(),
   closed_at TIMESTAMPTZ,
