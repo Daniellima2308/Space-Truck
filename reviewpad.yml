@@ -13,8 +13,9 @@ api-version: reviewpad.com/v3.x
 # - As descrições e comentários ficam em português para manter a documentação interna consistente.
 # - As regras seguem a stack atual: React/Vite, Supabase, Storybook,
 #   GitHub Actions, documentação e testes.
-# - Labels de risco são aplicadas de forma conservadora e exclusiva, removendo
-#   riscos mais baixos antes de atribuir um risco maior.
+# - Labels de risco são aplicadas de forma conservadora e exclusiva.
+# - Risco não é inferido apenas por tamanho; risco médio/alto vem de superfícies
+#   sensíveis como configuração, CI, dependências, Supabase, auth ou banco.
 # - Esta política é não destrutiva: ela rotula e orienta a revisão, mas não faz
 #   merge, aprovação ou fechamento automático de pull requests.
 
@@ -69,9 +70,6 @@ labels:
     color: "BFD4F2"
     description: "Workflows do GitHub Actions"
 
-  risk/low:
-    color: "0E8A16"
-    description: "Mudança de baixo risco, geralmente pequena e isolada"
   risk/medium:
     color: "FBCA04"
     description: "Risco moderado; exige atenção normal na revisão"
@@ -285,9 +283,6 @@ workflows:
       - rule: size-xs
     then:
       - $addLabel("size/xs")
-      - $removeLabel("risk/medium")
-      - $removeLabel("risk/high")
-      - $addLabel("risk/low")
   - name: label size small
     if:
       - rule: size-s
@@ -316,14 +311,12 @@ workflows:
     if:
       - rule: touches-config
     then:
-      - $removeLabel("risk/low")
       - $removeLabel("risk/high")
       - $addLabel("risk/medium")
   - name: label github actions risk
     if:
       - rule: touches-github-actions
     then:
-      - $removeLabel("risk/low")
       - $removeLabel("risk/high")
       - $addLabel("risk/medium")
   - name: label dependency risk
@@ -331,7 +324,6 @@ workflows:
       - rule: touches-dependencies
     then:
       - $addLabel("type/build")
-      - $removeLabel("risk/low")
       - $removeLabel("risk/high")
       - $addLabel("risk/medium")
 
@@ -342,7 +334,6 @@ workflows:
       - rule: touches-security-sensitive
     then:
       - $addLabel("review/security")
-      - $removeLabel("risk/low")
       - $removeLabel("risk/medium")
       - $addLabel("risk/high")
   - name: label database risk
@@ -350,6 +341,5 @@ workflows:
       - rule: touches-database
     then:
       - $addLabel("review/database")
-      - $removeLabel("risk/low")
       - $removeLabel("risk/medium")
       - $addLabel("risk/high")
