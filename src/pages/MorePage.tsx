@@ -172,6 +172,12 @@ export default function MorePage() {
         {/* Suporte e Ajuda */}
         <SectionBlock title="Suporte e Ajuda">
           <MenuItem
+            icon={iconHelpCircle}
+            label="Central de Ajuda"
+            subtitle="Ajuda rápida, Bino e atendimento"
+            onClick={() => navigate("/help")}
+          />
+          <MenuItem
             icon={iconMessageCircle}
             label="Falar com Suporte"
             onClick={() => setShowSupport(true)}
@@ -182,7 +188,6 @@ export default function MorePage() {
             onClick={() => setShowSuggestion(true)}
           />
           <MenuItem icon={iconBug} label="Reportar Problema" subtitle="Em breve" disabled />
-          <MenuItem icon={iconHelpCircle} label="Central de Ajuda" subtitle="Em breve" disabled />
         </SectionBlock>
 
         {/* Sobre */}

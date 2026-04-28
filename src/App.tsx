@@ -28,6 +28,7 @@ import ResetPasswordPage from "./pages/ResetPasswordPage";
 import OperationPage from "./pages/OperationPage";
 import ToolsPage from "./pages/ToolsPage";
 import MorePage from "./pages/MorePage";
+import HelpCenterPage from "./pages/HelpCenterPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ function ProtectedApp() {
           <Route path="/operation" element={<OperationPage />} />
           <Route path="/tools" element={<ToolsPage />} />
           <Route path="/more" element={<MorePage />} />
+          <Route path="/help" element={<HelpCenterPage />} />
           <Route path="/menu" element={<ProfilePage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/personal-expenses" element={<PersonalExpensesPage />} />
