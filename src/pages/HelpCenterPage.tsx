@@ -14,6 +14,7 @@ import {
   iconSparkles,
 } from "@/lib/icons";
 import { helpTopics, type HelpTopic } from "@/features/help/helpTopics";
+import { createSupportRequestPath, type SupportRequestFlowId } from "@/features/help/supportRequestOptions";
 
 type HelpActionId = "quick-help" | "support" | "whatsapp" | "bug" | "suggestion";
 
@@ -65,11 +66,11 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
   },
 ];
 
-const requestRouteByActionId: Partial<Record<HelpActionId, string>> = {
-  support: "/help/solicitacao/suporte",
-  whatsapp: "/help/solicitacao/whatsapp",
-  bug: "/help/solicitacao/problema",
-  suggestion: "/help/solicitacao/sugestao",
+const requestFlowByActionId: Partial<Record<HelpActionId, SupportRequestFlowId>> = {
+  support: "suporte",
+  whatsapp: "whatsapp",
+  bug: "problema",
+  suggestion: "sugestao",
 };
 
 export default function HelpCenterPage() {
@@ -88,7 +89,7 @@ export default function HelpCenterPage() {
         return {
           ...action,
           statusLabel: "Formulário",
-          onClick: () => navigate(requestRouteByActionId[action.id] ?? "/help/solicitacao/suporte"),
+          onClick: () => navigate(createSupportRequestPath(requestFlowByActionId[action.id] ?? "suporte")),
         };
       }),
     [navigate],
