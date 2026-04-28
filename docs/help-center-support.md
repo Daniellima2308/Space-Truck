@@ -99,6 +99,8 @@ O atendimento deve ser registrado como ticket.
 
 Tabela sugerida: `support_tickets`.
 
+Antes da implementação, os nomes de campos e valores devem ser comparados com o schema atual para evitar convenções duplicadas. Campos como `status`, `type`, `category`, `priority` e `preferred_channel` devem seguir uma allowlist única entre banco, Edge Functions e frontend.
+
 Campos sugeridos:
 
 - `id`
@@ -290,6 +292,8 @@ Regras obrigatórias:
 
 Tabela futura sugerida: `user_roles`.
 
+Antes de criar essa tabela, a implementação deve revisar o mecanismo de autenticação já usado no projeto e definir uma única fonte de verdade para permissões. Se o app usar claims no JWT, metadados de usuário ou outra tabela existente, `user_roles` deve se alinhar a esse modelo em vez de criar permissões paralelas.
+
 Campos:
 
 - `user_id`
@@ -319,7 +323,7 @@ A Edge Function deve validar tudo no servidor.
 Regras iniciais:
 
 - mínimo de 10 caracteres por mensagem;
-- máximo de 2.000 ou 3.000 caracteres;
+- máximo de 2.000 caracteres por mensagem na primeira versão;
 - categorias e canais precisam estar em allowlist;
 - WhatsApp obrigatório quando canal for `whatsapp`;
 - consentimento obrigatório para pedido de WhatsApp;
@@ -333,7 +337,16 @@ Esses limites podem ser ajustados depois com base no uso real.
 
 ## Retenção e custo no Supabase
 
-Mensagens de texto não devem pesar de forma relevante no Supabase.
+Mensagens de texto não devem pesar de forma relevante no Supabase, mas a retenção precisa ser definida desde a primeira versão.
+
+Política inicial sugerida:
+
+- tickets ativos devem ser mantidos enquanto estiverem abertos ou em análise;
+- tickets fechados devem ficar disponíveis por 24 meses;
+- mensagens de atendimento devem seguir o mesmo prazo do ticket;
+- dados de contato sensíveis, como WhatsApp, devem ser revisados para anonimização ou remoção após 24 meses do fechamento;
+- registros de auditoria administrativa devem ser mantidos por no mínimo 24 meses;
+- mudanças futuras nessa política devem ser documentadas antes de aplicação em produção.
 
 Cuidados:
 
@@ -341,9 +354,27 @@ Cuidados:
 - limitar tamanho de mensagem;
 - evitar logs grandes;
 - indexar `user_id`, `status` e `created_at`;
-- arquivar ou limpar tickets antigos apenas se necessário no futuro.
+- definir rotina futura para arquivar, anonimizar ou remover dados expirados.
 
 O Supabase deve ser a fonte da verdade. E-mail e WhatsApp são canais de notificação ou atendimento, não a base principal.
+
+## Migração de dados legados
+
+Antes de ativar `support_tickets` como fonte principal, é necessário decidir o destino dos dados existentes em `support_messages` e `suggestions`.
+
+Estratégia recomendada:
+
+- criar `support_tickets` sem remover as tabelas legadas;
+- fazer backfill em script único ou migration controlada, transformando linhas de `support_messages` e `suggestions` em tickets;
+- preservar `user_id`, mensagem original e datas disponíveis;
+- mapear `support_messages` para `type = support` e `suggestions` para `type = suggestion`;
+- evitar duplicidade usando combinação de `user_id`, mensagem normalizada, tipo e data de criação;
+- manter tabelas legadas em modo somente leitura durante a verificação;
+- escrever novos atendimentos apenas em `support_tickets` após a virada;
+- validar contagens antes e depois do backfill;
+- manter rollback simples: reverter escrita para o fluxo antigo enquanto as tabelas legadas continuarem intactas.
+
+As tabelas legadas só devem ser removidas em PR futura, depois de validação explícita do histórico migrado.
 
 ## Fases de implementação
 
@@ -366,6 +397,8 @@ O Supabase deve ser a fonte da verdade. E-mail e WhatsApp são canais de notific
 - Criar policies/RLS.
 - Criar tipos TypeScript.
 - Criar protocolo de ticket.
+- Definir estratégia de migração/backfill de `support_messages` e `suggestions` para o novo modelo unificado.
+- Definir regra de convivência temporária: tabelas legadas em leitura e escrita nova apenas em `support_tickets`.
 
 ### Fase 4: Edge Function de criação de ticket
 
