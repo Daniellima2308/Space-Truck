@@ -1,11 +1,12 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { helpTopics } from "@/features/help/helpTopics";
 import HelpCenterPage from "@/pages/HelpCenterPage";
 
 const scrollIntoView = vi.fn();
-
 const mockedNavigate = vi.fn();
+const featuredTopics = helpTopics.slice(0, 5);
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -34,11 +35,11 @@ describe("HelpCenterPage", () => {
 
     expect(screen.getByText("Como podemos te ajudar?")).toBeInTheDocument();
     expect(screen.getByText("Ajuda com Bino")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Resolver problema rápido/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resolver problema rapido/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Falar com suporte/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Atendimento pelo WhatsApp/i })).toBeDisabled();
     expect(screen.getAllByText("Em breve")).toHaveLength(4);
-    expect(screen.getByText("5 tópicos")).toBeInTheDocument();
+    expect(screen.getByText(`${featuredTopics.length} tópicos`)).toBeInTheDocument();
     expect(screen.getByText("Não consigo finalizar uma viagem")).toBeInTheDocument();
     expect(screen.getByText("Meu lucro ou saldo parece errado")).toBeInTheDocument();
   });
@@ -50,20 +51,23 @@ describe("HelpCenterPage", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Resolver problema rápido/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolver problema rapido/i }));
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth" });
   });
 
-  it("opens a quick help topic detail page", () => {
+  it("opens quick help topic detail pages for featured topics", () => {
     render(
       <MemoryRouter>
         <HelpCenterPage />
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Não consigo finalizar uma viagem/i }));
+    featuredTopics.forEach((topic) => {
+      fireEvent.click(screen.getByRole("button", { name: new RegExp(topic.title, "i") }));
 
-    expect(mockedNavigate).toHaveBeenCalledWith("/help/topico/finish-trip");
+      expect(mockedNavigate).toHaveBeenCalledWith(`/help/topico/${topic.id}`);
+      mockedNavigate.mockClear();
+    });
   });
 });
