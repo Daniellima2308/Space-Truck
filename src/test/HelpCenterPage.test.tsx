@@ -45,9 +45,9 @@ describe("HelpCenterPage", () => {
     expect(screen.getByText("Como podemos te ajudar?")).toBeInTheDocument();
     expect(screen.getByText("Ajuda com Bino")).toBeInTheDocument();
     expect(getButtonByText("Resolver problema rápido")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Falar com suporte/i })).toBeDisabled();
-    expect(screen.getByRole("button", { name: /Atendimento pelo WhatsApp/i })).toBeDisabled();
-    expect(screen.getAllByText("Em breve")).toHaveLength(4);
+    expect(getButtonByText("Falar com suporte")).not.toBeDisabled();
+    expect(getButtonByText("Atendimento pelo WhatsApp")).not.toBeDisabled();
+    expect(screen.getAllByText("Formulário")).toHaveLength(4);
     expect(screen.getByText(`${featuredTopics.length} tópicos`)).toBeInTheDocument();
     expect(screen.getByText(featuredTopics[0].title)).toBeInTheDocument();
     expect(screen.getByText(featuredTopics[1].title)).toBeInTheDocument();
@@ -67,6 +67,22 @@ describe("HelpCenterPage", () => {
     fireEvent.click(getButtonByText("Resolver problema rápido"));
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth" });
+  });
+
+  it("opens support request forms from action cards", () => {
+    renderHelpCenter();
+
+    fireEvent.click(getButtonByText("Falar com suporte"));
+    expect(mockedNavigate).toHaveBeenCalledWith("/help/solicitacao/suporte");
+
+    fireEvent.click(getButtonByText("Atendimento pelo WhatsApp"));
+    expect(mockedNavigate).toHaveBeenCalledWith("/help/solicitacao/whatsapp");
+
+    fireEvent.click(getButtonByText("Reportar problema"));
+    expect(mockedNavigate).toHaveBeenCalledWith("/help/solicitacao/problema");
+
+    fireEvent.click(getButtonByText("Enviar sugestão"));
+    expect(mockedNavigate).toHaveBeenCalledWith("/help/solicitacao/sugestao");
   });
 
   it("opens quick help topic detail pages for featured topics", () => {
