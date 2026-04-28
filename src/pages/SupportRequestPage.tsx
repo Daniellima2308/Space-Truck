@@ -1,10 +1,9 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import {
   FontAwesomeIcon,
   iconArrowLeft,
-  iconCheckCircle,
   iconChevronRight,
   iconHelpCircle,
   iconMessageCircle,
@@ -33,7 +32,13 @@ export default function SupportRequestPage() {
   const [whatsApp, setWhatsApp] = useState("");
   const [allowsWhatsAppContact, setAllowsWhatsAppContact] = useState(flow.requiresWhatsApp);
 
-  const needsWhatsApp = channel === "whatsapp" || flow.requiresWhatsApp;
+  useEffect(() => {
+    setCategory(flow.defaultCategory);
+    setChannel(flow.defaultChannel);
+    setAllowsWhatsAppContact(flow.requiresWhatsApp);
+  }, [flow]);
+
+  const needsWhatsApp = channel === "whatsapp";
   const trimmedMessage = message.trim();
   const messageLength = trimmedMessage.length;
   const canContinue =
@@ -190,7 +195,7 @@ export default function SupportRequestPage() {
           disabled={!canContinue}
           className="w-full rounded-2xl bg-primary text-primary-foreground py-4 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
-          <FontAwesomeIcon icon={canContinue ? iconSend : iconCheckCircle} className="w-4 h-4" />
+          <FontAwesomeIcon icon={iconSend} className="w-4 h-4" />
           Preparar solicitação
           <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
         </button>
