@@ -15,7 +15,10 @@ import {
 } from "@/lib/icons";
 import { helpTopics, type HelpTopic } from "@/features/help/helpTopics";
 
+type HelpActionId = "quick-help" | "support" | "whatsapp" | "bug" | "suggestion";
+
 type HelpAction = {
+  id: HelpActionId;
   title: string;
   description: string;
   icon: typeof iconHelpCircle;
@@ -27,12 +30,14 @@ type HelpAction = {
 
 const helpActions: Omit<HelpAction, "onClick">[] = [
   {
+    id: "quick-help",
     title: "Resolver problema rápido",
     description: "Veja respostas práticas antes de abrir atendimento.",
     icon: iconHelpCircle,
     tone: "primary",
   },
   {
+    id: "support",
     title: "Falar com suporte",
     description: "Abra uma solicitação para nossa equipe analisar.",
     icon: iconMessageCircle,
@@ -41,6 +46,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "whatsapp",
     title: "Atendimento pelo WhatsApp",
     description: "Peça para chamarmos você no WhatsApp.",
     icon: iconPhone,
@@ -49,6 +55,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "bug",
     title: "Reportar problema",
     description: "Avise sobre erro, travamento ou algo errado no app.",
     icon: iconBug,
@@ -57,6 +64,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "suggestion",
     title: "Enviar sugestão",
     description: "Conte uma ideia para melhorar o Space Truck.",
     icon: iconLightbulb,
@@ -72,7 +80,7 @@ export default function HelpCenterPage() {
   const actions = useMemo<HelpAction[]>(
     () =>
       helpActions.map((action) =>
-        action.title === "Resolver problema rápido"
+        action.id === "quick-help"
           ? {
               ...action,
               onClick: () => document.getElementById("quick-help")?.scrollIntoView({ behavior: "smooth" }),
@@ -117,7 +125,7 @@ export default function HelpCenterPage() {
           </h2>
           <div className="grid grid-cols-1 gap-3">
             {actions.map((action) => (
-              <HelpActionCard key={action.title} action={action} />
+              <HelpActionCard key={action.id} action={action} />
             ))}
           </div>
         </section>
@@ -131,7 +139,7 @@ export default function HelpCenterPage() {
           </div>
           <div className="space-y-2">
             {featuredTopics.map((topic) => (
-              <HelpTopicCard key={topic.id} topic={topic} />
+              <HelpTopicCard key={topic.id} topic={topic} onOpen={() => navigate(`/help/topico/${topic.id}`)} />
             ))}
           </div>
         </section>
@@ -191,15 +199,22 @@ function HelpActionCard({ action }: { action: HelpAction }) {
   );
 }
 
-function HelpTopicCard({ topic }: { topic: HelpTopic }) {
+function HelpTopicCard({ topic, onOpen }: { topic: HelpTopic; onOpen: () => void }) {
   return (
-    <article className="rounded-2xl border border-border bg-card p-4">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left hover:bg-accent/40 transition-colors"
+    >
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-bold text-sm">{topic.title}</h3>
+          <div className="flex items-start gap-2">
+            <h3 className="font-bold text-sm flex-1">{topic.title}</h3>
+            <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5 text-muted-foreground mt-1 shrink-0" />
+          </div>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{topic.description}</p>
           <ol className="mt-3 space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
             {topic.steps.slice(0, 2).map((step, index) => (
@@ -208,6 +223,6 @@ function HelpTopicCard({ topic }: { topic: HelpTopic }) {
           </ol>
         </div>
       </div>
-    </article>
+    </button>
   );
 }
