@@ -1,0 +1,345 @@
+api-version: reviewpad.com/v3.x
+
+# Configuração do Reviewpad para o Space Truck.
+#
+# Intenção:
+# - Manter a revisão de PRs mais consistente sem adicionar automações arriscadas.
+# - Rotular PRs por tipo, área, risco e tamanho.
+# - Destacar mudanças sensíveis cedo para revisão humana.
+# - Evitar auto-merge ou aprovações automáticas enquanto o produto ainda evolui.
+#
+# Observações:
+# - Os nomes das labels ficam em inglês por serem identificadores técnicos curtos.
+# - As descrições e comentários ficam em português para manter a documentação interna consistente.
+# - As regras seguem a stack atual: React/Vite, Supabase, Storybook,
+#   GitHub Actions, documentação e testes.
+# - Labels de risco são aplicadas de forma conservadora e exclusiva.
+# - Risco não é inferido apenas por tamanho; risco médio/alto vem de superfícies
+#   sensíveis como configuração, CI, dependências, Supabase, auth ou banco.
+# - Esta política é não destrutiva: ela rotula e orienta a revisão, mas não faz
+#   merge, aprovação ou fechamento automático de pull requests.
+
+labels:
+  type/feature:
+    color: "0E8A16"
+    description: "Novo comportamento ou funcionalidade visível ao usuário"
+  type/fix:
+    color: "D73A4A"
+    description: "Correção de bug ou ajuste de comportamento em produção"
+  type/docs:
+    color: "0075CA"
+    description: "Mudança focada em documentação"
+  type/test:
+    color: "5319E7"
+    description: "Cobertura, infraestrutura de testes ou validação automatizada"
+  type/refactor:
+    color: "FBCA04"
+    description: "Mudança estrutural sem intenção de alterar comportamento"
+  type/chore:
+    color: "C2E0C6"
+    description: "Manutenção, limpeza ou organização do repositório"
+  type/ci:
+    color: "BFD4F2"
+    description: "CI, GitHub Actions ou automação"
+  type/build:
+    color: "D4C5F9"
+    description: "Build, dependências, gerenciador de pacotes ou ferramentas"
+
+  area/help-center:
+    color: "1D76DB"
+    description: "Central de Ajuda, suporte, tickets, Bino ou fluxo administrativo de atendimento"
+  area/ui:
+    color: "A2EEEF"
+    description: "Componentes visuais, telas ou experiência do usuário"
+  area/supabase:
+    color: "006B75"
+    description: "Cliente Supabase, banco de dados, RLS, migrations ou Edge Functions"
+  area/docs:
+    color: "0075CA"
+    description: "Documentação e especificação de produto"
+  area/tests:
+    color: "5319E7"
+    description: "Testes automatizados e cobertura"
+  area/storybook:
+    color: "C5DEF5"
+    description: "Stories, preview, documentação visual ou Chromatic"
+  area/config:
+    color: "EDEDED"
+    description: "Arquivos de configuração e setup do repositório"
+  area/github-actions:
+    color: "BFD4F2"
+    description: "Workflows do GitHub Actions"
+
+  risk/medium:
+    color: "FBCA04"
+    description: "Risco moderado; exige atenção normal na revisão"
+  risk/high:
+    color: "D73A4A"
+    description: "Risco alto por tocar backend, autenticação, banco, cobrança ou segredos"
+
+  size/xs:
+    color: "C2E0C6"
+    description: "Pull request muito pequeno"
+  size/s:
+    color: "BFDADC"
+    description: "Pull request pequeno"
+  size/m:
+    color: "FBCA04"
+    description: "Pull request médio"
+  size/l:
+    color: "F66A0A"
+    description: "Pull request grande"
+  size/xl:
+    color: "D73A4A"
+    description: "Pull request muito grande; considerar dividir"
+
+  review/security:
+    color: "B60205"
+    description: "Precisa de revisão focada em segurança"
+  review/database:
+    color: "006B75"
+    description: "Precisa de revisão de banco, RLS ou migration"
+  review/manual-check:
+    color: "FBCA04"
+    description: "Precisa de validação manual de produto ou visual"
+  review/large-pr:
+    color: "F66A0A"
+    description: "PR grande; considerar dividir ou revisar com cuidado extra"
+
+rules:
+  # Tipo do pull request pelo título.
+  - name: title-feat
+    kind: pull_request
+    spec: '$title() ~= "^feat(\\(.+\\))?: .+"'
+  - name: title-fix
+    kind: pull_request
+    spec: '$title() ~= "^fix(\\(.+\\))?: .+"'
+  - name: title-docs
+    kind: pull_request
+    spec: '$title() ~= "^docs(\\(.+\\))?: .+"'
+  - name: title-test
+    kind: pull_request
+    spec: '$title() ~= "^test(\\(.+\\))?: .+"'
+  - name: title-refactor
+    kind: pull_request
+    spec: '$title() ~= "^refactor(\\(.+\\))?: .+"'
+  - name: title-chore
+    kind: pull_request
+    spec: '$title() ~= "^chore(\\(.+\\))?: .+"'
+  - name: title-ci
+    kind: pull_request
+    spec: '$title() ~= "^ci(\\(.+\\))?: .+"'
+  - name: title-build
+    kind: pull_request
+    spec: '$title() ~= "^build(\\(.+\\))?: .+"'
+
+  # Áreas afetadas pelos arquivos modificados.
+  - name: touches-help-center
+    kind: patch
+    spec: '$hasFilePattern("src/features/help/**") || $hasFilePattern("src/pages/Help*") || $hasFilePattern("src/pages/SupportRequestPage.tsx") || $hasFilePattern("docs/help-center-support.md")'
+  - name: touches-ui
+    kind: patch
+    spec: '$hasFilePattern("src/components/**") || $hasFilePattern("src/pages/**")'
+  - name: touches-supabase
+    kind: patch
+    spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/integrations/supabase/**")'
+  - name: touches-docs
+    kind: patch
+    spec: '$hasFilePattern("docs/**") || $hasFilePattern("README.md") || $hasFilePattern("AGENTS.md") || $hasFilePattern("GEMINI.md")'
+  - name: touches-tests
+    kind: patch
+    spec: '$hasFilePattern("src/test/**") || $hasFilePattern("**/*.test.ts") || $hasFilePattern("**/*.test.tsx") || $hasFilePattern("**/*.spec.ts") || $hasFilePattern("**/*.spec.tsx")'
+  - name: touches-storybook
+    kind: patch
+    spec: '$hasFilePattern(".storybook/**") || $hasFilePattern("**/*.stories.ts") || $hasFilePattern("**/*.stories.tsx")'
+  - name: touches-config
+    kind: patch
+    spec: '$hasFilePattern("*.config.*") || $hasFilePattern("tsconfig*.json") || $hasFilePattern("package.json") || $hasFilePattern("package-lock.json") || $hasFilePattern("sonar-project.properties") || $hasFilePattern("reviewpad.yml")'
+  - name: touches-github-actions
+    kind: patch
+    spec: '$hasFilePattern(".github/workflows/**")'
+
+  # Superfícies que exigem mais atenção ou revisão de risco.
+  - name: touches-security-sensitive
+    kind: patch
+    spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/context/AuthContext.tsx") || $hasFilePattern("src/context/auth-context.ts") || $hasFilePattern("src/integrations/supabase/**")'
+  - name: touches-database
+    kind: patch
+    spec: '$hasFilePattern("supabase/migrations/**") || $hasFilePattern("supabase/**/*.sql")'
+  - name: touches-dependencies
+    kind: patch
+    spec: '$hasFilePattern("package.json") || $hasFilePattern("package-lock.json")'
+
+  # Classificação simples por quantidade de linhas alteradas.
+  - name: size-xs
+    kind: patch
+    spec: '$size() <= 25'
+  - name: size-s
+    kind: patch
+    spec: '$size() > 25 && $size() <= 100'
+  - name: size-m
+    kind: patch
+    spec: '$size() > 100 && $size() <= 300'
+  - name: size-l
+    kind: patch
+    spec: '$size() > 300 && $size() <= 700'
+  - name: size-xl
+    kind: patch
+    spec: '$size() > 700'
+
+workflows:
+  # Labels de tipo.
+  - name: label type feature
+    if:
+      - rule: title-feat
+    then:
+      - $addLabel("type/feature")
+  - name: label type fix
+    if:
+      - rule: title-fix
+    then:
+      - $addLabel("type/fix")
+  - name: label type docs
+    if:
+      - rule: title-docs
+    then:
+      - $addLabel("type/docs")
+  - name: label type test
+    if:
+      - rule: title-test
+    then:
+      - $addLabel("type/test")
+  - name: label type refactor
+    if:
+      - rule: title-refactor
+    then:
+      - $addLabel("type/refactor")
+  - name: label type chore
+    if:
+      - rule: title-chore
+    then:
+      - $addLabel("type/chore")
+  - name: label type ci
+    if:
+      - rule: title-ci
+    then:
+      - $addLabel("type/ci")
+  - name: label type build
+    if:
+      - rule: title-build
+    then:
+      - $addLabel("type/build")
+
+  # Labels de área.
+  - name: label help center changes
+    if:
+      - rule: touches-help-center
+    then:
+      - $addLabel("area/help-center")
+      - $addLabel("review/manual-check")
+  - name: label ui changes
+    if:
+      - rule: touches-ui
+    then:
+      - $addLabel("area/ui")
+      - $addLabel("review/manual-check")
+  - name: label supabase changes
+    if:
+      - rule: touches-supabase
+    then:
+      - $addLabel("area/supabase")
+      - $addLabel("review/security")
+  - name: label docs changes
+    if:
+      - rule: touches-docs
+    then:
+      - $addLabel("area/docs")
+  - name: label test changes
+    if:
+      - rule: touches-tests
+    then:
+      - $addLabel("area/tests")
+  - name: label storybook changes
+    if:
+      - rule: touches-storybook
+    then:
+      - $addLabel("area/storybook")
+      - $addLabel("review/manual-check")
+  - name: label config changes
+    if:
+      - rule: touches-config
+    then:
+      - $addLabel("area/config")
+  - name: label github actions changes
+    if:
+      - rule: touches-github-actions
+    then:
+      - $addLabel("area/github-actions")
+
+  # Labels de tamanho. Tamanho não aumenta risco sozinho; PRs grandes de docs/testes
+  # devem ser revisadas por legibilidade, não tratadas como risco de segurança.
+  - name: label size xs
+    if:
+      - rule: size-xs
+    then:
+      - $addLabel("size/xs")
+  - name: label size small
+    if:
+      - rule: size-s
+    then:
+      - $addLabel("size/s")
+  - name: label size medium
+    if:
+      - rule: size-m
+    then:
+      - $addLabel("size/m")
+  - name: label size large
+    if:
+      - rule: size-l
+    then:
+      - $addLabel("size/l")
+      - $addLabel("review/large-pr")
+  - name: label size extra large
+    if:
+      - rule: size-xl
+    then:
+      - $addLabel("size/xl")
+      - $addLabel("review/large-pr")
+
+  # Superfícies de risco médio.
+  - name: label config risk
+    if:
+      - rule: touches-config
+    then:
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+  - name: label github actions risk
+    if:
+      - rule: touches-github-actions
+    then:
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+  - name: label dependency risk
+    if:
+      - rule: touches-dependencies
+    then:
+      - $addLabel("type/build")
+      - $removeLabel("risk/high")
+      - $addLabel("risk/medium")
+
+  # Superfícies de risco alto. Esses workflows ficam depois dos de risco médio
+  # para que a label final de risco preserve o maior risco aplicável.
+  - name: label security sensitive risk
+    if:
+      - rule: touches-security-sensitive
+    then:
+      - $addLabel("review/security")
+      - $removeLabel("risk/medium")
+      - $addLabel("risk/high")
+  - name: label database risk
+    if:
+      - rule: touches-database
+    then:
+      - $addLabel("review/database")
+      - $removeLabel("risk/medium")
+      - $addLabel("risk/high")
