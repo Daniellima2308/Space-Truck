@@ -8,7 +8,7 @@
 CREATE TABLE public.support_tickets (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   ticket_number TEXT NOT NULL UNIQUE DEFAULT (
-    'ST-' || upper(substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 12))
+    'ST-' || upper(substr(replace(gen_random_uuid()::TEXT, '-', ''), 1, 20))
   ),
   user_id UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   type TEXT NOT NULL CHECK (type IN ('support', 'suggestion', 'bug', 'whatsapp_request')),
@@ -22,8 +22,6 @@ CREATE TABLE public.support_tickets (
       'maintenance',
       'finance',
       'route',
-      'bug',
-      'suggestion',
       'other'
     )
   ),
@@ -34,7 +32,11 @@ CREATE TABLE public.support_tickets (
     contact_email IS NULL OR contact_email ~* '^[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}$'
   ),
   whatsapp_phone TEXT CHECK (
-    whatsapp_phone IS NULL OR whatsapp_phone ~ '^[0-9+() -]{10,20}$'
+    whatsapp_phone IS NULL
+    OR (
+      whatsapp_phone ~ '^\+?[0-9 ()-]{10,24}$'
+      AND char_length(regexp_replace(whatsapp_phone, '[^0-9]', '', 'g')) BETWEEN 10 AND 13
+    )
   ),
   whatsapp_consent BOOLEAN NOT NULL DEFAULT false,
   status TEXT NOT NULL DEFAULT 'open' CHECK (
@@ -77,6 +79,27 @@ CREATE POLICY "Users can view own support tickets" ON public.support_tickets
 
 CREATE POLICY "Users can create own support tickets" ON public.support_tickets
   FOR INSERT WITH CHECK (auth.uid() = user_id);
+
+CREATE OR REPLACE FUNCTION public.sync_support_ticket_closed_at()
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = public
+AS $$
+BEGIN
+  IF NEW.status = 'closed' THEN
+    NEW.closed_at = COALESCE(NEW.closed_at, now());
+  ELSE
+    NEW.closed_at = NULL;
+  END IF;
+
+  RETURN NEW;
+END;
+$$;
+
+CREATE TRIGGER sync_support_ticket_closed_at
+  BEFORE INSERT OR UPDATE ON public.support_tickets
+  FOR EACH ROW
+  EXECUTE FUNCTION public.sync_support_ticket_closed_at();
 
 CREATE TRIGGER update_support_tickets_updated_at
   BEFORE UPDATE ON public.support_tickets
