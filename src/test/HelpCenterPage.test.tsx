@@ -35,7 +35,7 @@ describe("HelpCenterPage", () => {
 
     expect(screen.getByText("Como podemos te ajudar?")).toBeInTheDocument();
     expect(screen.getByText("Ajuda com Bino")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Resolver problema rapido/i })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Resolver problema rápido/i })).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Falar com suporte/i })).toBeDisabled();
     expect(screen.getByRole("button", { name: /Atendimento pelo WhatsApp/i })).toBeDisabled();
     expect(screen.getAllByText("Em breve")).toHaveLength(4);
@@ -51,7 +51,7 @@ describe("HelpCenterPage", () => {
       </MemoryRouter>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: /Resolver problema rapido/i }));
+    fireEvent.click(screen.getByRole("button", { name: /Resolver problema rápido/i }));
 
     expect(scrollIntoView).toHaveBeenCalledWith({ behavior: "smooth" });
   });
@@ -64,7 +64,7 @@ describe("HelpCenterPage", () => {
     );
 
     featuredTopics.forEach((topic) => {
-      fireEvent.click(screen.getByRole("button", { name: new RegExp(topic.title, "i") }));
+      fireEvent.click(screen.getByRole("button", { name: topic.title }));
 
       expect(mockedNavigate).toHaveBeenCalledWith(`/help/topico/${topic.id}`);
       mockedNavigate.mockClear();
