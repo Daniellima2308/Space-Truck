@@ -1,4 +1,3 @@
-import { useMemo } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import {
   FontAwesomeIcon,
@@ -14,18 +13,13 @@ import { helpTopics } from "@/features/help/helpTopics";
 export default function HelpTopicDetailPage() {
   const navigate = useNavigate();
   const { topicId } = useParams<{ topicId: string }>();
-  const topic = useMemo(() => helpTopics.find((item) => item.id === topicId), [topicId]);
+  const topic = helpTopics.find((item) => item.id === topicId);
+  const navigateToHelp = () => navigate("/help");
 
   if (!topic) {
     return (
       <div className="min-h-screen bg-background pb-24 px-4 pt-6">
-        <button
-          onClick={() => navigate("/help")}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <FontAwesomeIcon icon={iconArrowLeft} className="w-4 h-4" />
-          Voltar para ajuda
-        </button>
+        <BackToHelpButton onClick={navigateToHelp} />
 
         <section className="mt-6 rounded-3xl border border-border bg-card p-5 text-center">
           <div className="w-12 h-12 mx-auto rounded-2xl bg-muted flex items-center justify-center">
@@ -36,7 +30,8 @@ export default function HelpTopicDetailPage() {
             Esse conteúdo pode ter sido movido. Volte para a Central de Ajuda e escolha outro caminho.
           </p>
           <button
-            onClick={() => navigate("/help")}
+            type="button"
+            onClick={navigateToHelp}
             className="mt-5 w-full rounded-xl bg-primary text-primary-foreground py-3 text-sm font-bold"
           >
             Abrir Central de Ajuda
@@ -49,13 +44,7 @@ export default function HelpTopicDetailPage() {
   return (
     <div className="min-h-screen bg-background pb-24">
       <header className="px-4 pt-6 pb-3 space-y-4">
-        <button
-          onClick={() => navigate("/help")}
-          className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
-        >
-          <FontAwesomeIcon icon={iconArrowLeft} className="w-4 h-4" />
-          Voltar para ajuda
-        </button>
+        <BackToHelpButton onClick={navigateToHelp} />
 
         <section className="rounded-3xl border border-border bg-card p-5 shadow-sm">
           <div className="inline-flex items-center gap-2 rounded-full bg-primary/10 px-3 py-1 text-xs font-bold text-primary mb-3">
@@ -74,7 +63,7 @@ export default function HelpTopicDetailPage() {
           </h2>
           <div className="rounded-2xl border border-border bg-card divide-y divide-border overflow-hidden">
             {topic.steps.map((step, index) => (
-              <div key={`${topic.id}-step-${index}`} className="p-4 flex gap-3">
+              <div key={`${topic.id}-step-${index}`} className="p-4 flex gap-3" data-testid="help-topic-step">
                 <div className="w-8 h-8 rounded-xl bg-primary/10 text-primary flex items-center justify-center shrink-0 text-xs font-black">
                   {index + 1}
                 </div>
@@ -115,5 +104,18 @@ export default function HelpTopicDetailPage() {
         </section>
       </main>
     </div>
+  );
+}
+
+function BackToHelpButton({ onClick }: { onClick: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground transition-colors"
+    >
+      <FontAwesomeIcon icon={iconArrowLeft} className="w-4 h-4" />
+      Voltar para ajuda
+    </button>
   );
 }
