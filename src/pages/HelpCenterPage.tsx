@@ -15,7 +15,10 @@ import {
 } from "@/lib/icons";
 import { helpTopics, type HelpTopic } from "@/features/help/helpTopics";
 
+type HelpActionId = "quick-help" | "support" | "whatsapp" | "bug" | "suggestion";
+
 type HelpAction = {
+  id: HelpActionId;
   title: string;
   description: string;
   icon: typeof iconHelpCircle;
@@ -27,12 +30,14 @@ type HelpAction = {
 
 const helpActions: Omit<HelpAction, "onClick">[] = [
   {
+    id: "quick-help",
     title: "Resolver problema rápido",
     description: "Veja respostas práticas antes de abrir atendimento.",
     icon: iconHelpCircle,
     tone: "primary",
   },
   {
+    id: "support",
     title: "Falar com suporte",
     description: "Abra uma solicitação para nossa equipe analisar.",
     icon: iconMessageCircle,
@@ -41,6 +46,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "whatsapp",
     title: "Atendimento pelo WhatsApp",
     description: "Peça para chamarmos você no WhatsApp.",
     icon: iconPhone,
@@ -49,6 +55,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "bug",
     title: "Reportar problema",
     description: "Avise sobre erro, travamento ou algo errado no app.",
     icon: iconBug,
@@ -57,6 +64,7 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     disabled: true,
   },
   {
+    id: "suggestion",
     title: "Enviar sugestão",
     description: "Conte uma ideia para melhorar o Space Truck.",
     icon: iconLightbulb,
@@ -72,7 +80,7 @@ export default function HelpCenterPage() {
   const actions = useMemo<HelpAction[]>(
     () =>
       helpActions.map((action) =>
-        action.title === "Resolver problema rápido"
+        action.id === "quick-help"
           ? {
               ...action,
               onClick: () => document.getElementById("quick-help")?.scrollIntoView({ behavior: "smooth" }),
@@ -117,7 +125,7 @@ export default function HelpCenterPage() {
           </h2>
           <div className="grid grid-cols-1 gap-3">
             {actions.map((action) => (
-              <HelpActionCard key={action.title} action={action} />
+              <HelpActionCard key={action.id} action={action} />
             ))}
           </div>
         </section>
