@@ -9,6 +9,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
+import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
 import Dashboard from "./pages/Dashboard";
 import VehiclesPage from "./pages/VehiclesPage";
 import NewTripPage from "./pages/NewTripPage";
@@ -53,7 +54,7 @@ function ProtectedApp() {
           <Route path="/more" element={<MorePage />} />
           <Route path="/help" element={<HelpCenterPage />} />
           <Route path="/help/topico/:topicId" element={<HelpTopicDetailPage />} />
-          <Route path="/help/solicitacao/:flowId" element={<SupportRequestPage />} />
+          <Route path={SUPPORT_REQUEST_ROUTE} element={<SupportRequestPage />} />
           <Route path="/menu" element={<ProfilePage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
           <Route path="/personal-expenses" element={<PersonalExpensesPage />} />
