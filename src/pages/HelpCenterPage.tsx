@@ -131,7 +131,7 @@ export default function HelpCenterPage() {
           </div>
           <div className="space-y-2">
             {featuredTopics.map((topic) => (
-              <HelpTopicCard key={topic.id} topic={topic} />
+              <HelpTopicCard key={topic.id} topic={topic} onOpen={() => navigate(`/help/topico/${topic.id}`)} />
             ))}
           </div>
         </section>
@@ -191,15 +191,22 @@ function HelpActionCard({ action }: { action: HelpAction }) {
   );
 }
 
-function HelpTopicCard({ topic }: { topic: HelpTopic }) {
+function HelpTopicCard({ topic, onOpen }: { topic: HelpTopic; onOpen: () => void }) {
   return (
-    <article className="rounded-2xl border border-border bg-card p-4">
+    <button
+      type="button"
+      onClick={onOpen}
+      className="w-full rounded-2xl border border-border bg-card p-4 text-left hover:bg-accent/40 transition-colors"
+    >
       <div className="flex items-start gap-3">
         <div className="w-9 h-9 rounded-xl bg-primary/10 flex items-center justify-center shrink-0">
           <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
         </div>
         <div className="min-w-0 flex-1">
-          <h3 className="font-bold text-sm">{topic.title}</h3>
+          <div className="flex items-start gap-2">
+            <h3 className="font-bold text-sm flex-1">{topic.title}</h3>
+            <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5 text-muted-foreground mt-1 shrink-0" />
+          </div>
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed">{topic.description}</p>
           <ol className="mt-3 space-y-1.5 text-xs text-muted-foreground list-decimal list-inside">
             {topic.steps.slice(0, 2).map((step, index) => (
@@ -208,6 +215,6 @@ function HelpTopicCard({ topic }: { topic: HelpTopic }) {
           </ol>
         </div>
       </div>
-    </article>
+    </button>
   );
 }
