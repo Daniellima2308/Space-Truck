@@ -1,0 +1,326 @@
+api-version: reviewpad.com/v3.x
+
+# Reviewpad configuration for Space Truck.
+#
+# Intent:
+# - Keep PR review consistent without adding risky automation.
+# - Label PRs by type, area, risk and size.
+# - Surface risky changes early for human review.
+# - Avoid auto-merge or automatic approvals while the project is still evolving.
+#
+# Notes:
+# - Labels are intentionally namespaced to keep the repository organized.
+# - Rules are focused on the current stack: React/Vite, Supabase, Storybook,
+#   GitHub Actions, docs and tests.
+# - This is a non-destructive starter policy: it labels and guides review, but
+#   does not merge, approve or close pull requests automatically.
+
+labels:
+  type/feature:
+    color: "0E8A16"
+    description: "New user-facing behavior or product capability"
+  type/fix:
+    color: "D73A4A"
+    description: "Bug fix or production behavior correction"
+  type/docs:
+    color: "0075CA"
+    description: "Documentation-only or documentation-focused change"
+  type/test:
+    color: "5319E7"
+    description: "Test coverage, test infra or validation change"
+  type/refactor:
+    color: "FBCA04"
+    description: "Code structure change without intended behavior change"
+  type/chore:
+    color: "C2E0C6"
+    description: "Maintenance, cleanup or repository hygiene"
+  type/ci:
+    color: "BFD4F2"
+    description: "CI, GitHub Actions or automation change"
+  type/build:
+    color: "D4C5F9"
+    description: "Build, dependencies, package manager or tooling change"
+
+  area/help-center:
+    color: "1D76DB"
+    description: "Help Center, support, tickets, Bino assistance or admin support flow"
+  area/ui:
+    color: "A2EEEF"
+    description: "Visual components, screens or user experience"
+  area/supabase:
+    color: "006B75"
+    description: "Supabase client, database, RLS, migrations or Edge Functions"
+  area/docs:
+    color: "0075CA"
+    description: "Documentation and product specification"
+  area/tests:
+    color: "5319E7"
+    description: "Automated tests and coverage"
+  area/storybook:
+    color: "C5DEF5"
+    description: "Storybook stories, preview, visual documentation or Chromatic"
+  area/config:
+    color: "EDEDED"
+    description: "Configuration files and repository setup"
+  area/github-actions:
+    color: "BFD4F2"
+    description: "GitHub Actions workflows"
+
+  risk/low:
+    color: "0E8A16"
+    description: "Low-risk change, usually docs, tests or isolated UI"
+  risk/medium:
+    color: "FBCA04"
+    description: "Moderate risk; needs normal review attention"
+  risk/high:
+    color: "D73A4A"
+    description: "High-risk change touching backend, auth, database, billing or secrets"
+
+  size/xs:
+    color: "C2E0C6"
+    description: "Very small pull request"
+  size/s:
+    color: "BFDADC"
+    description: "Small pull request"
+  size/m:
+    color: "FBCA04"
+    description: "Medium pull request"
+  size/l:
+    color: "F66A0A"
+    description: "Large pull request"
+  size/xl:
+    color: "D73A4A"
+    description: "Very large pull request; consider splitting"
+
+  review/security:
+    color: "B60205"
+    description: "Needs security-focused review"
+  review/database:
+    color: "006B75"
+    description: "Needs database/RLS/migration review"
+  review/manual-check:
+    color: "FBCA04"
+    description: "Needs manual product or visual validation"
+
+rules:
+  # Pull request type by title.
+  - name: title-feat
+    kind: pull_request
+    spec: '$title() ~= "^feat(\\(.+\\))?: .+"'
+  - name: title-fix
+    kind: pull_request
+    spec: '$title() ~= "^fix(\\(.+\\))?: .+"'
+  - name: title-docs
+    kind: pull_request
+    spec: '$title() ~= "^docs(\\(.+\\))?: .+"'
+  - name: title-test
+    kind: pull_request
+    spec: '$title() ~= "^test(\\(.+\\))?: .+"'
+  - name: title-refactor
+    kind: pull_request
+    spec: '$title() ~= "^refactor(\\(.+\\))?: .+"'
+  - name: title-chore
+    kind: pull_request
+    spec: '$title() ~= "^chore(\\(.+\\))?: .+"'
+  - name: title-ci
+    kind: pull_request
+    spec: '$title() ~= "^ci(\\(.+\\))?: .+"'
+  - name: title-build
+    kind: pull_request
+    spec: '$title() ~= "^build(\\(.+\\))?: .+"'
+
+  # Areas by changed files.
+  - name: touches-help-center
+    kind: patch
+    spec: '$hasFilePattern("src/features/help/**") || $hasFilePattern("src/pages/Help*") || $hasFilePattern("src/pages/SupportRequestPage.tsx") || $hasFilePattern("docs/help-center-support.md")'
+  - name: touches-ui
+    kind: patch
+    spec: '$hasFilePattern("src/components/**") || $hasFilePattern("src/pages/**") || $hasFilePattern("src/features/**")'
+  - name: touches-supabase
+    kind: patch
+    spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/integrations/supabase/**")'
+  - name: touches-docs
+    kind: patch
+    spec: '$hasFilePattern("docs/**") || $hasFilePattern("README.md") || $hasFilePattern("AGENTS.md") || $hasFilePattern("GEMINI.md")'
+  - name: touches-tests
+    kind: patch
+    spec: '$hasFilePattern("src/test/**") || $hasFilePattern("**/*.test.ts") || $hasFilePattern("**/*.test.tsx") || $hasFilePattern("**/*.spec.ts") || $hasFilePattern("**/*.spec.tsx")'
+  - name: touches-storybook
+    kind: patch
+    spec: '$hasFilePattern(".storybook/**") || $hasFilePattern("**/*.stories.ts") || $hasFilePattern("**/*.stories.tsx")'
+  - name: touches-config
+    kind: patch
+    spec: '$hasFilePattern("*.config.*") || $hasFilePattern("tsconfig*.json") || $hasFilePattern("package.json") || $hasFilePattern("package-lock.json") || $hasFilePattern("sonar-project.properties") || $hasFilePattern("reviewpad.yml")'
+  - name: touches-github-actions
+    kind: patch
+    spec: '$hasFilePattern(".github/workflows/**")'
+
+  # High attention / risk surfaces.
+  - name: touches-security-sensitive
+    kind: patch
+    spec: '$hasFilePattern("supabase/**") || $hasFilePattern("src/context/AuthContext.tsx") || $hasFilePattern("src/context/auth-context.ts") || $hasFilePattern("src/integrations/supabase/**")'
+  - name: touches-database
+    kind: patch
+    spec: '$hasFilePattern("supabase/migrations/**") || $hasFilePattern("supabase/**/*.sql")'
+  - name: touches-dependencies
+    kind: patch
+    spec: '$hasFilePattern("package.json") || $hasFilePattern("package-lock.json")'
+
+  # Size gates based on changed lines. Keep this simple and readable.
+  - name: size-xs
+    kind: patch
+    spec: '$size() <= 25'
+  - name: size-s
+    kind: patch
+    spec: '$size() > 25 && $size() <= 100'
+  - name: size-m
+    kind: patch
+    spec: '$size() > 100 && $size() <= 300'
+  - name: size-l
+    kind: patch
+    spec: '$size() > 300 && $size() <= 700'
+  - name: size-xl
+    kind: patch
+    spec: '$size() > 700'
+
+workflows:
+  # Type labels.
+  - name: label type feature
+    if:
+      - rule: title-feat
+    then:
+      - $addLabel("type/feature")
+  - name: label type fix
+    if:
+      - rule: title-fix
+    then:
+      - $addLabel("type/fix")
+  - name: label type docs
+    if:
+      - rule: title-docs
+    then:
+      - $addLabel("type/docs")
+  - name: label type test
+    if:
+      - rule: title-test
+    then:
+      - $addLabel("type/test")
+  - name: label type refactor
+    if:
+      - rule: title-refactor
+    then:
+      - $addLabel("type/refactor")
+  - name: label type chore
+    if:
+      - rule: title-chore
+    then:
+      - $addLabel("type/chore")
+  - name: label type ci
+    if:
+      - rule: title-ci
+    then:
+      - $addLabel("type/ci")
+  - name: label type build
+    if:
+      - rule: title-build
+    then:
+      - $addLabel("type/build")
+
+  # Area labels.
+  - name: label help center changes
+    if:
+      - rule: touches-help-center
+    then:
+      - $addLabel("area/help-center")
+      - $addLabel("review/manual-check")
+  - name: label ui changes
+    if:
+      - rule: touches-ui
+    then:
+      - $addLabel("area/ui")
+      - $addLabel("review/manual-check")
+  - name: label supabase changes
+    if:
+      - rule: touches-supabase
+    then:
+      - $addLabel("area/supabase")
+      - $addLabel("risk/high")
+      - $addLabel("review/security")
+  - name: label docs changes
+    if:
+      - rule: touches-docs
+    then:
+      - $addLabel("area/docs")
+  - name: label test changes
+    if:
+      - rule: touches-tests
+    then:
+      - $addLabel("area/tests")
+  - name: label storybook changes
+    if:
+      - rule: touches-storybook
+    then:
+      - $addLabel("area/storybook")
+      - $addLabel("review/manual-check")
+  - name: label config changes
+    if:
+      - rule: touches-config
+    then:
+      - $addLabel("area/config")
+      - $addLabel("risk/medium")
+  - name: label github actions changes
+    if:
+      - rule: touches-github-actions
+    then:
+      - $addLabel("area/github-actions")
+      - $addLabel("risk/medium")
+
+  # Review attention labels.
+  - name: label security sensitive changes
+    if:
+      - rule: touches-security-sensitive
+    then:
+      - $addLabel("review/security")
+      - $addLabel("risk/high")
+  - name: label database changes
+    if:
+      - rule: touches-database
+    then:
+      - $addLabel("review/database")
+      - $addLabel("risk/high")
+  - name: label dependency changes
+    if:
+      - rule: touches-dependencies
+    then:
+      - $addLabel("type/build")
+      - $addLabel("risk/medium")
+
+  # Size labels.
+  - name: label size xs
+    if:
+      - rule: size-xs
+    then:
+      - $addLabel("size/xs")
+      - $addLabel("risk/low")
+  - name: label size small
+    if:
+      - rule: size-s
+    then:
+      - $addLabel("size/s")
+  - name: label size medium
+    if:
+      - rule: size-m
+    then:
+      - $addLabel("size/m")
+  - name: label size large
+    if:
+      - rule: size-l
+    then:
+      - $addLabel("size/l")
+      - $addLabel("risk/medium")
+  - name: label size extra large
+    if:
+      - rule: size-xl
+    then:
+      - $addLabel("size/xl")
+      - $addLabel("risk/high")
