@@ -6,6 +6,7 @@ import {
   iconArrowLeft,
   iconBug,
   iconChevronRight,
+  iconClock3,
   iconHelpCircle,
   iconLightbulb,
   iconMessageCircle,
@@ -16,7 +17,7 @@ import {
 import { helpTopics, type HelpTopic } from "@/features/help/helpTopics";
 import { createSupportRequestPath, type SupportRequestFlowId } from "@/features/help/supportRequestOptions";
 
-type HelpActionId = "quick-help" | "support" | "whatsapp" | "bug" | "suggestion";
+type HelpActionId = "quick-help" | "tickets" | "support" | "whatsapp" | "bug" | "suggestion";
 
 type HelpAction = {
   id: HelpActionId;
@@ -35,6 +36,14 @@ const helpActions: Omit<HelpAction, "onClick">[] = [
     description: "Veja respostas práticas antes de abrir atendimento.",
     icon: iconHelpCircle,
     tone: "primary",
+  },
+  {
+    id: "tickets",
+    title: "Minhas solicitações",
+    description: "Acompanhe os tickets que você já abriu.",
+    icon: iconClock3,
+    tone: "default",
+    statusLabel: "Histórico",
   },
   {
     id: "support",
@@ -86,9 +95,16 @@ export default function HelpCenterPage() {
           };
         }
 
+        if (action.id === "tickets") {
+          return {
+            ...action,
+            onClick: () => navigate("/help/tickets"),
+          };
+        }
+
         return {
           ...action,
-          statusLabel: "Formulário",
+          statusLabel: action.statusLabel ?? "Formulário",
           onClick: () => navigate(createSupportRequestPath(requestFlowByActionId[action.id] ?? "suporte")),
         };
       }),
@@ -158,7 +174,7 @@ export default function HelpCenterPage() {
             <div>
               <h3 className="font-bold text-sm">Próximas etapas</h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Esta fase prepara o formulário de solicitação. O envio real com tickets, Supabase e anti-spam será ativado em uma PR separada.
+                Seus tickets já podem ser enviados e acompanhados. Respostas dentro do app e painel admin entram nas próximas fases.
               </p>
             </div>
           </div>
