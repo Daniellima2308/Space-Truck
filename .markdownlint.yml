@@ -1,0 +1,20 @@
+# Configuração do markdownlint para documentação do Space Truck.
+# Mantém regras úteis sem gerar ruído em docs de produto, PRs e guias técnicos.
+default: true
+
+# Permite títulos longos e exemplos de comandos/URLs sem quebrar fluxo de leitura.
+MD013: false
+
+# Permite HTML pontual quando necessário em documentação gerada por ferramentas.
+MD033: false
+
+# Permite documentos pequenos sem exigir H1 na primeira linha.
+MD041: false
+
+# Permite repetir títulos iguais em seções diferentes do mesmo documento.
+MD024:
+  siblings_only: true
+
+# Mantém listas numeradas flexíveis, úteis em guias passo a passo.
+MD029:
+  style: ordered
