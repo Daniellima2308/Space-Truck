@@ -28,7 +28,7 @@ const SUPPORT_TICKET_CREATE_ERROR = "Não foi possível abrir a solicitação. T
 const SUPPORT_TICKET_LIST_ERROR = "Não foi possível carregar suas solicitações. Tente novamente em instantes.";
 const WHATSAPP_PHONE_MIN_DIGITS = 10;
 const WHATSAPP_PHONE_MAX_DIGITS = 15;
-const SUPPORT_TICKET_LIST_LIMIT = 20;
+export const SUPPORT_TICKET_LIST_LIMIT = 20;
 
 const normalizeWhatsAppPhone = (value?: string | null) => value?.replace(/\D/g, "") ?? "";
 
