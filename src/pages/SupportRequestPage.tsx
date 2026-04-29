@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import {
   FontAwesomeIcon,
   iconArrowLeft,
+  iconCheckCircle,
   iconChevronRight,
   iconHelpCircle,
   iconMessageCircle,
@@ -11,6 +14,15 @@ import {
   iconSend,
   iconSparkles,
 } from "@/lib/icons";
+import { createSupportTicket } from "@/features/help/supportTicketService";
+import {
+  buildSupportTicketDraft,
+  canSubmitSupportTicketRequest,
+  getEffectiveSupportTicketChannel,
+  getSupportTicketMessageLength,
+  getSupportTicketSubmitErrorMessage,
+  requiresWhatsAppContact,
+} from "@/features/help/supportTicketRequest";
 import {
   findSupportRequestFlow,
   supportRequestCategories,
@@ -18,33 +30,124 @@ import {
   type SupportRequestCategory,
   type SupportRequestChannel,
 } from "@/features/help/supportRequestOptions";
-
-const MIN_MESSAGE_LENGTH = 10;
-const MAX_MESSAGE_LENGTH = 2000;
+import {
+  SUPPORT_TICKET_MESSAGE_MAX_LENGTH,
+  SUPPORT_TICKET_MESSAGE_MIN_LENGTH,
+} from "@/features/help/supportTicketModel";
 
 export default function SupportRequestPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { flowId } = useParams<{ flowId: string }>();
   const flow = useMemo(() => findSupportRequestFlow(flowId), [flowId]);
+  const submitLockRef = useRef(false);
   const [category, setCategory] = useState<SupportRequestCategory>(flow.defaultCategory);
   const [channel, setChannel] = useState<SupportRequestChannel>(flow.defaultChannel);
   const [message, setMessage] = useState("");
   const [whatsApp, setWhatsApp] = useState("");
   const [allowsWhatsAppContact, setAllowsWhatsAppContact] = useState(flow.requiresWhatsApp);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdTicketNumber, setCreatedTicketNumber] = useState<string | null>(null);
 
   useEffect(() => {
     setCategory(flow.defaultCategory);
     setChannel(flow.defaultChannel);
     setAllowsWhatsAppContact(flow.requiresWhatsApp);
+    setCreatedTicketNumber(null);
+    submitLockRef.current = false;
   }, [flow]);
 
-  const needsWhatsApp = channel === "whatsapp";
-  const trimmedMessage = message.trim();
-  const messageLength = trimmedMessage.length;
-  const canContinue =
-    messageLength >= MIN_MESSAGE_LENGTH &&
-    messageLength <= MAX_MESSAGE_LENGTH &&
-    (!needsWhatsApp || (whatsApp.trim().length >= 10 && allowsWhatsAppContact));
+  const selectedCategoryLabel =
+    supportRequestCategories.find((option) => option.id === category)?.label ?? "Outro assunto";
+  const effectiveChannel = getEffectiveSupportTicketChannel(flow, channel);
+  const needsWhatsApp = requiresWhatsAppContact(flow, channel);
+  const messageLength = getSupportTicketMessageLength(message);
+  const requestState = {
+    userId: user?.id,
+    userEmail: user?.email,
+    flow,
+    category,
+    categoryLabel: selectedCategoryLabel,
+    channel,
+    message,
+    whatsApp,
+    allowsWhatsAppContact,
+  };
+  const canSubmit = canSubmitSupportTicketRequest(requestState);
+  const canContinue = canSubmit && !isSubmitting;
+
+  function clearCreatedTicket() {
+    if (createdTicketNumber) setCreatedTicketNumber(null);
+  }
+
+  function startTicketSubmission() {
+    submitLockRef.current = true;
+    setCreatedTicketNumber(null);
+    setIsSubmitting(true);
+  }
+
+  function finishTicketSubmission() {
+    submitLockRef.current = false;
+    setIsSubmitting(false);
+  }
+
+  function handleCategoryChange(nextCategory: SupportRequestCategory) {
+    clearCreatedTicket();
+    setCategory(nextCategory);
+  }
+
+  function handleChannelChange(nextChannel: SupportRequestChannel, isLockedByFlow: boolean) {
+    if (isLockedByFlow) return;
+
+    clearCreatedTicket();
+    setChannel(nextChannel);
+  }
+
+  function handleWhatsAppChange(nextWhatsApp: string) {
+    clearCreatedTicket();
+    setWhatsApp(nextWhatsApp);
+  }
+
+  function handleWhatsAppConsentChange(nextAllowsContact: boolean) {
+    clearCreatedTicket();
+    setAllowsWhatsAppContact(nextAllowsContact);
+  }
+
+  function handleMessageChange(nextMessage: string) {
+    clearCreatedTicket();
+    setMessage(nextMessage.slice(0, SUPPORT_TICKET_MESSAGE_MAX_LENGTH));
+  }
+
+  async function handleSubmit() {
+    if (submitLockRef.current || !user?.id || !canSubmitSupportTicketRequest(requestState)) return;
+
+    const draft = buildSupportTicketDraft(requestState);
+
+    startTicketSubmission();
+    try {
+      const ticket = await createSupportTicket({ ...draft, userId: user.id });
+      setCreatedTicketNumber(ticket.ticket_number);
+      setMessage("");
+      setWhatsApp("");
+      toast({
+        title: "Solicitação enviada",
+        description: `Ticket ${ticket.ticket_number} criado com sucesso.`,
+      });
+    } catch (error) {
+      toast({
+        title: "Não deu para enviar",
+        description: getSupportTicketSubmitErrorMessage(error),
+        variant: "destructive",
+      });
+    } finally {
+      finishTicketSubmission();
+    }
+  }
+
+  function handleSubmitClick() {
+    void handleSubmit();
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -69,6 +172,38 @@ export default function SupportRequestPage() {
       </header>
 
       <main className="px-4 space-y-6">
+        {createdTicketNumber && (
+          <section className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                <FontAwesomeIcon icon={iconCheckCircle} className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-bold text-sm">Solicitação enviada</h2>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Ticket {createdTicketNumber} criado. O histórico e as respostas serão evoluídos nas próximas fases.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
+        {!user?.id && (
+          <section className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
+              </div>
+              <div>
+                <h2 className="font-bold text-sm">Entre na sua conta para enviar</h2>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Precisamos identificar sua conta para salvar e acompanhar a solicitação.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
             Assunto
@@ -78,7 +213,7 @@ export default function SupportRequestPage() {
               <button
                 key={option.id}
                 type="button"
-                onClick={() => setCategory(option.id)}
+                onClick={() => { handleCategoryChange(option.id); }}
                 className={cn(
                   "rounded-2xl border p-3 text-left text-xs font-bold transition-colors",
                   category === option.id
@@ -97,30 +232,36 @@ export default function SupportRequestPage() {
             Canal preferido
           </h2>
           <div className="space-y-2">
-            {supportRequestChannels.map((option) => (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setChannel(option.id)}
-                className={cn(
-                  "w-full rounded-2xl border bg-card p-4 text-left transition-colors flex gap-3",
-                  channel === option.id ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40",
-                )}
-              >
-                <div
+            {supportRequestChannels.map((option) => {
+              const isLockedByFlow = flow.requiresWhatsApp && option.id !== "whatsapp";
+
+              return (
+                <button
+                  key={option.id}
+                  type="button"
+                  disabled={isLockedByFlow}
+                  onClick={() => { handleChannelChange(option.id, isLockedByFlow); }}
                   className={cn(
-                    "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
-                    channel === option.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    "w-full rounded-2xl border bg-card p-4 text-left transition-colors flex gap-3",
+                    effectiveChannel === option.id ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40",
+                    isLockedByFlow && "opacity-50 cursor-not-allowed hover:bg-card",
                   )}
                 >
-                  <FontAwesomeIcon icon={option.id === "whatsapp" ? iconPhone : iconMessageCircle} className="w-4 h-4" />
-                </div>
-                <div>
-                  <h3 className="text-sm font-bold">{option.label}</h3>
-                  <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{option.description}</p>
-                </div>
-              </button>
-            ))}
+                  <div
+                    className={cn(
+                      "w-9 h-9 rounded-xl flex items-center justify-center shrink-0",
+                      effectiveChannel === option.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground",
+                    )}
+                  >
+                    <FontAwesomeIcon icon={option.id === "whatsapp" ? iconPhone : iconMessageCircle} className="w-4 h-4" />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-bold">{option.label}</h3>
+                    <p className="text-xs text-muted-foreground mt-0.5 leading-relaxed">{option.description}</p>
+                  </div>
+                </button>
+              );
+            })}
           </div>
         </section>
 
@@ -139,7 +280,7 @@ export default function SupportRequestPage() {
             </div>
             <input
               value={whatsApp}
-              onChange={(event) => setWhatsApp(event.target.value)}
+              onChange={(event) => { handleWhatsAppChange(event.target.value); }}
               placeholder="Ex: 51999999999"
               inputMode="tel"
               className="input-field w-full text-base py-3"
@@ -148,7 +289,7 @@ export default function SupportRequestPage() {
               <input
                 type="checkbox"
                 checked={allowsWhatsAppContact}
-                onChange={(event) => setAllowsWhatsAppContact(event.target.checked)}
+                onChange={(event) => { handleWhatsAppConsentChange(event.target.checked); }}
                 className="mt-0.5"
               />
               Autorizo o Space Truck a entrar em contato pelo WhatsApp sobre esta solicitação.
@@ -162,17 +303,17 @@ export default function SupportRequestPage() {
               Mensagem
             </h2>
             <span className="text-xs text-muted-foreground">
-              {messageLength}/{MAX_MESSAGE_LENGTH}
+              {messageLength}/{SUPPORT_TICKET_MESSAGE_MAX_LENGTH}
             </span>
           </div>
           <textarea
             value={message}
-            onChange={(event) => setMessage(event.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+            onChange={(event) => { handleMessageChange(event.target.value); }}
             placeholder={flow.messagePlaceholder}
             className="input-field w-full min-h-[150px] text-base leading-relaxed"
           />
           <p className="text-xs text-muted-foreground mt-2 px-1 leading-relaxed">
-            Mínimo de {MIN_MESSAGE_LENGTH} caracteres. Evite enviar dados sensíveis como senha, documentos ou dados bancários.
+            Mínimo de {SUPPORT_TICKET_MESSAGE_MIN_LENGTH} caracteres. Evite enviar dados sensíveis como senha, documentos ou dados bancários.
           </p>
         </section>
 
@@ -182,9 +323,9 @@ export default function SupportRequestPage() {
               <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-sm">Envio em breve</h3>
+              <h3 className="font-bold text-sm">Como vamos usar isso</h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Este formulário prepara a experiência. A criação real do ticket será ativada na próxima fase com Supabase, validação e anti-spam no servidor.
+                A solicitação será salva com segurança para atendimento. Chat, respostas e painel admin serão ativados em fases separadas.
               </p>
             </div>
           </div>
@@ -193,10 +334,11 @@ export default function SupportRequestPage() {
         <button
           type="button"
           disabled={!canContinue}
+          onClick={handleSubmitClick}
           className="w-full rounded-2xl bg-primary text-primary-foreground py-4 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <FontAwesomeIcon icon={iconSend} className="w-4 h-4" />
-          Preparar solicitação
+          {isSubmitting ? "Enviando..." : "Enviar solicitação"}
           <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
         </button>
       </main>
