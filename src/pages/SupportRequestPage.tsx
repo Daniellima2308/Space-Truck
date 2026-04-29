@@ -81,14 +81,50 @@ export default function SupportRequestPage() {
     if (createdTicketNumber) setCreatedTicketNumber(null);
   };
 
+  const startTicketSubmission = () => {
+    submitLockRef.current = true;
+    setCreatedTicketNumber(null);
+    setIsSubmitting(true);
+  };
+
+  const finishTicketSubmission = () => {
+    submitLockRef.current = false;
+    setIsSubmitting(false);
+  };
+
+  const handleCategoryChange = (nextCategory: SupportRequestCategory) => {
+    clearCreatedTicket();
+    setCategory(nextCategory);
+  };
+
+  const handleChannelChange = (nextChannel: SupportRequestChannel, isLockedByFlow: boolean) => {
+    if (isLockedByFlow) return;
+
+    clearCreatedTicket();
+    setChannel(nextChannel);
+  };
+
+  const handleWhatsAppChange = (nextWhatsApp: string) => {
+    clearCreatedTicket();
+    setWhatsApp(nextWhatsApp);
+  };
+
+  const handleWhatsAppConsentChange = (nextAllowsContact: boolean) => {
+    clearCreatedTicket();
+    setAllowsWhatsAppContact(nextAllowsContact);
+  };
+
+  const handleMessageChange = (nextMessage: string) => {
+    clearCreatedTicket();
+    setMessage(nextMessage.slice(0, SUPPORT_TICKET_MESSAGE_MAX_LENGTH));
+  };
+
   const handleSubmit = async () => {
     if (submitLockRef.current || !user?.id || !canSubmitSupportTicketRequest(requestState)) return;
 
     const draft = buildSupportTicketDraft(requestState);
 
-    submitLockRef.current = true;
-    setCreatedTicketNumber(null);
-    setIsSubmitting(true);
+    startTicketSubmission();
     try {
       const ticket = await createSupportTicket({ ...draft, userId: user.id });
       setCreatedTicketNumber(ticket.ticket_number);
@@ -106,8 +142,7 @@ export default function SupportRequestPage() {
         variant: "destructive",
       });
     } finally {
-      submitLockRef.current = false;
-      setIsSubmitting(false);
+      finishTicketSubmission();
     }
   };
 
@@ -175,10 +210,7 @@ export default function SupportRequestPage() {
               <button
                 key={option.id}
                 type="button"
-                onClick={() => {
-                  clearCreatedTicket();
-                  setCategory(option.id);
-                }}
+                onClick={() => { handleCategoryChange(option.id); }}
                 className={cn(
                   "rounded-2xl border p-3 text-left text-xs font-bold transition-colors",
                   category === option.id
@@ -205,11 +237,7 @@ export default function SupportRequestPage() {
                   key={option.id}
                   type="button"
                   disabled={isLockedByFlow}
-                  onClick={() => {
-                    if (isLockedByFlow) return;
-                    clearCreatedTicket();
-                    setChannel(option.id);
-                  }}
+                  onClick={() => { handleChannelChange(option.id, isLockedByFlow); }}
                   className={cn(
                     "w-full rounded-2xl border bg-card p-4 text-left transition-colors flex gap-3",
                     effectiveChannel === option.id ? "border-primary bg-primary/10" : "border-border hover:bg-accent/40",
@@ -249,10 +277,7 @@ export default function SupportRequestPage() {
             </div>
             <input
               value={whatsApp}
-              onChange={(event) => {
-                clearCreatedTicket();
-                setWhatsApp(event.target.value);
-              }}
+              onChange={(event) => { handleWhatsAppChange(event.target.value); }}
               placeholder="Ex: 51999999999"
               inputMode="tel"
               className="input-field w-full text-base py-3"
@@ -261,10 +286,7 @@ export default function SupportRequestPage() {
               <input
                 type="checkbox"
                 checked={allowsWhatsAppContact}
-                onChange={(event) => {
-                  clearCreatedTicket();
-                  setAllowsWhatsAppContact(event.target.checked);
-                }}
+                onChange={(event) => { handleWhatsAppConsentChange(event.target.checked); }}
                 className="mt-0.5"
               />
               Autorizo o Space Truck a entrar em contato pelo WhatsApp sobre esta solicitação.
@@ -283,10 +305,7 @@ export default function SupportRequestPage() {
           </div>
           <textarea
             value={message}
-            onChange={(event) => {
-              clearCreatedTicket();
-              setMessage(event.target.value.slice(0, SUPPORT_TICKET_MESSAGE_MAX_LENGTH));
-            }}
+            onChange={(event) => { handleMessageChange(event.target.value); }}
             placeholder={flow.messagePlaceholder}
             className="input-field w-full min-h-[150px] text-base leading-relaxed"
           />
