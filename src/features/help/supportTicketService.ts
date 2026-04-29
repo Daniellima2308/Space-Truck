@@ -12,11 +12,19 @@ export type CreateSupportTicketResult = {
 };
 
 const SUPPORT_TICKET_CREATE_ERROR = "Não foi possível abrir a solicitação. Tente novamente em instantes.";
+const WHATSAPP_PHONE_MIN_DIGITS = 10;
+const WHATSAPP_PHONE_MAX_DIGITS = 15;
+
+const normalizeWhatsAppPhone = (value?: string | null) => value?.replace(/\D/g, "") ?? "";
+
+const isValidWhatsAppPhone = (value: string) =>
+  value.length >= WHATSAPP_PHONE_MIN_DIGITS && value.length <= WHATSAPP_PHONE_MAX_DIGITS;
 
 export async function createSupportTicket(input: CreateSupportTicketInput): Promise<CreateSupportTicketResult> {
-  const normalizedWhatsappPhone = input.whatsapp_phone?.trim() || null;
+  const normalizedWhatsappPhone = normalizeWhatsAppPhone(input.whatsapp_phone);
+  const hasValidWhatsAppPhone = isValidWhatsAppPhone(normalizedWhatsappPhone);
 
-  if (input.preferred_channel === "whatsapp" && (!normalizedWhatsappPhone || !input.whatsapp_consent)) {
+  if (input.preferred_channel === "whatsapp" && (!hasValidWhatsAppPhone || !input.whatsapp_consent)) {
     throw new Error("Informe WhatsApp válido e autorize o contato para esse canal.");
   }
 
@@ -28,7 +36,7 @@ export async function createSupportTicket(input: CreateSupportTicketInput): Prom
     message: input.message.trim(),
     preferred_channel: input.preferred_channel,
     contact_email: input.contact_email?.trim() || null,
-    whatsapp_phone: normalizedWhatsappPhone,
+    whatsapp_phone: hasValidWhatsAppPhone ? normalizedWhatsappPhone : null,
     whatsapp_consent: input.whatsapp_consent ?? false,
     app_version: input.app_version?.trim() || null,
     device_info: input.device_info ?? {},
