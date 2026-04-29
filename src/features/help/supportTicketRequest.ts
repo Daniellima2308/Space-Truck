@@ -82,7 +82,7 @@ export const buildSupportTicketDraft = (state: SupportTicketRequestState): Suppo
 };
 
 export const getSupportTicketSubmitErrorMessage = (error: unknown) => {
-  if (error instanceof TypeError) {
+  if (error instanceof TypeError && /fetch|network/i.test(error.message)) {
     return "Parece que houve um problema de conexão. Verifique sua internet e tente novamente.";
   }
 
