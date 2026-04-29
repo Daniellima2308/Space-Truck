@@ -1,5 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSupportTicket, listSupportTickets } from "@/features/help/supportTicketService";
+import {
+  createSupportTicket,
+  listSupportTickets,
+  SUPPORT_TICKET_LIST_LIMIT,
+} from "@/features/help/supportTicketService";
 
 const supabaseMock = vi.hoisted(() => {
   const single = vi.fn();
@@ -160,6 +164,12 @@ describe("listSupportTickets", () => {
     expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 
+  it("returns an empty list when Supabase returns no ticket rows", async () => {
+    supabaseMock.limit.mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(listSupportTickets("user-123")).resolves.toEqual([]);
+  });
+
   it("lists the latest support tickets for a user", async () => {
     const tickets = [
       {
@@ -184,7 +194,7 @@ describe("listSupportTickets", () => {
     );
     expect(supabaseMock.eq).toHaveBeenCalledWith("user_id", "user-123");
     expect(supabaseMock.order).toHaveBeenCalledWith("created_at", { ascending: false });
-    expect(supabaseMock.limit).toHaveBeenCalledWith(20);
+    expect(supabaseMock.limit).toHaveBeenCalledWith(SUPPORT_TICKET_LIST_LIMIT);
     expect(result).toEqual(tickets);
   });
 
