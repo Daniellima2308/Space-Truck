@@ -25,11 +25,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build
-        run: npm run build
-
       - name: Quality lint
         run: npm run lint:quality
+
+      - name: Build
+        run: npm run build
 
       - name: Test
         run: npm test
