@@ -1,9 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { useAuth } from "@/context/auth-context";
+import { useToast } from "@/components/ui/use-toast";
 import { cn } from "@/lib/utils";
 import {
   FontAwesomeIcon,
   iconArrowLeft,
+  iconCheckCircle,
   iconChevronRight,
   iconHelpCircle,
   iconMessageCircle,
@@ -11,6 +14,7 @@ import {
   iconSend,
   iconSparkles,
 } from "@/lib/icons";
+import { createSupportTicket } from "@/features/help/supportTicketService";
 import {
   findSupportRequestFlow,
   supportRequestCategories,
@@ -18,12 +22,18 @@ import {
   type SupportRequestCategory,
   type SupportRequestChannel,
 } from "@/features/help/supportRequestOptions";
+import {
+  SUPPORT_TICKET_MESSAGE_MAX_LENGTH,
+  SUPPORT_TICKET_MESSAGE_MIN_LENGTH,
+  type SupportTicketDraft,
+} from "@/features/help/supportTicketModel";
 
-const MIN_MESSAGE_LENGTH = 10;
-const MAX_MESSAGE_LENGTH = 2000;
+const createTicketTitle = (flowTitle: string, categoryLabel: string) => `${flowTitle} — ${categoryLabel}`;
 
 export default function SupportRequestPage() {
   const navigate = useNavigate();
+  const { user } = useAuth();
+  const { toast } = useToast();
   const { flowId } = useParams<{ flowId: string }>();
   const flow = useMemo(() => findSupportRequestFlow(flowId), [flowId]);
   const [category, setCategory] = useState<SupportRequestCategory>(flow.defaultCategory);
@@ -31,20 +41,73 @@ export default function SupportRequestPage() {
   const [message, setMessage] = useState("");
   const [whatsApp, setWhatsApp] = useState("");
   const [allowsWhatsAppContact, setAllowsWhatsAppContact] = useState(flow.requiresWhatsApp);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [createdTicketNumber, setCreatedTicketNumber] = useState<string | null>(null);
 
   useEffect(() => {
     setCategory(flow.defaultCategory);
     setChannel(flow.defaultChannel);
     setAllowsWhatsAppContact(flow.requiresWhatsApp);
+    setCreatedTicketNumber(null);
   }, [flow]);
 
   const needsWhatsApp = channel === "whatsapp";
   const trimmedMessage = message.trim();
   const messageLength = trimmedMessage.length;
+  const selectedCategoryLabel =
+    supportRequestCategories.find((option) => option.id === category)?.label ?? "Outro assunto";
   const canContinue =
-    messageLength >= MIN_MESSAGE_LENGTH &&
-    messageLength <= MAX_MESSAGE_LENGTH &&
+    Boolean(user?.id) &&
+    !isSubmitting &&
+    messageLength >= SUPPORT_TICKET_MESSAGE_MIN_LENGTH &&
+    messageLength <= SUPPORT_TICKET_MESSAGE_MAX_LENGTH &&
     (!needsWhatsApp || (whatsApp.trim().length >= 10 && allowsWhatsAppContact));
+
+  const handleSubmit = async () => {
+    if (!user?.id || !canContinue) return;
+
+    const draft: SupportTicketDraft =
+      channel === "whatsapp"
+        ? {
+            type: flow.ticketType,
+            category,
+            title: createTicketTitle(flow.title, selectedCategoryLabel),
+            message: trimmedMessage,
+            preferred_channel: "whatsapp",
+            contact_email: user.email ?? null,
+            whatsapp_phone: whatsApp.trim(),
+            whatsapp_consent: true,
+            metadata: { flowId: flow.id },
+          }
+        : {
+            type: flow.ticketType,
+            category,
+            title: createTicketTitle(flow.title, selectedCategoryLabel),
+            message: trimmedMessage,
+            preferred_channel: channel,
+            contact_email: user.email ?? null,
+            whatsapp_phone: needsWhatsApp ? whatsApp.trim() : null,
+            whatsapp_consent: needsWhatsApp ? allowsWhatsAppContact : false,
+            metadata: { flowId: flow.id },
+          };
+
+    setIsSubmitting(true);
+    try {
+      const ticket = await createSupportTicket({ ...draft, userId: user.id });
+      setCreatedTicketNumber(ticket.ticket_number);
+      setMessage("");
+      setWhatsApp("");
+      toast({
+        title: "Solicitação enviada",
+        description: `Ticket ${ticket.ticket_number} criado com sucesso.`,
+      });
+    } catch (error) {
+      const description = error instanceof Error ? error.message : "Tente novamente em instantes.";
+      toast({ title: "Não deu para enviar", description, variant: "destructive" });
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -69,6 +132,22 @@ export default function SupportRequestPage() {
       </header>
 
       <main className="px-4 space-y-6">
+        {createdTicketNumber && (
+          <section className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
+            <div className="flex gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-primary text-primary-foreground flex items-center justify-center shrink-0">
+                <FontAwesomeIcon icon={iconCheckCircle} className="w-4 h-4" />
+              </div>
+              <div>
+                <h2 className="font-bold text-sm">Solicitação enviada</h2>
+                <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
+                  Ticket {createdTicketNumber} criado. O histórico e as respostas serão evoluídos nas próximas fases.
+                </p>
+              </div>
+            </div>
+          </section>
+        )}
+
         <section>
           <h2 className="text-xs font-semibold text-muted-foreground uppercase tracking-widest mb-2 px-1">
             Assunto
@@ -162,17 +241,17 @@ export default function SupportRequestPage() {
               Mensagem
             </h2>
             <span className="text-xs text-muted-foreground">
-              {messageLength}/{MAX_MESSAGE_LENGTH}
+              {messageLength}/{SUPPORT_TICKET_MESSAGE_MAX_LENGTH}
             </span>
           </div>
           <textarea
             value={message}
-            onChange={(event) => setMessage(event.target.value.slice(0, MAX_MESSAGE_LENGTH))}
+            onChange={(event) => setMessage(event.target.value.slice(0, SUPPORT_TICKET_MESSAGE_MAX_LENGTH))}
             placeholder={flow.messagePlaceholder}
             className="input-field w-full min-h-[150px] text-base leading-relaxed"
           />
           <p className="text-xs text-muted-foreground mt-2 px-1 leading-relaxed">
-            Mínimo de {MIN_MESSAGE_LENGTH} caracteres. Evite enviar dados sensíveis como senha, documentos ou dados bancários.
+            Mínimo de {SUPPORT_TICKET_MESSAGE_MIN_LENGTH} caracteres. Evite enviar dados sensíveis como senha, documentos ou dados bancários.
           </p>
         </section>
 
@@ -182,9 +261,9 @@ export default function SupportRequestPage() {
               <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
             </div>
             <div>
-              <h3 className="font-bold text-sm">Envio em breve</h3>
+              <h3 className="font-bold text-sm">Como vamos usar isso</h3>
               <p className="text-xs text-muted-foreground mt-1 leading-relaxed">
-                Este formulário prepara a experiência. A criação real do ticket será ativada na próxima fase com Supabase, validação e anti-spam no servidor.
+                A solicitação será salva com segurança para atendimento. Chat, respostas e painel admin serão ativados em fases separadas.
               </p>
             </div>
           </div>
@@ -193,10 +272,11 @@ export default function SupportRequestPage() {
         <button
           type="button"
           disabled={!canContinue}
+          onClick={handleSubmit}
           className="w-full rounded-2xl bg-primary text-primary-foreground py-4 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <FontAwesomeIcon icon={iconSend} className="w-4 h-4" />
-          Preparar solicitação
+          {isSubmitting ? "Enviando..." : "Enviar solicitação"}
           <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5" />
         </button>
       </main>
