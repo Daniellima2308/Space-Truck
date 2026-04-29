@@ -58,6 +58,30 @@ describe("createSupportTicket", () => {
     expect(result).toEqual({ id: "ticket-1", ticket_number: "ST-123" });
   });
 
+  it("normalizes a valid WhatsApp phone before inserting", async () => {
+    supabaseMock.single.mockResolvedValueOnce({ data: { id: "ticket-2", ticket_number: "ST-456" }, error: null });
+
+    await createSupportTicket({
+      userId: "user-123",
+      type: "whatsapp_request",
+      category: "other",
+      title: "WhatsApp",
+      message: "Preciso de atendimento pelo WhatsApp.",
+      preferred_channel: "whatsapp",
+      contact_email: "motorista@spacetruck.test",
+      whatsapp_phone: "+55 (51) 99999-8888",
+      whatsapp_consent: true,
+    });
+
+    expect(supabaseMock.insert).toHaveBeenCalledWith(
+      expect.objectContaining({
+        preferred_channel: "whatsapp",
+        whatsapp_phone: "5551999998888",
+        whatsapp_consent: true,
+      }),
+    );
+  });
+
   it("throws a safe error when Supabase returns an error", async () => {
     supabaseMock.single.mockResolvedValueOnce({ data: null, error: { message: "RLS bloqueou" } });
 
@@ -98,6 +122,23 @@ describe("createSupportTicket", () => {
         message: "Preciso de atendimento pelo WhatsApp.",
         preferred_channel: "whatsapp",
         whatsapp_phone: "",
+        whatsapp_consent: true,
+      }),
+    ).rejects.toThrow("Informe WhatsApp válido e autorize o contato para esse canal.");
+
+    expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+
+  it("rejects WhatsApp tickets with non-numeric placeholders before calling Supabase", async () => {
+    await expect(
+      createSupportTicket({
+        userId: "user-123",
+        type: "whatsapp_request",
+        category: "other",
+        title: "WhatsApp",
+        message: "Preciso de atendimento pelo WhatsApp.",
+        preferred_channel: "whatsapp",
+        whatsapp_phone: "----------",
         whatsapp_consent: true,
       }),
     ).rejects.toThrow("Informe WhatsApp válido e autorize o contato para esse canal.");
