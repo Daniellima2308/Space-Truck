@@ -32,6 +32,7 @@ import MorePage from "./pages/MorePage";
 import HelpCenterPage from "./pages/HelpCenterPage";
 import HelpTopicDetailPage from "./pages/HelpTopicDetailPage";
 import SupportRequestPage from "./pages/SupportRequestPage";
+import SupportTicketsPage from "./pages/SupportTicketsPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -54,6 +55,7 @@ function ProtectedApp() {
           <Route path="/more" element={<MorePage />} />
           <Route path="/help" element={<HelpCenterPage />} />
           <Route path="/help/topico/:topicId" element={<HelpTopicDetailPage />} />
+          <Route path="/help/tickets" element={<SupportTicketsPage />} />
           <Route path={SUPPORT_REQUEST_ROUTE} element={<SupportRequestPage />} />
           <Route path="/menu" element={<ProfilePage />} />
           <Route path="/maintenance" element={<MaintenancePage />} />
