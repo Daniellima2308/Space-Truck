@@ -139,7 +139,6 @@ export type Database = {
           receivable_plan_type?: string | null
           status?: string
           trip_id?: string
-          user_id?: string
         }
         Relationships: [
           {
@@ -554,6 +553,75 @@ export type Database = {
           id?: string
           message?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      support_tickets: {
+        Row: {
+          app_version: string | null
+          category: string
+          closed_at: string | null
+          contact_email: string | null
+          created_at: string
+          device_info: Json
+          id: string
+          message: string
+          metadata: Json
+          preferred_channel: string
+          priority: string
+          source: string
+          status: string
+          ticket_number: string
+          title: string
+          type: string
+          updated_at: string
+          user_id: string
+          whatsapp_consent: boolean
+          whatsapp_phone: string | null
+        }
+        Insert: {
+          app_version?: string | null
+          category: string
+          closed_at?: string | null
+          contact_email?: string | null
+          created_at?: string
+          device_info?: Json
+          id?: string
+          message: string
+          metadata?: Json
+          preferred_channel: string
+          priority?: string
+          source?: string
+          status?: string
+          ticket_number?: string
+          title: string
+          type: string
+          updated_at?: string
+          user_id: string
+          whatsapp_consent?: boolean
+          whatsapp_phone?: string | null
+        }
+        Update: {
+          app_version?: string | null
+          category?: string
+          closed_at?: string | null
+          contact_email?: string | null
+          created_at?: string
+          device_info?: Json
+          id?: string
+          message?: string
+          metadata?: Json
+          preferred_channel?: string
+          priority?: string
+          source?: string
+          status?: string
+          ticket_number?: string
+          title?: string
+          type?: string
+          updated_at?: string
+          user_id?: string
+          whatsapp_consent?: boolean
+          whatsapp_phone?: string | null
         }
         Relationships: []
       }
