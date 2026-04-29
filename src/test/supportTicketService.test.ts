@@ -1,28 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createSupportTicket } from "@/features/help/supportTicketService";
-import { supabase } from "@/integrations/supabase/client";
 
-const singleMock = vi.fn();
-const selectMock = vi.fn(() => ({ single: singleMock }));
-const insertMock = vi.fn(() => ({ select: selectMock }));
-const fromMock = vi.fn(() => ({ insert: insertMock }));
+const supabaseMock = vi.hoisted(() => {
+  const single = vi.fn();
+  const select = vi.fn(() => ({ single }));
+  const insert = vi.fn(() => ({ select }));
+  const from = vi.fn(() => ({ insert }));
+
+  return { from, insert, select, single };
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: fromMock,
+    from: supabaseMock.from,
   },
 }));
 
 beforeEach(() => {
-  fromMock.mockClear();
-  insertMock.mockClear();
-  selectMock.mockClear();
-  singleMock.mockReset();
+  supabaseMock.from.mockClear();
+  supabaseMock.insert.mockClear();
+  supabaseMock.select.mockClear();
+  supabaseMock.single.mockReset();
 });
 
 describe("createSupportTicket", () => {
   it("inserts a trimmed support ticket and returns the created ticket reference", async () => {
-    singleMock.mockResolvedValueOnce({ data: { id: "ticket-1", ticket_number: "ST-123" }, error: null });
+    supabaseMock.single.mockResolvedValueOnce({ data: { id: "ticket-1", ticket_number: "ST-123" }, error: null });
 
     const result = await createSupportTicket({
       userId: "user-123",
@@ -39,8 +42,8 @@ describe("createSupportTicket", () => {
       metadata: { flowId: "suporte" },
     });
 
-    expect(supabase.from).toHaveBeenCalledWith("support_tickets");
-    expect(insertMock).toHaveBeenCalledWith(
+    expect(supabaseMock.from).toHaveBeenCalledWith("support_tickets");
+    expect(supabaseMock.insert).toHaveBeenCalledWith(
       expect.objectContaining({
         user_id: "user-123",
         title: "Ajuda",
@@ -51,12 +54,12 @@ describe("createSupportTicket", () => {
         metadata: { flowId: "suporte" },
       }),
     );
-    expect(selectMock).toHaveBeenCalledWith("id, ticket_number");
+    expect(supabaseMock.select).toHaveBeenCalledWith("id, ticket_number");
     expect(result).toEqual({ id: "ticket-1", ticket_number: "ST-123" });
   });
 
-  it("throws a readable error when Supabase returns an error", async () => {
-    singleMock.mockResolvedValueOnce({ data: null, error: { message: "RLS bloqueou" } });
+  it("throws a safe error when Supabase returns an error", async () => {
+    supabaseMock.single.mockResolvedValueOnce({ data: null, error: { message: "RLS bloqueou" } });
 
     await expect(
       createSupportTicket({
@@ -67,11 +70,11 @@ describe("createSupportTicket", () => {
         message: "O app travou ao finalizar.",
         preferred_channel: "app",
       }),
-    ).rejects.toThrow("RLS bloqueou");
+    ).rejects.toThrow("Não foi possível abrir a solicitação. Tente novamente em instantes.");
   });
 
   it("throws a fallback error when no created ticket is returned", async () => {
-    singleMock.mockResolvedValueOnce({ data: null, error: null });
+    supabaseMock.single.mockResolvedValueOnce({ data: null, error: null });
 
     await expect(
       createSupportTicket({
@@ -83,5 +86,22 @@ describe("createSupportTicket", () => {
         preferred_channel: "app",
       }),
     ).rejects.toThrow("Não foi possível confirmar a solicitação.");
+  });
+
+  it("rejects WhatsApp tickets without a phone before calling Supabase", async () => {
+    await expect(
+      createSupportTicket({
+        userId: "user-123",
+        type: "whatsapp_request",
+        category: "other",
+        title: "WhatsApp",
+        message: "Preciso de atendimento pelo WhatsApp.",
+        preferred_channel: "whatsapp",
+        whatsapp_phone: "",
+        whatsapp_consent: true,
+      }),
+    ).rejects.toThrow("Informe WhatsApp válido e autorize o contato para esse canal.");
+
+    expect(supabaseMock.from).not.toHaveBeenCalled();
   });
 });
