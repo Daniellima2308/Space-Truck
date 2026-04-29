@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/components/ui/use-toast";
@@ -14,32 +14,11 @@ import {
 } from "@/lib/icons";
 import { cn } from "@/lib/utils";
 import { listSupportTickets, type SupportTicketListItem } from "@/features/help/supportTicketService";
-
-const statusLabels: Record<string, string> = {
-  open: "Aberto",
-  in_review: "Em análise",
-  waiting_contact: "Aguardando contato",
-  answered: "Respondido",
-  closed: "Fechado",
-};
-
-const statusTone: Record<string, string> = {
-  open: "bg-primary/10 text-primary border-primary/20",
-  in_review: "bg-info/10 text-info border-info/20",
-  waiting_contact: "bg-warning/15 text-warning-foreground border-warning/20",
-  answered: "bg-profit/10 text-profit border-profit/20",
-  closed: "bg-muted text-muted-foreground border-border",
-};
-
-function formatTicketDate(value: string) {
-  return new Intl.DateTimeFormat("pt-BR", {
-    day: "2-digit",
-    month: "2-digit",
-    year: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-  }).format(new Date(value));
-}
+import {
+  formatSupportTicketDate,
+  getSupportTicketStatusLabel,
+  getSupportTicketStatusTone,
+} from "@/features/help/supportTicketPresentation";
 
 export default function SupportTicketsPage() {
   const navigate = useNavigate();
@@ -49,34 +28,37 @@ export default function SupportTicketsPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
 
-  async function loadTickets(mode: "initial" | "refresh" = "initial") {
-    if (!user?.id) {
-      setTickets([]);
-      setIsLoading(false);
-      return;
-    }
+  const loadTickets = useCallback(
+    async (mode: "initial" | "refresh" = "initial") => {
+      if (!user?.id) {
+        setTickets([]);
+        setIsLoading(false);
+        return;
+      }
 
-    if (mode === "refresh") setIsRefreshing(true);
-    else setIsLoading(true);
+      if (mode === "refresh") setIsRefreshing(true);
+      else setIsLoading(true);
 
-    try {
-      const result = await listSupportTickets(user.id);
-      setTickets(result);
-    } catch (error) {
-      toast({
-        title: "Não deu para carregar",
-        description: error instanceof Error ? error.message : "Tente novamente em instantes.",
-        variant: "destructive",
-      });
-    } finally {
-      setIsLoading(false);
-      setIsRefreshing(false);
-    }
-  }
+      try {
+        const result = await listSupportTickets(user.id);
+        setTickets(result);
+      } catch (error) {
+        toast({
+          title: "Não deu para carregar",
+          description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+        setIsRefreshing(false);
+      }
+    },
+    [toast, user?.id],
+  );
 
   useEffect(() => {
     void loadTickets();
-  }, [user?.id]);
+  }, [loadTickets]);
 
   function handleRefresh() {
     void loadTickets("refresh");
@@ -119,7 +101,7 @@ export default function SupportTicketsPage() {
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={isRefreshing}
+            disabled={isRefreshing || isLoading || !user?.id}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground disabled:opacity-50"
           >
             <FontAwesomeIcon icon={iconRefreshCw} className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
@@ -154,7 +136,8 @@ export default function SupportTicketsPage() {
 }
 
 function TicketCard({ ticket }: { ticket: SupportTicketListItem }) {
-  const statusLabel = statusLabels[ticket.status] ?? ticket.status;
+  const statusLabel = getSupportTicketStatusLabel(ticket.status);
+  const statusTone = getSupportTicketStatusTone(ticket.status);
 
   return (
     <article className="rounded-2xl border border-border bg-card p-4 shadow-sm">
@@ -165,7 +148,7 @@ function TicketCard({ ticket }: { ticket: SupportTicketListItem }) {
         <div className="min-w-0 flex-1">
           <div className="flex items-center gap-2 flex-wrap">
             <span className="text-xs font-black text-primary">{ticket.ticket_number}</span>
-            <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusTone[ticket.status] ?? statusTone.open)}>
+            <span className={cn("rounded-full border px-2 py-0.5 text-[10px] font-bold", statusTone)}>
               {statusLabel}
             </span>
           </div>
@@ -173,7 +156,7 @@ function TicketCard({ ticket }: { ticket: SupportTicketListItem }) {
           <p className="text-xs text-muted-foreground mt-1 leading-relaxed line-clamp-2">{ticket.message}</p>
           <div className="flex items-center gap-2 text-[11px] text-muted-foreground mt-3">
             <FontAwesomeIcon icon={iconClock3} className="w-3 h-3" />
-            {formatTicketDate(ticket.created_at)}
+            {formatSupportTicketDate(ticket.created_at)}
           </div>
         </div>
         <FontAwesomeIcon icon={iconChevronRight} className="w-3.5 h-3.5 text-muted-foreground mt-1 shrink-0" />
