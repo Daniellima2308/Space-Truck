@@ -6,7 +6,7 @@ export default {
     "at-rule-no-unknown": [
       true,
       {
-        ignoreAtRules: ["tailwind", "apply", "layer", "screen", "config", "variants", "responsive"],
+        ignoreAtRules: ["tailwind", "apply", "layer", "screen", "config", "container"],
       },
     ],
     "block-no-empty": true,
@@ -20,8 +20,10 @@ export default {
     "font-family-no-duplicate-names": true,
     "function-calc-no-unspaced-operator": true,
     "media-feature-name-no-unknown": true,
+    // Tailwind layers/utilities can make selector order noisy; keep this disabled until CSS linting is validated on the full stylesheet.
     "no-descending-specificity": null,
     "no-duplicate-selectors": true,
+    // Some generated or placeholder CSS entrypoints can be intentionally empty during tooling checks.
     "no-empty-source": null,
     "property-no-unknown": true,
     "selector-pseudo-class-no-unknown": [
