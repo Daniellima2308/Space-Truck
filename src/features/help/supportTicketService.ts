@@ -11,7 +11,15 @@ export type CreateSupportTicketResult = {
   ticket_number: string;
 };
 
+const SUPPORT_TICKET_CREATE_ERROR = "Não foi possível abrir a solicitação. Tente novamente em instantes.";
+
 export async function createSupportTicket(input: CreateSupportTicketInput): Promise<CreateSupportTicketResult> {
+  const normalizedWhatsappPhone = input.whatsapp_phone?.trim() || null;
+
+  if (input.preferred_channel === "whatsapp" && (!normalizedWhatsappPhone || !input.whatsapp_consent)) {
+    throw new Error("Informe WhatsApp válido e autorize o contato para esse canal.");
+  }
+
   const payload: TablesInsert<"support_tickets"> = {
     user_id: input.userId,
     type: input.type,
@@ -20,7 +28,7 @@ export async function createSupportTicket(input: CreateSupportTicketInput): Prom
     message: input.message.trim(),
     preferred_channel: input.preferred_channel,
     contact_email: input.contact_email?.trim() || null,
-    whatsapp_phone: input.whatsapp_phone?.trim() || null,
+    whatsapp_phone: normalizedWhatsappPhone,
     whatsapp_consent: input.whatsapp_consent ?? false,
     app_version: input.app_version?.trim() || null,
     device_info: input.device_info ?? {},
@@ -34,7 +42,8 @@ export async function createSupportTicket(input: CreateSupportTicketInput): Prom
     .single();
 
   if (error) {
-    throw new Error(error.message || "Não foi possível abrir a solicitação.");
+    console.error("Erro ao criar ticket de suporte", error);
+    throw new Error(SUPPORT_TICKET_CREATE_ERROR);
   }
 
   if (!data) {
