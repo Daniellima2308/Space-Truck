@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/components/ui/use-toast";
@@ -41,6 +41,7 @@ export default function SupportRequestPage() {
   const { toast } = useToast();
   const { flowId } = useParams<{ flowId: string }>();
   const flow = useMemo(() => findSupportRequestFlow(flowId), [flowId]);
+  const submitLockRef = useRef(false);
   const [category, setCategory] = useState<SupportRequestCategory>(flow.defaultCategory);
   const [channel, setChannel] = useState<SupportRequestChannel>(flow.defaultChannel);
   const [message, setMessage] = useState("");
@@ -54,6 +55,7 @@ export default function SupportRequestPage() {
     setChannel(flow.defaultChannel);
     setAllowsWhatsAppContact(flow.requiresWhatsApp);
     setCreatedTicketNumber(null);
+    submitLockRef.current = false;
   }, [flow]);
 
   const selectedCategoryLabel =
@@ -80,10 +82,11 @@ export default function SupportRequestPage() {
   };
 
   const handleSubmit = async () => {
-    if (isSubmitting || !user?.id || !canSubmitSupportTicketRequest(requestState)) return;
+    if (submitLockRef.current || !user?.id || !canSubmitSupportTicketRequest(requestState)) return;
 
     const draft = buildSupportTicketDraft(requestState);
 
+    submitLockRef.current = true;
     setCreatedTicketNumber(null);
     setIsSubmitting(true);
     try {
@@ -103,6 +106,7 @@ export default function SupportRequestPage() {
         variant: "destructive",
       });
     } finally {
+      submitLockRef.current = false;
       setIsSubmitting(false);
     }
   };
@@ -147,10 +151,10 @@ export default function SupportRequestPage() {
         )}
 
         {!user?.id && (
-          <section className="rounded-2xl border border-warning/30 bg-warning/10 p-4">
+          <section className="rounded-2xl border border-primary/30 bg-primary/10 p-4">
             <div className="flex gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-warning/20 flex items-center justify-center shrink-0">
-                <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-warning-foreground" />
+              <div className="w-10 h-10 rounded-2xl bg-primary/10 flex items-center justify-center shrink-0">
+                <FontAwesomeIcon icon={iconHelpCircle} className="w-4 h-4 text-primary" />
               </div>
               <div>
                 <h2 className="font-bold text-sm">Entre na sua conta para enviar</h2>
