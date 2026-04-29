@@ -1,22 +1,13 @@
+import type { SupportTicketCategory, SupportTicketChannel, SupportTicketType } from "@/features/help/supportTicketModel";
+
 export type SupportRequestFlowId = "suporte" | "whatsapp" | "problema" | "sugestao";
 
-export type SupportRequestChannel = "app" | "email" | "whatsapp";
-
-export type SupportRequestCategory =
-  | "account"
-  | "trip"
-  | "freight"
-  | "fueling"
-  | "expenses"
-  | "maintenance"
-  | "finance"
-  | "route"
-  | "bug"
-  | "suggestion"
-  | "other";
+export type SupportRequestChannel = SupportTicketChannel;
+export type SupportRequestCategory = SupportTicketCategory;
 
 export type SupportRequestFlow = {
   id: SupportRequestFlowId;
+  ticketType: SupportTicketType;
   title: string;
   badge: string;
   description: string;
@@ -44,6 +35,7 @@ export const createSupportRequestPath = (flowId: SupportRequestFlowId) => `/help
 export const supportRequestFlows: SupportRequestFlow[] = [
   {
     id: "suporte",
+    ticketType: "support",
     title: "Falar com suporte",
     badge: "Atendimento",
     description: "Conte o que aconteceu para nossa equipe analisar e orientar o próximo passo.",
@@ -54,6 +46,7 @@ export const supportRequestFlows: SupportRequestFlow[] = [
   },
   {
     id: "whatsapp",
+    ticketType: "whatsapp_request",
     title: "Atendimento pelo WhatsApp",
     badge: "Retorno manual",
     description: "Informe o motivo e o WhatsApp para o suporte Space Truck chamar você manualmente.",
@@ -64,21 +57,23 @@ export const supportRequestFlows: SupportRequestFlow[] = [
   },
   {
     id: "problema",
+    ticketType: "bug",
     title: "Reportar problema",
     badge: "Erro no app",
     description: "Avise sobre erro, travamento, cálculo estranho ou algo que não funcionou como deveria.",
     messagePlaceholder: "Descreva o problema, onde aconteceu e o que você estava tentando fazer...",
-    defaultCategory: "bug",
+    defaultCategory: "other",
     defaultChannel: "app",
     requiresWhatsApp: false,
   },
   {
     id: "sugestao",
+    ticketType: "suggestion",
     title: "Enviar sugestão",
     badge: "Ideia de melhoria",
     description: "Compartilhe uma ideia para melhorar o Space Truck na rotina da estrada.",
     messagePlaceholder: "Conte sua sugestão e por que ela ajudaria na sua operação...",
-    defaultCategory: "suggestion",
+    defaultCategory: "other",
     defaultChannel: "app",
     requiresWhatsApp: false,
   },
@@ -92,8 +87,6 @@ export const supportRequestCategories: SupportRequestCategoryOption[] = [
   { id: "maintenance", label: "Manutenção e veículos" },
   { id: "finance", label: "Financeiro" },
   { id: "route", label: "Rotas, distância ou pedágio" },
-  { id: "bug", label: "Erro no app" },
-  { id: "suggestion", label: "Sugestão" },
   { id: "other", label: "Outro assunto" },
 ];
 
