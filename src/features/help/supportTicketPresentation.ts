@@ -25,7 +25,7 @@ const ticketDateFormatter = new Intl.DateTimeFormat("pt-BR", {
 });
 
 function isKnownSupportTicketStatus(status: string): status is SupportTicketStatus {
-  return status in supportTicketStatusLabels;
+  return Object.prototype.hasOwnProperty.call(supportTicketStatusLabels, status);
 }
 
 export function getSupportTicketStatusLabel(status: string) {
