@@ -1,10 +1,13 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SUPPORT_REQUEST_ROUTE, createSupportRequestPath } from "@/features/help/supportRequestOptions";
+import { createSupportTicket } from "@/features/help/supportTicketService";
 import SupportRequestPage from "@/pages/SupportRequestPage";
 
 const mockedNavigate = vi.fn();
+const mockedToast = vi.fn();
+const mockedUser = { id: "user-123", email: "motorista@spacetruck.test" };
 
 vi.mock("react-router-dom", async () => {
   const actual = await vi.importActual<typeof import("react-router-dom")>("react-router-dom");
@@ -14,8 +17,25 @@ vi.mock("react-router-dom", async () => {
   };
 });
 
+vi.mock("@/context/auth-context", () => ({
+  useAuth: () => ({ user: mockedUser }),
+}));
+
+vi.mock("@/components/ui/use-toast", () => ({
+  useToast: () => ({ toast: mockedToast }),
+}));
+
+vi.mock("@/features/help/supportTicketService", () => ({
+  createSupportTicket: vi.fn(),
+}));
+
+const mockedCreateSupportTicket = vi.mocked(createSupportTicket);
+
 beforeEach(() => {
   mockedNavigate.mockClear();
+  mockedToast.mockClear();
+  mockedCreateSupportTicket.mockReset();
+  mockedCreateSupportTicket.mockResolvedValue({ id: "ticket-1", ticket_number: "ST-ABC123" });
 });
 
 const renderSupportRequest = (flowId: string) =>
@@ -36,7 +56,7 @@ describe("SupportRequestPage", () => {
     expect(screen.getByText("Conta e login")).toBeInTheDocument();
     expect(screen.getByText("Dentro do app")).toBeInTheDocument();
     expect(screen.getByPlaceholderText(/Descreva sua dúvida/i)).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Preparar solicitação/i })).toBeDisabled();
+    expect(screen.getByRole("button", { name: /Enviar solicitação/i })).toBeDisabled();
   });
 
   it("enables the submit button when the message is valid", () => {
@@ -46,13 +66,62 @@ describe("SupportRequestPage", () => {
       target: { value: "O app travou quando tentei finalizar a viagem." },
     });
 
-    expect(screen.getByRole("button", { name: /Preparar solicitação/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Enviar solicitação/i })).not.toBeDisabled();
+  });
+
+  it("submits a support request ticket", async () => {
+    renderSupportRequest("problema");
+
+    fireEvent.click(screen.getByRole("button", { name: "Viagem e frete" }));
+    fireEvent.change(screen.getByPlaceholderText(/Descreva o problema/i), {
+      target: { value: "O app travou quando tentei finalizar a viagem." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Enviar solicitação/i }));
+
+    await waitFor(() => {
+      expect(mockedCreateSupportTicket).toHaveBeenCalledWith(
+        expect.objectContaining({
+          userId: "user-123",
+          type: "bug",
+          category: "trip",
+          preferred_channel: "app",
+          contact_email: "motorista@spacetruck.test",
+          message: "O app travou quando tentei finalizar a viagem.",
+          title: "Reportar problema — Viagem e frete",
+          metadata: { flowId: "problema" },
+        }),
+      );
+    });
+    expect(await screen.findByText(/Ticket ST-ABC123 criado/i)).toBeInTheDocument();
+    expect(mockedToast).toHaveBeenCalledWith(
+      expect.objectContaining({ title: "Solicitação enviada" }),
+    );
+  });
+
+  it("shows an error toast when ticket creation fails", async () => {
+    mockedCreateSupportTicket.mockRejectedValueOnce(new Error("Falha no Supabase"));
+    renderSupportRequest("sugestao");
+
+    fireEvent.change(screen.getByPlaceholderText(/Conte sua sugestão/i), {
+      target: { value: "Seria bom ter um atalho para ajuda no painel." },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Enviar solicitação/i }));
+
+    await waitFor(() => {
+      expect(mockedToast).toHaveBeenCalledWith(
+        expect.objectContaining({
+          title: "Não deu para enviar",
+          description: "Falha no Supabase",
+          variant: "destructive",
+        }),
+      );
+    });
   });
 
   it("requires WhatsApp number and consent in the WhatsApp flow", () => {
     renderSupportRequest("whatsapp");
 
-    const submitButton = screen.getByRole("button", { name: /Preparar solicitação/i });
+    const submitButton = screen.getByRole("button", { name: /Enviar solicitação/i });
     const consentCheckbox = screen.getByRole("checkbox", {
       name: /Autorizo o Space Truck a entrar em contato pelo WhatsApp/i,
     });
@@ -84,7 +153,7 @@ describe("SupportRequestPage", () => {
     });
 
     expect(screen.queryByText("Contato por WhatsApp")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Preparar solicitação/i })).not.toBeDisabled();
+    expect(screen.getByRole("button", { name: /Enviar solicitação/i })).not.toBeDisabled();
   });
 
   it("navigates back to the help center", () => {
