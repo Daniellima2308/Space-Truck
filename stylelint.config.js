@@ -2,8 +2,6 @@
 // O projeto usa Tailwind CSS, então diretivas como @tailwind, @layer e @apply são permitidas.
 
 export default {
-  customSyntax: "postcss-scss",
-  extends: [],
   rules: {
     "at-rule-no-unknown": [
       true,
