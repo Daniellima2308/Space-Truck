@@ -42,7 +42,6 @@ export async function createSupportTicket(input: CreateSupportTicketInput): Prom
     .single();
 
   if (error) {
-    console.error("Erro ao criar ticket de suporte", error);
     throw new Error(SUPPORT_TICKET_CREATE_ERROR);
   }
 
