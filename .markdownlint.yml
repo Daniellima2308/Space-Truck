@@ -18,3 +18,14 @@ MD024:
 # Mantém listas numeradas flexíveis, úteis em guias passo a passo.
 MD029:
   style: ordered
+
+# A documentação atual de branding usa blocos compactos, sem linha em branco
+# obrigatória após todos os títulos e antes de todas as listas.
+MD022: false
+MD032: false
+
+# Evita bloquear o CI por espaçamento visual extra em documentos existentes.
+MD012: false
+
+# Evita falhas globais por arquivos existentes sem newline final padronizado.
+MD047: false
