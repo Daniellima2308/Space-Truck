@@ -9,6 +9,9 @@ const mockedNavigate = vi.fn();
 const mockedToast = vi.fn();
 const authMock = vi.hoisted(() => ({
   user: { id: "user-123", email: "motorista@spacetruck.test" } as { id: string; email: string } | null,
+  session: null,
+  loading: false,
+  signOut: vi.fn(),
 }));
 
 vi.mock("react-router-dom", async () => {
@@ -20,7 +23,12 @@ vi.mock("react-router-dom", async () => {
 });
 
 vi.mock("@/context/auth-context", () => ({
-  useAuth: () => ({ user: authMock.user }),
+  useAuth: () => ({
+    user: authMock.user,
+    session: authMock.session,
+    loading: authMock.loading,
+    signOut: authMock.signOut,
+  }),
 }));
 
 vi.mock("@/components/ui/use-toast", () => ({
@@ -35,6 +43,9 @@ const mockedCreateSupportTicket = vi.mocked(createSupportTicket);
 
 beforeEach(() => {
   authMock.user = { id: "user-123", email: "motorista@spacetruck.test" };
+  authMock.session = null;
+  authMock.loading = false;
+  authMock.signOut.mockReset();
   mockedNavigate.mockClear();
   mockedToast.mockClear();
   mockedCreateSupportTicket.mockReset();
