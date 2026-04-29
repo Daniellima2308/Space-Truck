@@ -77,49 +77,49 @@ export default function SupportRequestPage() {
   const canSubmit = canSubmitSupportTicketRequest(requestState);
   const canContinue = canSubmit && !isSubmitting;
 
-  const clearCreatedTicket = () => {
+  function clearCreatedTicket() {
     if (createdTicketNumber) setCreatedTicketNumber(null);
-  };
+  }
 
-  const startTicketSubmission = () => {
+  function startTicketSubmission() {
     submitLockRef.current = true;
     setCreatedTicketNumber(null);
     setIsSubmitting(true);
-  };
+  }
 
-  const finishTicketSubmission = () => {
+  function finishTicketSubmission() {
     submitLockRef.current = false;
     setIsSubmitting(false);
-  };
+  }
 
-  const handleCategoryChange = (nextCategory: SupportRequestCategory) => {
+  function handleCategoryChange(nextCategory: SupportRequestCategory) {
     clearCreatedTicket();
     setCategory(nextCategory);
-  };
+  }
 
-  const handleChannelChange = (nextChannel: SupportRequestChannel, isLockedByFlow: boolean) => {
+  function handleChannelChange(nextChannel: SupportRequestChannel, isLockedByFlow: boolean) {
     if (isLockedByFlow) return;
 
     clearCreatedTicket();
     setChannel(nextChannel);
-  };
+  }
 
-  const handleWhatsAppChange = (nextWhatsApp: string) => {
+  function handleWhatsAppChange(nextWhatsApp: string) {
     clearCreatedTicket();
     setWhatsApp(nextWhatsApp);
-  };
+  }
 
-  const handleWhatsAppConsentChange = (nextAllowsContact: boolean) => {
+  function handleWhatsAppConsentChange(nextAllowsContact: boolean) {
     clearCreatedTicket();
     setAllowsWhatsAppContact(nextAllowsContact);
-  };
+  }
 
-  const handleMessageChange = (nextMessage: string) => {
+  function handleMessageChange(nextMessage: string) {
     clearCreatedTicket();
     setMessage(nextMessage.slice(0, SUPPORT_TICKET_MESSAGE_MAX_LENGTH));
-  };
+  }
 
-  const handleSubmit = async () => {
+  async function handleSubmit() {
     if (submitLockRef.current || !user?.id || !canSubmitSupportTicketRequest(requestState)) return;
 
     const draft = buildSupportTicketDraft(requestState);
@@ -135,7 +135,6 @@ export default function SupportRequestPage() {
         description: `Ticket ${ticket.ticket_number} criado com sucesso.`,
       });
     } catch (error) {
-      console.error("Erro ao enviar solicitação de suporte", error);
       toast({
         title: "Não deu para enviar",
         description: getSupportTicketSubmitErrorMessage(error),
@@ -144,7 +143,11 @@ export default function SupportRequestPage() {
     } finally {
       finishTicketSubmission();
     }
-  };
+  }
+
+  function handleSubmitClick() {
+    void handleSubmit();
+  }
 
   return (
     <div className="min-h-screen bg-background pb-24">
@@ -331,7 +334,7 @@ export default function SupportRequestPage() {
         <button
           type="button"
           disabled={!canContinue}
-          onClick={() => { void handleSubmit(); }}
+          onClick={handleSubmitClick}
           className="w-full rounded-2xl bg-primary text-primary-foreground py-4 text-sm font-black disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
         >
           <FontAwesomeIcon icon={iconSend} className="w-4 h-4" />
