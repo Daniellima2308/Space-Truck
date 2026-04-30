@@ -1,0 +1,42 @@
+name: Workflow security audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+  push:
+    branches:
+      - main
+    paths:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+  schedule:
+    - cron: "41 8 * * 1"
+
+permissions:
+  contents: read
+  security-events: write
+
+concurrency:
+  group: zizmor-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  zizmor:
+    name: Audit GitHub Actions security
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v5
+
+      - name: Run zizmor
+        uses: zizmorcore/zizmor-action@v0.2.0
+        with:
+          persona: pedantic
+          min-severity: low
+          advanced-security: false
