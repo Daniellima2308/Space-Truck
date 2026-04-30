@@ -1,7 +1,7 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SupportTicketsPage from "@/pages/SupportTicketsPage";
-import { listSupportTickets } from "@/features/help/supportTicketService";
+import { listSupportTickets, type SupportTicketListItem } from "@/features/help/supportTicketService";
 
 const mockedNavigate = vi.fn();
 const mockedToast = vi.fn();
@@ -35,7 +35,7 @@ vi.mock("@/features/help/supportTicketService", () => ({
 
 const mockedListSupportTickets = vi.mocked(listSupportTickets);
 
-const ticket = {
+const ticket: SupportTicketListItem = {
   id: "ticket-1",
   ticket_number: "ST-123",
   title: "Ajuda com viagem",
@@ -47,7 +47,7 @@ const ticket = {
   updated_at: "2026-04-29T10:00:00Z",
 };
 
-const secondUserTicket = {
+const secondUserTicket: SupportTicketListItem = {
   ...ticket,
   id: "ticket-2",
   ticket_number: "ST-456",
@@ -112,7 +112,7 @@ describe("SupportTicketsPage", () => {
   });
 
   it("ignores stale ticket responses after the authenticated user changes", async () => {
-    let resolveFirstRequest: (value: typeof ticket[]) => void = () => undefined;
+    let resolveFirstRequest: (value: SupportTicketListItem[]) => void = () => undefined;
     mockedListSupportTickets
       .mockImplementationOnce(
         () =>
