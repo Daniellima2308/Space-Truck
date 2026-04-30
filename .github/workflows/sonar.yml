@@ -8,13 +8,18 @@ on:
     branches:
       - main
 
+concurrency:
+  group: sonar-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   sonar:
     name: SonarQube Scan
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     permissions:
       contents: read
-    # Skip on PRs from forks: secrets are not available there, which would fail the scan
+    # Skip on PRs from forks: secrets are not available there, which would fail the scan.
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
@@ -22,6 +27,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
