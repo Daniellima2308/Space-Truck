@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/context/auth-context";
 import { useToast } from "@/components/ui/use-toast";
@@ -22,17 +22,23 @@ import {
 
 export default function SupportTicketsPage() {
   const navigate = useNavigate();
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const { toast } = useToast();
   const [tickets, setTickets] = useState<SupportTicketListItem[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const latestRequestIdRef = useRef(0);
 
   const loadTickets = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
+      const requestId = ++latestRequestIdRef.current;
+
+      if (authLoading) return;
+
       if (!user?.id) {
         setTickets([]);
         setIsLoading(false);
+        setIsRefreshing(false);
         return;
       }
 
@@ -41,19 +47,22 @@ export default function SupportTicketsPage() {
 
       try {
         const result = await listSupportTickets(user.id);
+        if (requestId !== latestRequestIdRef.current) return;
         setTickets(result);
       } catch (error) {
+        if (requestId !== latestRequestIdRef.current) return;
         toast({
           title: "Não deu para carregar",
           description: error instanceof Error ? error.message : "Tente novamente em instantes.",
           variant: "destructive",
         });
       } finally {
+        if (requestId !== latestRequestIdRef.current) return;
         setIsLoading(false);
         setIsRefreshing(false);
       }
     },
-    [toast, user?.id],
+    [authLoading, toast, user?.id],
   );
 
   useEffect(() => {
@@ -101,7 +110,7 @@ export default function SupportTicketsPage() {
           <button
             type="button"
             onClick={handleRefresh}
-            disabled={isRefreshing || isLoading || !user?.id}
+            disabled={isRefreshing || isLoading || authLoading || !user?.id}
             className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1.5 text-xs font-bold text-muted-foreground disabled:opacity-50"
           >
             <FontAwesomeIcon icon={iconRefreshCw} className={cn("w-3 h-3", isRefreshing && "animate-spin")} />
@@ -109,7 +118,7 @@ export default function SupportTicketsPage() {
           </button>
         </div>
 
-        {isLoading ? (
+        {authLoading || isLoading ? (
           <section className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
             Carregando suas solicitações...
           </section>
