@@ -31,9 +31,9 @@ export default function SupportTicketsPage() {
 
   const loadTickets = useCallback(
     async (mode: "initial" | "refresh" = "initial") => {
-      const requestId = ++latestRequestIdRef.current;
-
       if (authLoading) return;
+
+      const requestId = ++latestRequestIdRef.current;
 
       if (!user?.id) {
         setTickets([]);
