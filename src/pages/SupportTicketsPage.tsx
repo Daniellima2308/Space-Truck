@@ -47,19 +47,22 @@ export default function SupportTicketsPage() {
 
       try {
         const result = await listSupportTickets(user.id);
-        if (requestId !== latestRequestIdRef.current) return;
-        setTickets(result);
+        if (requestId === latestRequestIdRef.current) {
+          setTickets(result);
+        }
       } catch (error) {
-        if (requestId !== latestRequestIdRef.current) return;
-        toast({
-          title: "Não deu para carregar",
-          description: error instanceof Error ? error.message : "Tente novamente em instantes.",
-          variant: "destructive",
-        });
+        if (requestId === latestRequestIdRef.current) {
+          toast({
+            title: "Não deu para carregar",
+            description: error instanceof Error ? error.message : "Tente novamente em instantes.",
+            variant: "destructive",
+          });
+        }
       } finally {
-        if (requestId !== latestRequestIdRef.current) return;
-        setIsLoading(false);
-        setIsRefreshing(false);
+        if (requestId === latestRequestIdRef.current) {
+          setIsLoading(false);
+          setIsRefreshing(false);
+        }
       }
     },
     [authLoading, toast, user?.id],
