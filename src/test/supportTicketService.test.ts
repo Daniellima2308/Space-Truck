@@ -1,13 +1,20 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { createSupportTicket } from "@/features/help/supportTicketService";
+import {
+  createSupportTicket,
+  listSupportTickets,
+  SUPPORT_TICKET_LIST_LIMIT,
+} from "@/features/help/supportTicketService";
 
 const supabaseMock = vi.hoisted(() => {
   const single = vi.fn();
-  const select = vi.fn(() => ({ single }));
+  const limit = vi.fn();
+  const order = vi.fn(() => ({ limit }));
+  const eq = vi.fn(() => ({ order }));
+  const select = vi.fn(() => ({ single, eq }));
   const insert = vi.fn(() => ({ select }));
-  const from = vi.fn(() => ({ insert }));
+  const from = vi.fn(() => ({ insert, select }));
 
-  return { from, insert, select, single };
+  return { from, insert, select, single, eq, order, limit };
 });
 
 vi.mock("@/integrations/supabase/client", () => ({
@@ -21,6 +28,9 @@ beforeEach(() => {
   supabaseMock.insert.mockClear();
   supabaseMock.select.mockClear();
   supabaseMock.single.mockReset();
+  supabaseMock.eq.mockClear();
+  supabaseMock.order.mockClear();
+  supabaseMock.limit.mockReset();
 });
 
 describe("createSupportTicket", () => {
@@ -144,5 +154,55 @@ describe("createSupportTicket", () => {
     ).rejects.toThrow("Informe WhatsApp válido e autorize o contato para esse canal.");
 
     expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+});
+
+describe("listSupportTickets", () => {
+  it("returns an empty list without calling Supabase when user id is missing", async () => {
+    await expect(listSupportTickets("")).resolves.toEqual([]);
+
+    expect(supabaseMock.from).not.toHaveBeenCalled();
+  });
+
+  it("returns an empty list when Supabase returns no ticket rows", async () => {
+    supabaseMock.limit.mockResolvedValueOnce({ data: null, error: null });
+
+    await expect(listSupportTickets("user-123")).resolves.toEqual([]);
+  });
+
+  it("lists the latest support tickets for a user", async () => {
+    const tickets = [
+      {
+        id: "ticket-1",
+        ticket_number: "ST-123",
+        title: "Ajuda",
+        message: "Preciso de suporte.",
+        status: "open",
+        priority: "normal",
+        preferred_channel: "app",
+        created_at: "2026-04-29T10:00:00Z",
+        updated_at: "2026-04-29T10:00:00Z",
+      },
+    ];
+    supabaseMock.limit.mockResolvedValueOnce({ data: tickets, error: null });
+
+    const result = await listSupportTickets("user-123");
+
+    expect(supabaseMock.from).toHaveBeenCalledWith("support_tickets");
+    expect(supabaseMock.select).toHaveBeenCalledWith(
+      "id, ticket_number, title, message, status, priority, preferred_channel, created_at, updated_at",
+    );
+    expect(supabaseMock.eq).toHaveBeenCalledWith("user_id", "user-123");
+    expect(supabaseMock.order).toHaveBeenCalledWith("created_at", { ascending: false });
+    expect(supabaseMock.limit).toHaveBeenCalledWith(SUPPORT_TICKET_LIST_LIMIT);
+    expect(result).toEqual(tickets);
+  });
+
+  it("throws a safe error when listing tickets fails", async () => {
+    supabaseMock.limit.mockResolvedValueOnce({ data: null, error: { message: "RLS bloqueou" } });
+
+    await expect(listSupportTickets("user-123")).rejects.toThrow(
+      "Não foi possível carregar suas solicitações. Tente novamente em instantes.",
+    );
   });
 });
