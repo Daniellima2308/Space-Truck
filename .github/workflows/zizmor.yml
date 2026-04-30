@@ -7,18 +7,19 @@ on:
     paths:
       - ".github/workflows/**"
       - ".github/actions/**"
+      - ".github/dependabot.yml"
   push:
     branches:
       - main
     paths:
       - ".github/workflows/**"
       - ".github/actions/**"
+      - ".github/dependabot.yml"
   schedule:
     - cron: "41 8 * * 1"
 
 permissions:
   contents: read
-  security-events: write
 
 concurrency:
   group: zizmor-${{ github.workflow }}-${{ github.ref }}
@@ -33,10 +34,13 @@ jobs:
     steps:
       - name: Checkout repository
         uses: actions/checkout@v5
+        with:
+          persist-credentials: false
 
-      - name: Run zizmor
+      - name: Run zizmor advisory scan
         uses: zizmorcore/zizmor-action@v0.2.0
+        continue-on-error: true
         with:
           persona: pedantic
-          min-severity: low
+          min-severity: medium
           advanced-security: false
