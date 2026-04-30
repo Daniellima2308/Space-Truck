@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import SupportTicketsPage from "@/pages/SupportTicketsPage";
 import { listSupportTickets } from "@/features/help/supportTicketService";
@@ -47,6 +47,13 @@ const ticket = {
   updated_at: "2026-04-29T10:00:00Z",
 };
 
+const secondUserTicket = {
+  ...ticket,
+  id: "ticket-2",
+  ticket_number: "ST-456",
+  title: "Ajuda do segundo usuário",
+};
+
 beforeEach(() => {
   authMock.user = { id: "user-123", email: "motorista@spacetruck.test" };
   authMock.session = null;
@@ -68,6 +75,16 @@ describe("SupportTicketsPage", () => {
     expect(screen.getByText("Ajuda com viagem")).toBeInTheDocument();
     expect(screen.getByText("Aberto")).toBeInTheDocument();
     expect(mockedListSupportTickets).toHaveBeenCalledWith("user-123");
+  });
+
+  it("waits for auth to resolve before fetching or showing the empty state", () => {
+    authMock.loading = true;
+
+    render(<SupportTicketsPage />);
+
+    expect(screen.getByText("Carregando suas solicitações...")).toBeInTheDocument();
+    expect(screen.queryByText("Nenhum ticket ainda")).not.toBeInTheDocument();
+    expect(mockedListSupportTickets).not.toHaveBeenCalled();
   });
 
   it("shows an empty state when the user has no tickets", async () => {
@@ -92,6 +109,37 @@ describe("SupportTicketsPage", () => {
       expect(mockedListSupportTickets).toHaveBeenCalledTimes(2);
     });
     expect(await screen.findByText("ST-123")).toBeInTheDocument();
+  });
+
+  it("ignores stale ticket responses after the authenticated user changes", async () => {
+    let resolveFirstRequest: (value: typeof ticket[]) => void = () => undefined;
+    mockedListSupportTickets
+      .mockImplementationOnce(
+        () =>
+          new Promise((resolve) => {
+            resolveFirstRequest = resolve;
+          }),
+      )
+      .mockResolvedValueOnce([secondUserTicket]);
+
+    const { rerender } = render(<SupportTicketsPage />);
+
+    await waitFor(() => {
+      expect(mockedListSupportTickets).toHaveBeenCalledWith("user-123");
+    });
+
+    authMock.user = { id: "user-456", email: "segundo@spacetruck.test" };
+    rerender(<SupportTicketsPage />);
+
+    expect(await screen.findByText("ST-456")).toBeInTheDocument();
+
+    await act(async () => {
+      resolveFirstRequest([ticket]);
+    });
+
+    await waitFor(() => {
+      expect(screen.queryByText("ST-123")).not.toBeInTheDocument();
+    });
   });
 
   it("shows a safe toast when loading fails", async () => {
