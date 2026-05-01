@@ -1,0 +1,42 @@
+# Repository-level settings for Bito AI code reviews.
+# Keep this file conservative: Bito should help review PRs without becoming noisy
+# or blocking routine maintenance unexpectedly.
+
+custom_guidelines:
+  general:
+    - name: "Space Truck agent guidelines"
+      path: "AGENTS.md"
+
+# Run Dependency Check analysis during code reviews.
+dependency_check.enabled: true
+
+# Do not review draft PRs automatically.
+exclude_draft_pr: true
+
+# Exclude generated, build and lock artifacts from Bito code review comments.
+exclude_files: "dist/**, coverage/**, storybook-static/**, package-lock.json, src/integrations/supabase/types.ts"
+
+# Jira validation is disabled because the Space Truck workflow does not currently
+# require Jira issue references in branch names, titles or PR descriptions.
+functional_validation_enabled: false
+
+# Review PRs targeting the protected branch.
+include_target_branches: "main"
+
+# Allow maintainers to skip Bito explicitly when needed.
+labels_excluded: "skip-bito, dependencies, automated"
+
+# Let Bito include lint/static/security context, but keep merge authority with the
+# GitHub branch protection checks and human review.
+linters_feedback: true
+post_as_request_changes: false
+post_changelist: true
+post_description: true
+repo_level_guidelines_enabled: true
+secret_scanner_feedback: true
+sequence_diagram_enabled: true
+static_analysis.fb_infer.enabled: true
+
+# Prefer focused inline findings over exhaustive comments. Other AI reviewers are
+# also installed, so Bito should avoid duplicating every low-signal observation.
+suggestion_mode: "essential"
