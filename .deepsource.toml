@@ -23,8 +23,8 @@ enabled = true
   plugins = ["react"]
   module_system = "es-modules"
   dialect = "typescript"
-  environment = ["browser", "nodejs", "vitest"]
-  dependency_file_paths = ["."]
+  environment = ["browser", "node"]
+  dependency_file_paths = ["package.json"]
 
 [[analyzers]]
 name = "secrets"
