@@ -7,12 +7,13 @@ O objetivo não é instalar ferramentas por volume. O objetivo é transformar ca
 ## Regras de uso
 
 - Toda ferramenta precisa ter uma função clara: revisar código, explicar PR, proteger segredo, testar, medir cobertura, organizar release, rotular PR ou reduzir risco.
-- Ferramentas que comentam em PR devem ser acompanhadas com atenção a ruído, duplicação e limite de plano gratuito.
+- Ferramentas que comentam em PR devem ser monitoradas quanto a ruído, duplicação e limites do plano gratuito.
 - Ferramentas que exigem chave de IA devem usar secret isolado no GitHub e limite de gasto no provedor.
 - Nenhuma chave de IA deve ser colocada em código, markdown, YAML público ou comentário de PR.
 - GitHub Apps devem ficar limitados ao repositório `Daniellima2308/Space-Truck` sempre que possível.
 - Workflows devem usar permissões mínimas, `concurrency`, timeout e `persist-credentials: false` no checkout quando não houver operação git autenticada depois.
 - Mudanças de ferramenta devem acontecer em PRs pequenas, com validação e registro neste arquivo.
+- Uma ferramenta listada como ativa ou instalada não vira automaticamente bloqueadora. A decisão de bloquear merge depende de sinal consistente, baixo falso positivo, custo entendido e utilidade real para o projeto.
 
 ## Diferença entre App instalado, App autorizado e workflow
 
@@ -42,9 +43,9 @@ O objetivo não é instalar ferramentas por volume. O objetivo é transformar ca
 
 ## Diagnóstico sobre Codex review
 
-Até esta auditoria, não foi encontrado arquivo YAML ou configuração versionada de Codex review no repositório.
+Até esta auditoria (2026-05-01), não foi encontrado arquivo YAML ou configuração versionada de Codex review no repositório.
 
-A busca por `codex review` não encontrou resultados no código. A busca por `codex` encontrou apenas referência em `docs/repository-audit.md`, ligada a artefatos locais ignorados, não a um workflow ou comando de revisão.
+Busca manual realizada em 2026-05-01, com escopo voltado a workflows e configurações versionadas do repositório, não encontrou integração versionada de Codex review. As referências encontradas para `codex`, antes da criação deste inventário, estavam em documentação e artefatos locais ignorados, não em workflow ou comando versionado de revisão.
 
 Conclusão operacional:
 
@@ -92,7 +93,7 @@ Conclusão operacional:
 | DeepWiki | Instalado/autorizado | Indexação externa | Não precisa inicialmente | Confirmar se o Space Truck foi indexado | Ajuda a entender arquitetura. |
 | Reviewable | Instalado | Painel externo GitHub | Não precisa | Validar uso nas próximas PRs | Bom para leitura profunda de review. |
 | Graphite | Instalado/autorizado | App/painel/stacked PRs | Não precisa inicialmente | Confirmar repo e AI reviews | Pode ajudar com stack e entendimento. |
-| What The Diff | Ativo | GitHub App | Não identificado | Monitorar resumos | Ajuda Daniel a entender PRs. |
+| What The Diff | Ativo | GitHub App | Não identificado | Monitorar resumos | Ajuda a resumir e entender o conteúdo de PRs. |
 | DiffLens | Ativo | GitHub App/painel | Não identificado | Monitorar valor real | Foco em visualização/entendimento de diff. |
 | Release Drafter | Pendente de workflow | GitHub Action | Precisa `.github/release-drafter.yml` e workflow | Configurar depois da proteção da main | Útil quando houver releases organizados. |
 | Reviewpad | Ativo/configurado | GitHub App + `reviewpad.yml` | `reviewpad.yml` existe | Validar se o app está rodando em PR nova | Pode estar em transição; monitorar. |
@@ -127,9 +128,9 @@ Conclusão operacional:
 | Vitest | Ativo | npm script | `test`, `test:coverage` | Manter cobertura crescendo | Base de testes unitários. |
 | Codecov | Ativo | GitHub Action + App | `codecov.yml` | Monitorar comentários e thresholds | Patch threshold em 1%. |
 | Playwright | Pendente | npm + workflow | Precisa dependência, config e workflow | Adicionar quando houver fluxos críticos estáveis | E2E pode ser pesado. |
-| SonarQube Cloud | Ativo | Workflow + painel | `sonar.yml` e config existente | Monitorar quality gate | Já roda em PR. |
-| Lighthouse | Ativo | Workflow | `lighthouse.yml` | Manter budgets coerentes | Performance/acessibilidade web. |
-| Chromatic | Ativo | Workflow + App | `chromatic.yml` | Manter stories reais | Visual regression. |
+| SonarQube Cloud | Ativo | Workflow + painel | `sonar-project.properties` e `.github/workflows/sonar.yml` | Monitorar quality gate | Já roda em PR. |
+| Lighthouse | Ativo | Workflow | `.github/workflows/lighthouse.yml` | Manter budgets coerentes | Performance/acessibilidade web. |
+| Chromatic | Ativo | Workflow + App | `.github/workflows/chromatic.yml` | Manter stories reais | Visual regression. |
 | axe/pa11y | Pendente | npm + workflow | Precisa config | Adicionar depois em PR própria | Acessibilidade automatizada. |
 
 ### Dependências e limpeza
