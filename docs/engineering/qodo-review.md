@@ -20,8 +20,8 @@ Ela define:
 - revisão de testes;
 - revisão de segurança;
 - labels de segurança e esforço;
-- limite de achados para reduzir ruído;
-- instruções extras alinhadas ao Space Truck;
+- limite de achados em 8 itens para reduzir ruído sem esconder problemas importantes;
+- instruções extras alinhadas ao `AGENTS.md` e ao Space Truck;
 - arquivos gerados e artefatos ignorados.
 
 ## Foco esperado nos reviews
@@ -45,6 +45,14 @@ Evitar:
 - duplicação de comentários já feitos por outros bots;
 - exagerar risco em PRs só de documentação ou configuração;
 - bloquear merge por melhoria opcional.
+
+## Arquivos ignorados
+
+O Qodo ignora artefatos gerados e arquivos de baixo valor para revisão semântica, como `dist`, `coverage`, `storybook-static`, `node_modules`, tipos gerados do Supabase e `package-lock.json`.
+
+O `package-lock.json` fica fora do Qodo para economizar cota e evitar ruído. Atualizações de dependências continuam cobertas por Dependabot, Renovate, Snyk, Socket, Semgrep, CodeQL/Code Scanning quando aplicável e revisão humana das PRs de dependência.
+
+Se uma PR de dependência apresentar comportamento suspeito, a análise deve focar no manifesto, changelog, checks de segurança e impacto real no app, não em comentar linha por linha do lockfile.
 
 ## Observação sobre cota gratuita
 
