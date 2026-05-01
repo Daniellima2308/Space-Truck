@@ -8,9 +8,7 @@ on:
   schedule:
     - cron: "17 9 * * 1"
 
-permissions:
-  contents: read
-  security-events: write
+permissions: {}
 
 concurrency:
   group: scorecard-${{ github.workflow }}-${{ github.ref }}
@@ -21,6 +19,10 @@ jobs:
     name: Score repository security posture
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: read
+      id-token: write
+      security-events: write
 
     steps:
       - name: Checkout repository
