@@ -40,6 +40,23 @@ O objetivo não é instalar ferramentas por volume. O objetivo é transformar ca
 | zizmor | Workflow configurado em modo consultivo. |
 | Scorecard | Workflow configurado com SARIF e OIDC. |
 | Lighthouse, Chromatic, Sonar, Supabase migrations | Workflows existentes endurecidos na PR #132. |
+| Pinagem de GitHub Actions por SHA | Implementado para aumentar a segurança da supply chain. |
+
+## Manutenção de GitHub Actions pinadas
+
+As GitHub Actions devem ficar pinadas por commit SHA nos workflows. O comentário ao lado do SHA preserva a tag de origem usada na pinagem, como `# v5` ou `# v2.4.2`, para facilitar auditoria humana e atualização futura.
+
+Quando uma Action precisar ser atualizada:
+
+- resolver a nova tag ou release para o commit SHA correspondente;
+- atualizar o SHA e o comentário de origem no mesmo PR;
+- manter a mudança pequena e focada;
+- validar `actionlint`, `zizmor`, CI, Sonar, Lighthouse e Chromatic quando aplicável;
+- registrar qualquer exceção temporária neste inventário.
+
+A automação de atualização de SHAs pinados deve ser tratada em PR própria, preferencialmente junto da configuração do Renovate ou de uma revisão do Dependabot para GitHub Actions. Até lá, atualizações de Actions pinadas devem ser manuais e explícitas.
+
+No workflow de migrations, `supabase/setup-cli` está pinado por SHA, mas a versão da Supabase CLI ainda segue `latest` de forma intencional e documentada no YAML. Fixar a versão da CLI deve acontecer em uma PR futura dedicada ao hardening das migrations.
 
 ## Diagnóstico sobre Codex review
 
@@ -161,7 +178,7 @@ Conclusão operacional:
 
 1. ✅ Criar inventário inicial nesta PR.
 2. Proteger a branch `main` com checks obrigatórios.
-3. Criar PR dedicada para pinagem de GitHub Actions por commit SHA.
+3. ✅ Criar PR dedicada para pinagem de GitHub Actions por commit SHA.
 
 ### Lote 2 — configurar apps já instalados
 
