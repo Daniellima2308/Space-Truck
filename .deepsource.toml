@@ -24,7 +24,7 @@ enabled = true
   module_system = "es-modules"
   dialect = "typescript"
   environment = ["browser", "nodejs", "vitest"]
-  dependency_file_paths = ["package.json"]
+  dependency_file_paths = ["."]
 
 [[analyzers]]
 name = "secrets"
