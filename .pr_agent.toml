@@ -35,6 +35,9 @@ Responda em português do Brasil.
 """
 
 [ignore]
+# Ignora artefatos gerados e arquivos de baixo valor para review semântico.
+# `src/integrations/supabase/types.ts` é gerado pelo Supabase a partir do schema;
+# mudanças relevantes devem ser revisadas na migration/schema que originou o tipo.
 glob = [
   "dist/**",
   "coverage/**",
