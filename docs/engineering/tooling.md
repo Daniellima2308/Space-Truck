@@ -7,7 +7,7 @@ O objetivo não é instalar ferramentas por volume. O objetivo é transformar ca
 ## Regras de uso
 
 - Toda ferramenta precisa ter uma função clara: revisar código, explicar PR, proteger segredo, testar, medir cobertura, organizar release, rotular PR ou reduzir risco.
-- Ferramentas que comentam em PR devem ser acompanhadas por ruído, duplicação e limite de plano gratuito.
+- Ferramentas que comentam em PR devem ser acompanhadas com atenção a ruído, duplicação e limite de plano gratuito.
 - Ferramentas que exigem chave de IA devem usar secret isolado no GitHub e limite de gasto no provedor.
 - Nenhuma chave de IA deve ser colocada em código, markdown, YAML público ou comentário de PR.
 - GitHub Apps devem ficar limitados ao repositório `Daniellima2308/Space-Truck` sempre que possível.
@@ -158,7 +158,7 @@ Conclusão operacional:
 
 ### Lote 1 — inventário e proteção
 
-1. Criar e manter este inventário.
+1. ✅ Criar inventário inicial nesta PR.
 2. Proteger a branch `main` com checks obrigatórios.
 3. Criar PR dedicada para pinagem de GitHub Actions por commit SHA.
 
