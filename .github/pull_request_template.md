@@ -20,11 +20,11 @@ Marque o que foi validado nesta PR:
 
 ## Impacto para o caminhoneiro
 
-Explique como esta mudança melhora clareza, decisão ou ação prática no uso real do app.
+Explique como esta mudança melhora a clareza, a decisão ou a ação prática no uso real do app.
 
 ## Riscos e observações
 
-Liste riscos conhecidos, limitações, trade-offs ou pontos que devem virar próxima PR.
+Liste riscos conhecidos, limitações, trade-offs ou pontos que devem virar próximas PRs.
 
 ## Próximos passos
 
