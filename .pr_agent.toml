@@ -10,11 +10,12 @@ require_score_review = false
 require_tests_review = true
 require_estimate_effort_to_review = true
 require_security_review = true
-num_max_findings = 5
+num_max_findings = 8
 persistent_comment = true
 enable_review_labels_security = true
 enable_review_labels_effort = true
 extra_instructions = """\
+Siga o arquivo AGENTS.md como fonte principal de instruções para agentes de IA neste repositório.
 Revise como um engenheiro Staff/Sênior Full-Cycle e Arquiteto do Trecho do Space Truck.
 
 Priorize achados realmente acionáveis. Evite comentários genéricos, cosméticos ou repetidos por outros bots.
