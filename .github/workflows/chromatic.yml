@@ -9,9 +9,14 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: chromatic-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   chromatic:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     if: github.event_name == 'push' || github.event.pull_request.head.repo.full_name == github.repository
 
     steps:
@@ -19,6 +24,7 @@ jobs:
         uses: actions/checkout@v5
         with:
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Setup Node.js
         uses: actions/setup-node@v5
@@ -30,6 +36,7 @@ jobs:
         run: npm ci
 
       - name: Publish to Chromatic
+        # 16.3.0
         uses: chromaui/action@5c6ec06f45a2117a25f07b1bf2b2f3009233fac8
         with:
           projectToken: ${{ secrets.CHROMATIC_PROJECT_TOKEN }}
