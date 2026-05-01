@@ -1,33 +1,34 @@
-# Repository-level settings for Bito AI code reviews.
-# Keep this file conservative: Bito should help review PRs without becoming noisy
-# or blocking routine maintenance unexpectedly.
+# Configuração por repositório para revisões de código do Bito AI.
+# Mantenha este arquivo conservador: o Bito deve ajudar na revisão sem gerar ruído
+# nem bloquear manutenções rotineiras inesperadamente.
 
 custom_guidelines:
   general:
-    - name: "Space Truck agent guidelines"
+    - name: "Diretrizes de agentes do Space Truck"
       path: "AGENTS.md"
 
-# Run Dependency Check analysis during code reviews.
+# Executa análise de dependências durante revisões de código.
 dependency_check.enabled: true
 
-# Do not review draft PRs automatically.
+# Não revisa PRs em draft automaticamente.
 exclude_draft_pr: true
 
-# Exclude generated, build and lock artifacts from Bito code review comments.
-exclude_files: "dist/**, coverage/**, storybook-static/**, package-lock.json, src/integrations/supabase/types.ts"
+# Exclui artefatos gerados, build, lockfile e tipos gerados dos comentários do Bito.
+# O Bito usa string separada por vírgulas; mantenha sem espaços para evitar parsing ambíguo.
+exclude_files: "dist/**,coverage/**,storybook-static/**,package-lock.json,src/integrations/supabase/types.ts"
 
-# Jira validation is disabled because the Space Truck workflow does not currently
-# require Jira issue references in branch names, titles or PR descriptions.
+# Validação por Jira fica desativada porque o fluxo atual do Space Truck não exige
+# referência de ticket Jira em branch, título ou descrição da PR.
 functional_validation_enabled: false
 
-# Review PRs targeting the protected branch.
+# Revisa PRs apontadas para a branch protegida.
 include_target_branches: "main"
 
-# Allow maintainers to skip Bito explicitly when needed.
-labels_excluded: "skip-bito, dependencies, automated"
+# Permite pular o Bito explicitamente quando necessário.
+labels_excluded: "skip-bito,dependencies,automated"
 
-# Let Bito include lint/static/security context, but keep merge authority with the
-# GitHub branch protection checks and human review.
+# Permite contexto de lint/análise/segurança, mas mantém a autoridade de merge nos
+# checks obrigatórios do GitHub e na revisão humana.
 linters_feedback: true
 post_as_request_changes: false
 post_changelist: true
@@ -37,6 +38,6 @@ secret_scanner_feedback: true
 sequence_diagram_enabled: true
 static_analysis.fb_infer.enabled: true
 
-# Prefer focused inline findings over exhaustive comments. Other AI reviewers are
-# also installed, so Bito should avoid duplicating every low-signal observation.
+# Prefere achados inline focados em vez de comentários exaustivos. Como há outros
+# revisores IA instalados, o Bito deve evitar duplicar observações de baixo sinal.
 suggestion_mode: "essential"
