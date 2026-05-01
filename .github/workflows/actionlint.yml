@@ -16,8 +16,6 @@ on:
 
 permissions:
   contents: read
-  # Allows reviewdog to post workflow lint findings directly on PRs.
-  pull-requests: write
 
 concurrency:
   group: actionlint-${{ github.workflow }}-${{ github.ref }}
@@ -28,6 +26,10 @@ jobs:
     name: Validate workflow files
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      # Allows reviewdog to post workflow lint findings directly on PRs.
+      pull-requests: write
 
     steps:
       - name: Checkout repository
