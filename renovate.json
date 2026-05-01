@@ -1,6 +1,6 @@
 {
   "$schema": "https://docs.renovatebot.com/renovate-schema.json",
-  "description": "Renovate configuration for Space Truck. Dependabot keeps npm updates for now; Renovate focuses on GitHub Actions and pinned action SHAs.",
+  "description": "Configuração do Renovate para o Space Truck. O Dependabot mantém atualizações npm por enquanto; o Renovate foca em GitHub Actions e Actions pinadas por SHA.",
   "extends": [
     "config:recommended",
     ":dependencyDashboard",
@@ -9,7 +9,7 @@
     ":timezone(America/Sao_Paulo)"
   ],
   "enabledManagers": ["github-actions"],
-  "dependencyDashboardTitle": "Dependency Dashboard - Renovate",
+  "dependencyDashboardTitle": "Painel de dependências - Renovate",
   "labels": ["dependencies", "github-actions", "automated"],
   "schedule": ["before 9am on monday"],
   "prHourlyLimit": 2,
@@ -24,14 +24,14 @@
   "automerge": false,
   "packageRules": [
     {
-      "description": "Group routine GitHub Actions updates together.",
+      "description": "Agrupa atualizações rotineiras de GitHub Actions.",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["minor", "patch", "digest"],
       "groupName": "github-actions maintenance",
       "groupSlug": "github-actions-maintenance"
     },
     {
-      "description": "Keep major GitHub Actions updates separate for safer review.",
+      "description": "Mantém atualizações major de GitHub Actions separadas para revisão mais segura.",
       "matchManagers": ["github-actions"],
       "matchUpdateTypes": ["major"],
       "groupName": "github-actions major updates",
