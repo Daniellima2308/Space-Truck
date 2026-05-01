@@ -1,0 +1,38 @@
+name: YAML lint
+
+on:
+  pull_request:
+    branches:
+      - main
+  push:
+    branches:
+      - main
+    paths:
+      - "**/*.yml"
+      - "**/*.yaml"
+      - ".yamllint.yml"
+
+permissions:
+  contents: read
+
+concurrency:
+  group: yamllint-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  yamllint:
+    name: Validate YAML files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
+
+      - name: Install yamllint
+        run: python3 -m pip install --user yamllint==1.35.1
+
+      - name: Run yamllint
+        run: ~/.local/bin/yamllint -c .yamllint.yml .
