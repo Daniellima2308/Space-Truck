@@ -35,4 +35,4 @@ jobs:
         run: python3 -m pip install --user yamllint==1.35.1
 
       - name: Run yamllint
-        run: ~/.local/bin/yamllint -c .yamllint.yml .
+        run: python3 -m yamllint -c .yamllint.yml .
