@@ -1,0 +1,43 @@
+# Configuração por repositório para revisões de código do Bito AI.
+# Mantenha este arquivo conservador: o Bito deve ajudar na revisão sem gerar ruído
+# nem bloquear manutenções rotineiras inesperadamente.
+
+custom_guidelines:
+  general:
+    - name: "Diretrizes de agentes do Space Truck"
+      path: "AGENTS.md"
+
+# Executa análise de dependências durante revisões de código.
+dependency_check.enabled: true
+
+# Não revisa PRs em draft automaticamente.
+exclude_draft_pr: true
+
+# Exclui artefatos gerados, build, lockfile e tipos gerados dos comentários do Bito.
+# O Bito usa string separada por vírgulas; mantenha sem espaços para evitar parsing ambíguo.
+exclude_files: "dist/**,coverage/**,storybook-static/**,package-lock.json,src/integrations/supabase/types.ts"
+
+# Validação por Jira fica desativada porque o fluxo atual do Space Truck não exige
+# referência de ticket Jira em branch, título ou descrição da PR.
+functional_validation_enabled: false
+
+# Revisa PRs apontadas para a branch protegida.
+include_target_branches: "main"
+
+# Permite pular o Bito explicitamente quando necessário.
+labels_excluded: "skip-bito,dependencies,automated"
+
+# Permite contexto de lint/análise/segurança, mas mantém a autoridade de merge nos
+# checks obrigatórios do GitHub e na revisão humana.
+linters_feedback: true
+post_as_request_changes: false
+post_changelist: true
+post_description: true
+repo_level_guidelines_enabled: true
+secret_scanner_feedback: true
+sequence_diagram_enabled: true
+static_analysis.fb_infer.enabled: true
+
+# Prefere achados inline focados em vez de comentários exaustivos. Como há outros
+# revisores IA instalados, o Bito deve evitar duplicar observações de baixo sinal.
+suggestion_mode: "essential"

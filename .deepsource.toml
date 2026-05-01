@@ -1,0 +1,31 @@
+version = 1
+
+exclude_patterns = [
+  "coverage/**",
+  "dist/**",
+  "storybook-static/**",
+  "src/integrations/supabase/types.ts"
+]
+
+test_patterns = [
+  "**/*.test.ts",
+  "**/*.test.tsx",
+  "**/*.spec.ts",
+  "**/*.spec.tsx",
+  "src/**/__tests__/**"
+]
+
+[[analyzers]]
+name = "javascript"
+enabled = true
+
+  [analyzers.meta]
+  plugins = ["react"]
+  module_system = "es-modules"
+  dialect = "typescript"
+  environment = ["browser", "node"]
+  dependency_file_paths = ["package.json"]
+
+[[analyzers]]
+name = "secrets"
+enabled = true
