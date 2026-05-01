@@ -40,6 +40,7 @@ O objetivo não é instalar ferramentas por volume. O objetivo é transformar ca
 | zizmor | Workflow configurado em modo consultivo. |
 | Scorecard | Workflow configurado com SARIF e OIDC. |
 | Lighthouse, Chromatic, Sonar, Supabase migrations | Workflows existentes endurecidos na PR #132. |
+| Pinagem de GitHub Actions por SHA | Em implantação na PR de hardening das Actions. |
 
 ## Diagnóstico sobre Codex review
 
@@ -161,7 +162,7 @@ Conclusão operacional:
 
 1. ✅ Criar inventário inicial nesta PR.
 2. Proteger a branch `main` com checks obrigatórios.
-3. Criar PR dedicada para pinagem de GitHub Actions por commit SHA.
+3. 🔄 Criar PR dedicada para pinagem de GitHub Actions por commit SHA.
 
 ### Lote 2 — configurar apps já instalados
 
