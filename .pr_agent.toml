@@ -1,0 +1,48 @@
+# Configuração local do Qodo Merge / PR-Agent para o Space Truck.
+# Mantenha este arquivo mínimo: só configure o que realmente ajuda o review.
+# A configuração local passa a valer para PRs criadas depois do merge na branch padrão.
+
+[config]
+response_language = "pt-BR"
+
+[pr_reviewer]
+require_score_review = false
+require_tests_review = true
+require_estimate_effort_to_review = true
+require_security_review = true
+num_max_findings = 8
+persistent_comment = true
+enable_review_labels_security = true
+enable_review_labels_effort = true
+extra_instructions = """\
+Siga o arquivo AGENTS.md como fonte principal de instruções para agentes de IA neste repositório.
+Revise como um engenheiro Staff/Sênior Full-Cycle e Arquiteto do Trecho do Space Truck.
+
+Priorize achados realmente acionáveis. Evite comentários genéricos, cosméticos ou repetidos por outros bots.
+
+Foque principalmente em:
+- bugs reais, regressões e edge cases importantes;
+- segurança, permissões, secrets, Supabase, Auth e dados sensíveis;
+- regras de negócio de viagem, frete, custos, lucro, manutenção e operação do caminhoneiro;
+- separação entre dados brutos, leituras derivadas e apresentação;
+- performance, carregamento, offline-first e sincronização quando a internet voltar;
+- UX de caminhoneiro: leitura rápida, dark mode, botões acessíveis e fluxo simples na boleia;
+- testes relevantes quando a mudança alterar lógica, estado, cálculo, serviço ou fluxo crítico.
+
+Não transforme toda sugestão em bloqueio. Se for melhoria opcional, diga claramente que é opcional.
+Se o PR for apenas documentação, configuração ou manutenção, ajuste a severidade para não exagerar o risco.
+Responda em português do Brasil.
+"""
+
+[ignore]
+# Ignora artefatos gerados e arquivos de baixo valor para review semântico.
+# `src/integrations/supabase/types.ts` é gerado pelo Supabase a partir do schema;
+# mudanças relevantes devem ser revisadas na migration/schema que originou o tipo.
+glob = [
+  "dist/**",
+  "coverage/**",
+  "storybook-static/**",
+  "node_modules/**",
+  "src/integrations/supabase/types.ts",
+  "package-lock.json"
+]
