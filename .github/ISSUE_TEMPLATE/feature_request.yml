@@ -1,0 +1,81 @@
+name: Nova funcionalidade
+description: Proponha uma melhoria ou funcionalidade nova para o Space Truck.
+title: "feat: "
+labels:
+  - "type/feature"
+  - "review/manual-check"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use este formulário para uma ideia com valor claro. O Space Truck deve gerar entendimento, decisão ou ação prática para o caminhoneiro.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Qual problema real isso resolve?
+      placeholder: Exemplo: o motorista não consegue entender rápido se a viagem está dando lucro antes de finalizar.
+    validations:
+      required: true
+
+  - type: textarea
+    id: user_value
+    attributes:
+      label: Qual valor isso entrega para o caminhoneiro?
+      description: Explique se melhora clareza, decisão, ação, economia de tempo, segurança ou lucro.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Solução proposta
+      placeholder: Descreva a ideia, tela, fluxo ou comportamento esperado.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área principal
+      options:
+        - Viagens / fretes
+        - Despesas / custos
+        - Dashboard / indicadores
+        - Caminhão / manutenção
+        - IA / Bino / assistente
+        - Central de ajuda / suporte
+        - PX Digital / comunidade
+        - Supabase / dados / backend
+        - UI / UX / visual
+        - CI / automação / repo
+    validations:
+      required: true
+
+  - type: dropdown
+    id: priority
+    attributes:
+      label: Prioridade percebida
+      options:
+        - Vale agora
+        - Vale depois
+        - Ideia para explorar
+        - Ainda não sei
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternativas consideradas
+      description: Existe solução mais simples? Dá para resolver com ajuste menor?
+
+  - type: textarea
+    id: acceptance
+    attributes:
+      label: Critérios de aceite
+      description: Como saberemos que a funcionalidade está pronta?
+      placeholder: |
+        - O usuário consegue...
+        - A tela mostra...
+        - O app não deve...
