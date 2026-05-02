@@ -22,7 +22,7 @@ O workflow:
 2. instala temporariamente o runner `@playwright/test` no ambiente do CI;
 3. instala o navegador Chromium do Playwright;
 4. roda `npm run build`;
-5. sobe o app com `npm run preview` via `webServer` do Playwright;
+5. sobe o app com `npm run preview -- --host 127.0.0.1 --port 4173` via `webServer` do Playwright;
 6. executa um smoke test simples na rota inicial.
 
 ## Decisão sobre dependência
@@ -31,7 +31,22 @@ Nesta primeira etapa, o workflow instala `@playwright/test@1.57.0` com `npm inst
 
 Isso permite que `playwright.config.ts` importe `@playwright/test` sem alterar `package.json` e `package-lock.json` enquanto a gente valida se a camada de smoke test realmente agrega valor sem ruído.
 
+Para rodar localmente usando a mesma versão do CI, use:
+
+```bash
+npm install --no-save --ignore-scripts @playwright/test@1.57.0
+npx playwright install chromium
+npm run build
+npx playwright test --config=playwright.config.ts
+```
+
 Se os testes se mostrarem úteis, uma próxima PR pode promover `@playwright/test` para `devDependencies` e adicionar scripts oficiais no `package.json`.
+
+## Base URL
+
+Por padrão, o Playwright sobe e testa o preview local em `http://127.0.0.1:4173`.
+
+Se `PLAYWRIGHT_BASE_URL` for definida, o teste usa essa URL externa e não tenta subir o `webServer` local. Isso permite validar um preview remoto sem esperar por uma porta local.
 
 ## Próximos passos possíveis
 
