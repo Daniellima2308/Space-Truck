@@ -7,14 +7,16 @@ labels:
 body:
   - type: markdown
     attributes:
-      value: |
-        Use este formulário para uma ideia com valor claro. O Space Truck deve gerar entendimento, decisão ou ação prática para o caminhoneiro.
+      value: >-
+        Use este formulário para uma ideia com valor claro. O Space Truck deve gerar
+        entendimento, decisão ou ação prática para o caminhoneiro.
 
   - type: textarea
     id: problem
     attributes:
       label: Qual problema real isso resolve?
-      placeholder: Exemplo: o motorista não consegue entender rápido se a viagem está dando lucro antes de finalizar.
+      placeholder: >-
+        Exemplo: o motorista não consegue entender rápido se a viagem está dando lucro antes de finalizar.
     validations:
       required: true
 
