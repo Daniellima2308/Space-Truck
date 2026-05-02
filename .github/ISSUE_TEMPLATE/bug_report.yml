@@ -15,7 +15,8 @@ body:
     attributes:
       label: O que aconteceu?
       description: Explique o erro em linguagem simples.
-      placeholder: Exemplo: ao finalizar a viagem, o saldo não atualizou ou a tela travou.
+      placeholder: >-
+        Exemplo: ao finalizar a viagem, o saldo não atualizou ou a tela travou.
     validations:
       required: true
 
@@ -23,7 +24,8 @@ body:
     id: expected
     attributes:
       label: O que deveria acontecer?
-      placeholder: Exemplo: o app deveria salvar a viagem, atualizar o lucro e voltar para o painel.
+      placeholder: >-
+        Exemplo: o app deveria salvar a viagem, atualizar o lucro e voltar para o painel.
     validations:
       required: true
 
