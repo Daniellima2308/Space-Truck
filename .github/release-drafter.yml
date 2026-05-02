@@ -1,0 +1,97 @@
+# Release Drafter do Space Truck.
+#
+# Mantém um rascunho de release com base nas PRs mergeadas na main.
+# O objetivo é transformar mudanças técnicas em histórico legível de produto.
+
+name-template: "Space Truck $RESOLVED_VERSION"
+tag-template: "v$RESOLVED_VERSION"
+version-template: "$MAJOR.$MINOR.$PATCH"
+change-template: "- $TITLE (#$NUMBER) @$AUTHOR"
+change-title-escapes: "\\<*_&"
+no-changes-template: "- Sem mudanças registradas desde a última release."
+template: |
+  ## O que mudou
+
+  $CHANGES
+
+  ## Validação
+
+  - CI, segurança e revisões devem estar verdes antes da publicação manual.
+
+categories:
+  - title: "🚛 Funcionalidades"
+    labels:
+      - "type/feature"
+  - title: "🐛 Correções"
+    labels:
+      - "type/fix"
+  - title: "🎨 Interface e experiência"
+    labels:
+      - "area/ui"
+      - "area/storybook"
+  - title: "🧪 Testes e qualidade"
+    labels:
+      - "type/test"
+      - "area/tests"
+  - title: "🔒 Segurança e banco"
+    labels:
+      - "review/security"
+      - "review/database"
+      - "area/supabase"
+  - title: "⚙️ CI, automação e configuração"
+    labels:
+      - "type/ci"
+      - "type/build"
+      - "area/github-actions"
+      - "area/config"
+  - title: "📚 Documentação"
+    labels:
+      - "type/docs"
+      - "area/docs"
+  - title: "📦 Outros ajustes"
+    labels:
+      - "type/chore"
+      - "type/refactor"
+
+exclude-labels:
+  - "skip-changelog"
+
+version-resolver:
+  major:
+    labels:
+      - "release/major"
+  minor:
+    labels:
+      - "type/feature"
+  patch:
+    labels:
+      - "type/fix"
+      - "type/refactor"
+      - "type/chore"
+      - "type/ci"
+      - "type/build"
+      - "type/test"
+      - "type/docs"
+  default: patch
+
+autolabeler:
+  - label: "type/docs"
+    files:
+      - "docs/**"
+      - "README.md"
+      - "AGENTS.md"
+      - "GEMINI.md"
+      - ".github/*.md"
+  - label: "type/ci"
+    files:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+      - ".github/dependabot.yml"
+  - label: "area/github-actions"
+    files:
+      - ".github/workflows/**"
+      - ".github/actions/**"
+  - label: "area/supabase"
+    files:
+      - "supabase/**"
+      - "src/integrations/supabase/**"

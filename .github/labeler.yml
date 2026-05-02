@@ -1,0 +1,117 @@
+# Labeler complementar para o Space Truck.
+#
+# O Reviewpad continua sendo a automação principal de classificação por título,
+# risco e tamanho. Este arquivo reforça a classificação por arquivos alterados
+# para manter labels úteis mesmo quando outro bot não rodar.
+
+area/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "README.md"
+          - "AGENTS.md"
+          - "GEMINI.md"
+          - ".github/*.md"
+
+area/github-actions:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+          - ".github/dependabot.yml"
+          - ".github/labeler.yml"
+          - ".github/release-drafter.yml"
+
+area/config:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "*.config.*"
+          - "tsconfig*.json"
+          - "package.json"
+          - "package-lock.json"
+          - "sonar-project.properties"
+          - "reviewpad.yml"
+          - "renovate.json"
+          - ".bito.yaml"
+          - ".deepsource.toml"
+          - ".gitleaks.toml"
+          - ".pr_agent.toml"
+          - ".yamllint.yml"
+
+area/tests:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/test/**"
+          - "**/*.test.ts"
+          - "**/*.test.tsx"
+          - "**/*.spec.ts"
+          - "**/*.spec.tsx"
+
+area/storybook:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".storybook/**"
+          - "**/*.stories.ts"
+          - "**/*.stories.tsx"
+
+area/supabase:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "supabase/**"
+          - "src/integrations/supabase/**"
+
+area/help-center:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/features/help/**"
+          - "src/pages/Help*"
+          - "src/pages/SupportRequestPage.tsx"
+          - "src/pages/SupportTicketsPage.tsx"
+          - "docs/help-center-support.md"
+
+area/ui:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/components/**"
+          - "src/pages/**"
+
+type/ci:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/actions/**"
+
+type/docs:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "docs/**"
+          - "README.md"
+          - "AGENTS.md"
+          - "GEMINI.md"
+          - ".github/*.md"
+
+type/test:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "src/test/**"
+          - "**/*.test.ts"
+          - "**/*.test.tsx"
+          - "**/*.spec.ts"
+          - "**/*.spec.tsx"
+
+review/security:
+  - changed-files:
+      - any-glob-to-any-file:
+          - ".github/workflows/**"
+          - ".github/dependabot.yml"
+          - ".gitleaks.toml"
+          - "supabase/**"
+          - "src/context/AuthContext.tsx"
+          - "src/context/auth-context.ts"
+          - "src/integrations/supabase/**"
+
+review/database:
+  - changed-files:
+      - any-glob-to-any-file:
+          - "supabase/migrations/**"
+          - "supabase/**/*.sql"
