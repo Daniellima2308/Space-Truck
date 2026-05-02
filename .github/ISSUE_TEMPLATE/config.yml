@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Conversa estratégica fora do escopo de issue
+    url: https://github.com/Daniellima2308/Space-Truck/discussions
+    about: Use discussions para ideias abertas, perguntas gerais ou decisões ainda sem escopo.
