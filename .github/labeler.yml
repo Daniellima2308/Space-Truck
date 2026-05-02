@@ -83,8 +83,12 @@ type/ci:
 
 type/docs:
   - changed-files:
-      - all-globs-to-all-files:
+      - any-glob-to-any-file:
           - "docs/**"
+          - "README.md"
+          - "AGENTS.md"
+          - "GEMINI.md"
+          - ".github/*.md"
 
 type/test:
   - changed-files:
