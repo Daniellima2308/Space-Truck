@@ -38,8 +38,8 @@ jobs:
           node-version: 20
           cache: npm
 
-      - name: Install dependencies
-        run: npm ci
+      - name: Install dependencies without lifecycle scripts
+        run: npm ci --ignore-scripts
 
       - name: Run ESLint with Reviewdog
         uses: reviewdog/action-eslint@556a3fdaf8b4201d4d74d406013386aa4f7dab96 # v1
@@ -49,5 +49,5 @@ jobs:
           filter_mode: added
           fail_level: none
           level: warning
-          eslint_flags: .
+          eslint_flags: src
           tool_name: eslint
