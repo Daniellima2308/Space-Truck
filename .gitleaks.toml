@@ -1,0 +1,14 @@
+title = "Space Truck Gitleaks configuration"
+
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Arquivos gerados, artefatos e tipos gerados que não devem ser analisados como fonte de verdade."
+paths = [
+  '''^dist/''',
+  '''^coverage/''',
+  '''^storybook-static/''',
+  '''^node_modules/''',
+  '''^src/integrations/supabase/types\.ts$'''
+]
