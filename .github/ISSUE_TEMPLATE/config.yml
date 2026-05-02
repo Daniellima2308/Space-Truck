@@ -1,0 +1,4 @@
+blank_issues_enabled: false
+
+# Contact links ficam desativados por enquanto para evitar links quebrados
+# caso Discussions não esteja habilitado no repositório.

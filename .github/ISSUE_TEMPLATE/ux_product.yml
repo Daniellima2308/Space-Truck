@@ -1,0 +1,64 @@
+name: UX, produto ou fluxo
+description: Analise uma tela, fluxo, texto, hierarquia visual ou decisão de produto.
+title: "ux: "
+labels:
+  - "area/ui"
+  - "review/manual-check"
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use este formulário quando a questão for experiência do usuário, clareza visual,
+        linguagem, fluxo ou decisão de produto.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto da tela ou fluxo
+      placeholder: >-
+        Exemplo: tela de viagem ativa, modal de finalizar viagem, dashboard inicial, central de ajuda.
+    validations:
+      required: true
+
+  - type: textarea
+    id: issue
+    attributes:
+      label: O que está ruim, confuso ou pode melhorar?
+      placeholder: >-
+        Exemplo: informação importante está escondida, botão pequeno, leitura ruim no dark mode.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: driver_moment
+    attributes:
+      label: Momento de uso na estrada
+      options:
+        - Antes de iniciar viagem
+        - Durante a viagem
+        - Ao finalizar viagem
+        - Parado no posto / descanso
+        - No escritório / planejamento
+        - Não se aplica
+    validations:
+      required: true
+
+  - type: textarea
+    id: desired_outcome
+    attributes:
+      label: Resultado desejado
+      description: O que o caminhoneiro deve entender, decidir ou fazer mais rápido?
+    validations:
+      required: true
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Prints, referências ou comparação
+      description: Adicione prints, link, vídeo ou descreva a referência.
+
+  - type: textarea
+    id: notes
+    attributes:
+      label: Observações técnicas ou de produto
+      description: Restrições, riscos, dependências ou cuidado com offline/dark mode.

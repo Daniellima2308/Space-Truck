@@ -1,0 +1,84 @@
+name: Bug no app
+description: Relate um erro, travamento, comportamento quebrado ou fluxo que não funciona.
+title: "fix: "
+labels:
+  - "type/fix"
+  - "review/manual-check"
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use este formulário para erro real no app. Quanto mais contexto, mais fácil reproduzir e corrigir.
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: O que aconteceu?
+      description: Explique o erro em linguagem simples.
+      placeholder: >-
+        Exemplo: ao finalizar a viagem, o saldo não atualizou ou a tela travou.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected
+    attributes:
+      label: O que deveria acontecer?
+      placeholder: >-
+        Exemplo: o app deveria salvar a viagem, atualizar o lucro e voltar para o painel.
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: Como reproduzir?
+      description: Liste o caminho até o erro.
+      placeholder: |
+        1. Abrir viagem ativa
+        2. Adicionar despesa
+        3. Finalizar viagem
+        4. Ver erro
+    validations:
+      required: true
+
+  - type: dropdown
+    id: area
+    attributes:
+      label: Área afetada
+      options:
+        - Viagens / fretes
+        - Despesas / custos
+        - Dashboard / indicadores
+        - Supabase / login / dados
+        - UI / visual / dark mode
+        - Central de ajuda / suporte
+        - CI / automação / repo
+        - Não sei
+    validations:
+      required: true
+
+  - type: dropdown
+    id: impact
+    attributes:
+      label: Impacto para o caminhoneiro
+      options:
+        - Bloqueia uso do app
+        - Gera cálculo ou leitura errada
+        - Atrasa o fluxo mas tem contorno
+        - É visual ou incômodo leve
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidências
+      description: Prints, vídeo, mensagem de erro, console, link de PR ou logs.
+      placeholder: Cole aqui prints/logs ou descreva o que aparece na tela.
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Contexto extra
+      description: Dispositivo, navegador, internet ruim/offline, usuário logado, viagem ativa etc.

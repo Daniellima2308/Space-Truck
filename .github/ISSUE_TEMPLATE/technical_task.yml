@@ -1,0 +1,83 @@
+name: Tarefa técnica
+description: Organize uma tarefa de arquitetura, CI, refatoração, limpeza ou manutenção.
+title: "chore: "
+labels:
+  - "type/chore"
+  - "review/manual-check"
+body:
+  - type: markdown
+    attributes:
+      value: >-
+        Use este formulário para tarefas internas: arquitetura, limpeza, refatoração,
+        CI, segurança, banco ou documentação técnica.
+
+  - type: textarea
+    id: objective
+    attributes:
+      label: Objetivo técnico
+      placeholder: >-
+        Exemplo: reduzir duplicação de lógica de cálculo, melhorar workflow,
+        configurar nova ferramenta.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: technical_area
+    attributes:
+      label: Área técnica
+      options:
+        - Arquitetura / separação de camadas
+        - CI / GitHub Actions / automações
+        - Segurança / secrets / permissões
+        - Supabase / banco / RLS / migrations
+        - Testes / cobertura
+        - Performance / bundle
+        - Documentação técnica
+        - Refatoração / limpeza
+        - Outra
+    validations:
+      required: true
+
+  - type: textarea
+    id: current_state
+    attributes:
+      label: Estado atual
+      description: O que existe hoje? Onde está o problema?
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposed_change
+    attributes:
+      label: Mudança proposta
+      description: Descreva o plano técnico ou a direção desejada.
+    validations:
+      required: true
+
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risco técnico
+      options:
+        - Baixo
+        - Médio
+        - Alto
+        - Não sei
+    validations:
+      required: true
+
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validação esperada
+      placeholder: |
+        - npm run lint
+        - npm run build
+        - npm test
+        - revisar PR e bots
+
+  - type: textarea
+    id: dependencies
+    attributes:
+      label: Dependências ou bloqueios
+      description: Depende de outra PR, app instalado, chave, decisão manual ou acesso externo?
