@@ -71,7 +71,7 @@ body:
     attributes:
       label: Validação esperada
       placeholder: |
-        - npm run lint:quality
+        - npm run lint
         - npm run build
         - npm test
         - revisar PR e bots
