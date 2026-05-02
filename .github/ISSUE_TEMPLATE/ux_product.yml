@@ -7,14 +7,16 @@ labels:
 body:
   - type: markdown
     attributes:
-      value: |
-        Use este formulário quando a questão for experiência do usuário, clareza visual, linguagem, fluxo ou decisão de produto.
+      value: >-
+        Use este formulário quando a questão for experiência do usuário, clareza visual,
+        linguagem, fluxo ou decisão de produto.
 
   - type: textarea
     id: context
     attributes:
       label: Contexto da tela ou fluxo
-      placeholder: Exemplo: tela de viagem ativa, modal de finalizar viagem, dashboard inicial, central de ajuda.
+      placeholder: >-
+        Exemplo: tela de viagem ativa, modal de finalizar viagem, dashboard inicial, central de ajuda.
     validations:
       required: true
 
@@ -22,7 +24,8 @@ body:
     id: issue
     attributes:
       label: O que está ruim, confuso ou pode melhorar?
-      placeholder: Exemplo: informação importante está escondida, botão pequeno, leitura ruim no dark mode.
+      placeholder: >-
+        Exemplo: informação importante está escondida, botão pequeno, leitura ruim no dark mode.
     validations:
       required: true
 
