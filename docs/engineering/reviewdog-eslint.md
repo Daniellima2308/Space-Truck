@@ -16,7 +16,7 @@ O workflow está em modo não bloqueante:
 - `level: warning`
 - `filter_mode: added`
 
-Isso significa que ele deve orientar, mas não travar merge sozinho.
+Isso significa que ele deve orientar, mas não travar o merge sozinho.
 
 ## Arquivo
 
@@ -31,8 +31,12 @@ Permissões no workflow:
 
 A permissão de escrita fica restrita ao job que precisa comentar na PR.
 
+O workflow instala dependências com `npm ci --ignore-scripts` para evitar execução de lifecycle scripts em pull requests.
+
 ## Escopo escolhido
 
-Esta primeira etapa cobre apenas ESLint.
+Esta primeira etapa cobre apenas ESLint nos arquivos do app em `src`.
+
+O CI continua responsável por rodar a validação completa com `npm run lint:quality`.
 
 Markdownlint, stylelint e yamllint podem ganhar Reviewdog depois, se os comentários forem úteis e não gerarem ruído demais.
