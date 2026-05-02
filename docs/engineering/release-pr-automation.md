@@ -57,6 +57,8 @@ O Reviewpad continua sendo a camada principal para:
 
 O Labeler entra como reforço simples por caminhos de arquivo, usando os mesmos nomes de labels para evitar vocabulário duplicado.
 
+A configuração mantém `sync-labels: false` de forma intencional. Isso evita que o Labeler remova labels aplicadas pelo Reviewpad, Qodo, CodeRabbit ou por revisão humana. Quando um rótulo ficar desatualizado por mudança de escopo durante a PR, a remoção deve ser feita manualmente ou por uma regra futura mais específica. Neste momento, preservar labels de outros revisores é mais importante do que automatizar remoção agressiva.
+
 ### Release Drafter
 
 Workflow: `.github/workflows/release-drafter.yml`
@@ -83,8 +85,8 @@ As categorias usam labels existentes do projeto:
 Os workflows usam permissões mínimas para a função que exercem:
 
 - Semantic PR lê metadados da PR;
-- Labeler lê PRs e escreve labels em issues/PRs;
-- Release Drafter escreve rascunhos de release.
+- Labeler lê PRs e escreve labels em PRs;
+- Release Drafter escreve rascunhos de release e aplica labels de release em PRs.
 
 As Actions externas foram pinadas por SHA e mantêm comentário com a versão de origem.
 
