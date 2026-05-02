@@ -9,6 +9,6 @@ test.describe("Space Truck app smoke", () => {
 
     const appRoot = page.locator("#root");
     await expect(appRoot).toBeVisible();
-    await expect(appRoot).toContainText(/space truck/i);
+    await expect(appRoot).toContainText(/continuar com google|acessar minha conta|criar conta gratuita/i);
   });
 });
