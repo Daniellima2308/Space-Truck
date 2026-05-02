@@ -41,5 +41,7 @@ jobs:
             test
           requireScope: false
           subjectPattern: ^(?![A-Z]).+$
-          subjectPatternError: O título depois do tipo deve começar com letra minúscula. Exemplo: ci: add release automation
+          subjectPatternError: >-
+            O título depois do tipo deve começar com letra minúscula.
+            Exemplo: ci: add release automation
           wip: false
