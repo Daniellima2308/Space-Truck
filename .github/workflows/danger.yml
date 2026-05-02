@@ -13,8 +13,6 @@ on:
 
 permissions:
   contents: read
-  pull-requests: write
-  statuses: write
 
 concurrency:
   group: danger-${{ github.workflow }}-${{ github.event.pull_request.number }}
@@ -25,6 +23,10 @@ jobs:
     name: Run Danger JS warning review
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pull-requests: write
+      statuses: write
 
     steps:
       - name: Checkout repository
