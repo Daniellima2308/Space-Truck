@@ -7,7 +7,7 @@ Descreva em poucas linhas o que esta PR entrega e qual problema ela resolve.
 - [ ] Mudança pequena e focada
 - [ ] Sem alteração fora do objetivo da PR
 - [ ] Sem mudança de Supabase/Auth/Dependências sem necessidade explícita
-- [ ] Título da PR segue o padrão semântico (`feat:`, `fix:`, `ci:`, `docs:`, `chore:` etc.)
+- [ ] Título da PR segue o padrão semântico (`feat:`, `fix:`, `ux:`, `ci:`, `docs:`, `chore:` etc.)
 
 ## Tipo e área
 
