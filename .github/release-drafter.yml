@@ -81,6 +81,7 @@ autolabeler:
       - "README.md"
       - "AGENTS.md"
       - "GEMINI.md"
+      - ".github/*.md"
   - label: "type/ci"
     files:
       - ".github/workflows/**"
