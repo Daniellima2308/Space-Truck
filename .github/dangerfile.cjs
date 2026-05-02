@@ -86,7 +86,7 @@ if (changedUi && !bodyMentionsAny(["preview", "print", "screenshot", "storybook"
   );
 }
 
-if (changedCode && !changedOnlyDocsOrGithubText && !bodyMentionsAny(["npm run", "teste", "test", "build", "lint", "coverage", "valid"])) {
+if (changedCode && !changedOnlyDocsOrGithubText && !bodyMentionsAny(["npm run", "teste", "test", "build", "lint", "coverage", "validation", "validação", "validate", "validado"])) {
   warn(
     "Esta PR altera código em `src/`, mas a validação não ficou clara no corpo da PR. Informe lint, build, testes ou verificação manual."
   );
