@@ -3,7 +3,7 @@ description: Organize uma tarefa de arquitetura, CI, refatoração, limpeza ou m
 title: "chore: "
 labels:
   - "type/chore"
-  - "area/config"
+  - "review/manual-check"
 body:
   - type: markdown
     attributes:
