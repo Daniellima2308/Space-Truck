@@ -107,6 +107,7 @@ review/security:
           - ".gitleaks.toml"
           - "supabase/**"
           - "src/context/AuthContext.tsx"
+          - "src/context/auth-context.ts"
           - "src/integrations/supabase/**"
 
 review/database:
