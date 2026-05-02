@@ -7,14 +7,17 @@ labels:
 body:
   - type: markdown
     attributes:
-      value: |
-        Use este formulário para tarefas internas: arquitetura, limpeza, refatoração, CI, segurança, banco ou documentação técnica.
+      value: >-
+        Use este formulário para tarefas internas: arquitetura, limpeza, refatoração,
+        CI, segurança, banco ou documentação técnica.
 
   - type: textarea
     id: objective
     attributes:
       label: Objetivo técnico
-      placeholder: Exemplo: reduzir duplicação de lógica de cálculo, melhorar workflow, configurar nova ferramenta.
+      placeholder: >-
+        Exemplo: reduzir duplicação de lógica de cálculo, melhorar workflow,
+        configurar nova ferramenta.
     validations:
       required: true
 
