@@ -38,14 +38,17 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Install Playwright test runner
+        run: npm install --no-save --ignore-scripts @playwright/test@1.57.0
+
       - name: Install Playwright Chromium
-        run: npx --yes @playwright/test@1.57.0 install --with-deps chromium
+        run: npx playwright install --with-deps chromium
 
       - name: Build app
         run: npm run build
 
       - name: Run smoke test
-        run: npx --yes @playwright/test@1.57.0 test --config=playwright.config.ts
+        run: npx playwright test --config=playwright.config.ts
 
       - name: Upload Playwright report
         if: always()
