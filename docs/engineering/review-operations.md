@@ -50,13 +50,13 @@ Função: garantir que o app builda, sobe no preview local e carrega a tela inic
 
 Ele não valida fluxo completo. O papel dele é detectar tela branca, crash inicial, erro básico de renderização ou quebra da entrada do app.
 
-Modo atual: smoke test automatizado em PR. O runner é instalado temporariamente no CI; a promoção para `devDependencies` fica planejada se a camada continuar estável.
+Modo atual: smoke test automatizado em PR com `@playwright/test` oficial em `devDependencies`.
 
 ### UI health
 
 Função: detectar violações críticas de acessibilidade na tela inicial.
 
-Modo atual: bloqueia apenas impacto `critical`. O runner de acessibilidade é instalado temporariamente no CI; a promoção para `devDependencies` fica planejada se a camada continuar estável.
+Modo atual: bloqueia apenas impacto `critical`, com `@playwright/test` e `@axe-core/playwright` oficiais em `devDependencies`.
 
 Uso esperado: pegar problemas graves sem gerar uma enxurrada de avisos. A evolução para `serious`, mais rotas, foco visível e navegação por teclado deve acontecer em PRs futuras e com cuidado.
 
@@ -160,8 +160,8 @@ Nesses casos, o ajuste deve ser feito em PR própria sempre que possível.
 
 Próximos passos possíveis para melhorar a utilidade da esteira:
 
-- promover Playwright e axe para `devDependencies` se a camada continuar estável;
-- criar scripts oficiais para testes E2E e acessibilidade;
+- revisar periodicamente versões de Playwright e axe para manter compatibilidade;
+- evoluir scripts E2E e acessibilidade conforme ampliação de cobertura;
 - expandir UI health para violações `serious` quando o ruído estiver controlado;
 - adicionar testes de teclado e foco visível;
 - expandir Playwright para fluxos reais do app;

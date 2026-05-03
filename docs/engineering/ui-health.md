@@ -54,14 +54,17 @@ No futuro, podemos evoluir para:
 - Teste: `tests/e2e/accessibility-smoke.spec.ts`
 - Workflow: `.github/workflows/ui-health.yml`
 
-## Dependências temporárias
+## Dependências oficiais
 
-Nesta etapa, o workflow instala temporariamente:
+Com a camada estabilizada, `@playwright/test@1.57.0` e `@axe-core/playwright@4.10.2` foram promovidos para `devDependencies` oficiais do projeto.
+
+Com isso, o CI e o ambiente local passam a usar versões travadas no `package.json` e no `package-lock.json`, sem instalações temporárias com `--no-save`.
+
+Para rodar localmente:
 
 ```bash
-npm install --no-save --ignore-scripts @playwright/test@1.57.0 @axe-core/playwright@4.10.2
+npm ci
+npx playwright install --with-deps chromium
+npm run build
+npm run test:a11y
 ```
-
-Isso evita alterar `package.json` e `package-lock.json` até confirmarmos que a checagem agrega valor sem ruído.
-
-Se a camada ficar estável, uma próxima PR pode promover essas dependências para `devDependencies` e adicionar scripts oficiais.
