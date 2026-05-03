@@ -22,6 +22,8 @@ Função: validar a saúde geral do projeto.
 
 O CI continua sendo a revisão pesada de build, lint, testes e cobertura. Quando ele falhar, a falha deve ser investigada antes de qualquer merge.
 
+Modo atual: bloqueante quando configurado como check obrigatório.
+
 ### Danger JS
 
 Função: conferir higiene e contexto da PR.
@@ -48,11 +50,13 @@ Função: garantir que o app builda, sobe no preview local e carrega a tela inic
 
 Ele não valida fluxo completo. O papel dele é detectar tela branca, crash inicial, erro básico de renderização ou quebra da entrada do app.
 
+Modo atual: smoke test automatizado em PR. O runner é instalado temporariamente no CI; a promoção para `devDependencies` fica planejada se a camada continuar estável.
+
 ### UI health
 
 Função: detectar violações críticas de acessibilidade na tela inicial.
 
-Modo atual: bloqueia apenas impacto `critical`.
+Modo atual: bloqueia apenas impacto `critical`. O runner de acessibilidade é instalado temporariamente no CI; a promoção para `devDependencies` fica planejada se a camada continuar estável.
 
 Uso esperado: pegar problemas graves sem gerar uma enxurrada de avisos. A evolução para `serious`, mais rotas, foco visível e navegação por teclado deve acontecer em PRs futuras e com cuidado.
 
@@ -60,11 +64,15 @@ Uso esperado: pegar problemas graves sem gerar uma enxurrada de avisos. A evolu�
 
 Função: observar qualidade web, performance, práticas recomendadas e acessibilidade em nível de página.
 
+Modo atual: check automatizado de qualidade web em PR.
+
 Uso esperado: tratar regressões relevantes. Nem todo aviso deve virar bloqueio imediato; alguns precisam virar tarefa técnica planejada.
 
 ### Chromatic / Storybook / UI Tests
 
 Função: proteger componentes e regressões visuais.
+
+Modo atual: publicação e validação visual automatizadas em PR.
 
 Uso esperado: conferir mudanças visuais, Storybook e diferenças de UI antes de mergear alteração de interface.
 
@@ -74,13 +82,17 @@ Inclui Snyk, CodeQL, GitGuardian, Gitleaks, Semgrep, OpenSSF Scorecard, Harden-R
 
 Função: reduzir risco de vulnerabilidade, segredo vazado, workflow perigoso e dependência problemática.
 
+Modo atual: combinação de checks automatizados, auditorias de workflow e revisões de segurança conforme disponibilidade de cada ferramenta.
+
 Uso esperado: falha de segurança deve ser investigada com prioridade. Falso positivo deve ser justificado.
 
 ### Revisores IA e análise de PR
 
-Inclui CodeRabbit, Kody, Codacy, Gemini Code Assist, Octopus, Sourcery, LlamaPReview, Codex, Qodo e outros revisores habilitados.
+Inclui CodeRabbit, Kody, Codacy, Gemini Code Assist, Octopus, Sourcery, LlamaPReview (Llama PR Review), Codex, Qodo e outros revisores habilitados.
 
 Função: ampliar a visão sobre código, testes, arquitetura, segurança, documentação e possíveis regressões.
+
+Modo atual: múltiplos revisores habilitados, com leitura humana obrigatória antes de aceitar qualquer sugestão.
 
 Uso esperado: os comentários devem ser lidos e classificados como:
 
@@ -89,6 +101,8 @@ Uso esperado: os comentários devem ser lidos e classificados como:
 - falso positivo;
 - decisão consciente;
 - ruído recorrente que precisa de ajuste de configuração.
+
+Ter muitos revisores não significa aceitar todas as sugestões nem tratar todos com o mesmo peso. A revisão final deve priorizar sinal útil, reduzir duplicidade e ajustar ferramentas que gerarem ruído recorrente.
 
 ## Ritual para revisar uma PR
 
@@ -104,7 +118,7 @@ Quando alguém pedir "revise e analise a PR", o processo deve ser:
 8. corrigir o que for válido e proporcional ao escopo;
 9. justificar falso positivo ou decisão consciente;
 10. resolver threads atendidas ou justificadas;
-11. conferir mergeability final;
+11. conferir se a PR está pronta para integração (mergeability) final;
 12. liberar como pronta somente quando tudo estiver revisado.
 
 ## Critério para corrigir ou não corrigir
@@ -158,4 +172,4 @@ Próximos passos possíveis para melhorar a utilidade da esteira:
 
 A esteira deve trabalhar a favor do produto.
 
-Se uma ferramenta ajuda a manter o Space Truck mais confiável, segura e fácil de evoluir, ela fica. Se atrapalha, grita demais ou não entrega valor, ela deve ser calibrada ou removida.
+Se uma ferramenta ajuda a manter o Space Truck mais confiável, seguro e fácil de evoluir, ela fica. Se atrapalha, grita demais ou não entrega valor, ela deve ser calibrada ou removida.
