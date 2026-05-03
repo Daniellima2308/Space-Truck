@@ -18,6 +18,22 @@ Ele valida que:
 - o app renderiza a tela de entrada real;
 - não existem violações de acessibilidade com impacto `critical`.
 
+## Correção aplicada
+
+A primeira execução encontrou uma violação crítica real na meta tag viewport:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+```
+
+Esse padrão bloqueia zoom em dispositivos móveis, o que prejudica usuários que precisam ampliar a interface.
+
+A configuração foi corrigida para:
+
+```html
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+```
+
 ## Por que somente impacto critical?
 
 Acessibilidade é importante, mas uma primeira camada muito rígida pode gerar muitos avisos antes de o app ter uma estratégia completa de design system, contraste, foco, labels e navegação por teclado.
