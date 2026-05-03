@@ -31,12 +31,18 @@ Com a camada validada em PRs anteriores, o `@playwright/test@1.57.0` foi promovi
 
 Agora o CI e o ambiente local usam a mesma dependência versionada em `package.json` e `package-lock.json`, sem instalação temporária com `--no-save`.
 
-Para rodar localmente:
+Para rodar localmente o mesmo smoke test do workflow:
 
 ```bash
 npm ci
-npx playwright install chromium
+npx playwright install --with-deps chromium
 npm run build
+npm run test:e2e:smoke
+```
+
+Para rodar todos os testes Playwright configurados:
+
+```bash
 npm run test:e2e
 ```
 
