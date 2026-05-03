@@ -58,13 +58,13 @@ No futuro, podemos evoluir para:
 
 Com a camada estabilizada, `@playwright/test@1.57.0` e `@axe-core/playwright@4.10.2` foram promovidos para `devDependencies` oficiais do projeto.
 
-Com isso, o CI e o ambiente local passam a usar versões travadas no `package.json` e no `package-lock.json`, sem installs temporários com `--no-save`.
+Com isso, o CI e o ambiente local passam a usar versões travadas no `package.json` e no `package-lock.json`, sem instalações temporárias com `--no-save`.
 
 Para rodar localmente:
 
 ```bash
 npm ci
-npx playwright install chromium
+npx playwright install --with-deps chromium
 npm run build
 npm run test:a11y
 ```
