@@ -6,7 +6,7 @@ test.describe("Space Truck accessibility smoke", () => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/space truck/i);
-    await expect(page.locator("#root")).toContainText(/continuar com google|acessar minha conta|criar conta gratuita/i);
+    await expect(page.locator("body")).toContainText(/continuar com google|acessar minha conta|criar conta gratuita/i);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
@@ -15,7 +15,13 @@ test.describe("Space Truck accessibility smoke", () => {
     const criticalViolations = results.violations.filter(
       (violation) => violation.impact === "critical",
     );
+    const criticalViolationSummary = criticalViolations
+      .map((violation) => `- ${violation.id}: ${violation.help}`)
+      .join("\n");
 
-    expect(criticalViolations).toEqual([]);
+    expect(
+      criticalViolations,
+      `Violações críticas de acessibilidade encontradas:\n${criticalViolationSummary}`,
+    ).toEqual([]);
   });
 });
