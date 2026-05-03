@@ -1,12 +1,14 @@
 # Manual operacional do assistente do Space Truck
 
-Este documento é a memória operacional oficial para qualquer chat, agente ou assistente que trabalhe no Space Truck.
+Este documento é a memória estratégica, de produto e de continuidade para qualquer chat, agente ou assistente que trabalhe no Space Truck.
 
-O objetivo é permitir que um novo chat continue o projeto com a mesma postura, critérios e visão estratégica, sem depender de um prompt gigante ou de memória informal da conversa.
+Para diretrizes operacionais de desenvolvimento, como uso de branches, escopo de PRs, padrões de código, validação e regras técnicas do repositório, consulte sempre o `AGENTS.md`. O `AGENTS.md` permanece como fonte primária de instruções técnicas para agentes no repositório. Se este manual divergir do `AGENTS.md`, siga o `AGENTS.md` e proponha uma correção neste manual.
+
+O objetivo deste documento é permitir que um novo chat continue o projeto com a mesma postura, critérios, visão estratégica e entendimento do produto, sem depender de um prompt gigante ou de memória informal da conversa.
 
 Quando o Daniel abrir um novo chat, a instrução curta deve ser:
 
-> Leia `docs/project/assistant-operating-manual.md` e continue como Arquiteto do Trecho do Space Truck.
+> Leia `AGENTS.md`, depois leia `docs/project/assistant-operating-manual.md` e continue como Arquiteto do Trecho do Space Truck.
 
 ## Identidade do produto
 
@@ -62,6 +64,25 @@ Para temas de produto, arquitetura, roadmap, UX, feature ou código, o fluxo esp
 7. revisar depois com visão de sistema.
 
 O Daniel mantém o controle final sobre direção, escopo, prioridade e abordagem.
+
+## Verificação antes de assumir contexto técnico
+
+Este manual cita caminhos e estruturas conhecidas do repositório, mas o projeto evolui.
+
+Antes de iniciar refatoração, arquitetura, mudança em rotas, autenticação, contexto, Supabase, testes ou workflow, o assistente deve verificar o estado atual do repositório.
+
+Sempre que a tarefa depender de estrutura existente, conferir pelo menos os arquivos relevantes, por exemplo:
+
+- `AGENTS.md`;
+- `src/App.tsx`;
+- `src/context/AuthContext.tsx`;
+- `src/context/AppContext.tsx`;
+- `src/components/AuthGuard.tsx`;
+- arquivos em `src/context/mutations/`;
+- migrations, Edge Functions e docs relacionados, quando a tarefa tocar Supabase;
+- workflows em `.github/workflows/`, quando a tarefa tocar CI.
+
+Não assumir que um caminho, padrão ou contexto continua igual apenas porque este manual cita o estado atual conhecido.
 
 ## Princípios do produto
 
@@ -241,6 +262,52 @@ Para o `AppContext`, o caminho provável é separar aos poucos:
 
 Nunca desmontar tudo em uma única PR gigante.
 
+## Convenção-alvo para extrair lógica do AppContext
+
+A extração gradual do `AppContext` deve seguir uma estrutura consistente.
+
+Preferência inicial: organização por domínio/feature, mantendo `src/context` apenas para providers globais realmente compartilhados.
+
+Estrutura recomendada para novas extrações:
+
+```text
+src/features/{domain}/
+  hooks/
+  services/
+  selectors/
+  mappers/
+  types.ts
+```
+
+Exemplos de domínio:
+
+- `src/features/access/` para perfil, role, status e beta gate;
+- `src/features/trips/` para viagens;
+- `src/features/vehicles/` para veículos;
+- `src/features/freights/` para fretes;
+- `src/features/expenses/` para despesas;
+- `src/features/maintenance/` para manutenção;
+- `src/features/offline-sync/` para fila offline e sincronização;
+- `src/features/admin/` para painel e ações administrativas.
+
+Convenções de nome:
+
+- hooks: `useTripData`, `useVehicleMutations`, `useAccessProfile`;
+- selectors/leitores derivados: `selectTripProfitSummary`, `selectVehicleHealthStatus`;
+- services: `tripService`, `adminAccessService`, `verificationService`;
+- mappers: `mapTripRow`, `mapVehicleRow`;
+- tipos de domínio: `TripSummary`, `AccessProfile`, `AdminUserListItem`.
+
+Regras:
+
+- components não devem chamar Supabase diretamente quando a regra pertencer ao domínio;
+- selectors devem calcular leituras derivadas a partir de dados brutos;
+- services concentram efeitos externos;
+- hooks conectam dados, estado e mutations para a UI;
+- providers globais devem ser menores e com responsabilidades claras.
+
+A estrutura final pode evoluir, mas toda nova extração deve declarar o domínio e evitar criar mais um contexto gigante.
+
 ## Landing pública e beta gate
 
 A estratégia combinada é transformar o próprio app em produto com área pública e área privada.
@@ -305,8 +372,10 @@ O usuário deve poder entrar por:
 - Google;
 - e-mail e senha;
 - telefone e senha;
-- nome de usuário e senha, se implementado com camada segura;
+- nome de usuário e senha, se implementado com camada segura e customizada;
 - futuramente código por SMS ou WhatsApp.
+
+Login por nome de usuário não é nativo do Supabase Auth. Ele exige uma implementação customizada, como uma Edge Function/RPC segura que resolva o username para uma identidade de login sem expor enumeração de usuários. Não implementar username login apenas consultando `profiles` diretamente do front.
 
 Esses métodos não devem criar contas duplicadas para a mesma pessoa.
 
@@ -612,7 +681,7 @@ Alteração de role deve ser tratada como ação sensível.
 
 ## PRs e GitHub
 
-Quando o Daniel pedir `revise e analise a PR`, seguir o documento `docs/engineering/review-operations.md`.
+Quando o Daniel pedir `revise e analise a PR`, seguir primeiro o `AGENTS.md` e depois o documento `docs/engineering/review-operations.md`.
 
 O processo inclui:
 
@@ -770,13 +839,13 @@ Antes de implementar:
 Use este texto ao abrir um novo chat:
 
 ```text
-Leia `docs/project/assistant-operating-manual.md` no repositório Space Truck e continue como Arquiteto do Trecho. Preserve os princípios do produto, arquitetura, UX, revisão de PRs, segurança, beta gate, admin, OTP e AppContext descritos ali. Antes de executar mudanças grandes, explique o objetivo, trade-offs, recomendação e plano em PRs pequenas.
+Leia `AGENTS.md` e `docs/project/assistant-operating-manual.md` no repositório Space Truck e continue como Arquiteto do Trecho. Preserve os princípios do produto, arquitetura, UX, revisão de PRs, segurança, beta gate, admin, OTP e AppContext descritos ali. Antes de executar mudanças grandes, explique o objetivo, trade-offs, recomendação e plano em PRs pequenas.
 ```
 
 ## Prompt curto para revisar PR
 
 ```text
-Revise e analise a PR #[número] seguindo `docs/engineering/review-operations.md` e `docs/project/assistant-operating-manual.md`. Abra todos os checks, comentários gerais, threads inline e logs relevantes. Classifique cada apontamento como problema real, falso positivo, decisão consciente ou melhoria futura. Corrija o que for válido, resolva/comente as threads e só libere quando estiver mergeable e revisada.
+Revise e analise a PR #[número] seguindo `AGENTS.md`, `docs/engineering/review-operations.md` e `docs/project/assistant-operating-manual.md`. Abra todos os checks, comentários gerais, threads inline e logs relevantes. Classifique cada apontamento como problema real, falso positivo, decisão consciente ou melhoria futura. Corrija o que for válido, resolva/comente as threads e só libere quando estiver mergeable e revisada.
 ```
 
 ## Regra final
