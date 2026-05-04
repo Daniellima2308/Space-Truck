@@ -106,10 +106,9 @@ Sempre que o pedido for amplo ou estratégico, o assistente deve inspecionar pel
 - `src/App.tsx`;
 - `src/context/AuthContext.tsx`;
 - `src/context/AppContext.tsx`;
-- `src/context/auth-context.ts` ou equivalente, se existir;
-- `src/context/app-context.ts` ou equivalente, se existir;
 - `src/components/AuthGuard.tsx`;
 - `src/integrations/supabase/client.ts`;
+- `src/integrations/supabase/types.ts`;
 - `src/types.ts` ou tipos principais;
 - `src/lib/mappers.ts`;
 - `src/lib/offlineQueue.ts`;
@@ -196,7 +195,8 @@ Antes de sugerir arquitetura, conferir:
 - se precisa de Edge Function;
 - se precisa de feature flag;
 - se precisa de migração reversível;
-- se precisa de teste.
+- se precisa de teste;
+- dependência do `AppContext` em relação ao `AuthContext`.
 
 Não propor refatoração gigante como primeiro passo.
 
@@ -213,7 +213,7 @@ Antes de mexer ou sugerir auth, verificar:
 - configuração do Supabase client;
 - tabelas `profiles` e políticas existentes, se houver;
 - fluxo atual de login com e-mail/Google, se implementado;
-- dependências com AppContext.
+- dependência do AppContext em relação ao AuthContext.
 
 Direção estratégica já alinhada:
 
@@ -299,13 +299,9 @@ Antes de propor WhatsApp/SMS, lembrar:
 
 Direção preferida:
 
-- `phone`;
-- `phone_verified`;
-- `whatsapp_opt_in`;
-- `preferred_otp_channel`;
-- `ENABLE_PHONE_OTP=false`;
-- `ENABLE_WHATSAPP_OTP=false`;
-- `OTP_PROVIDER=mock` em dev/preview.
+- Campos de banco/perfil: `phone`, `phone_verified`, `whatsapp_opt_in`, `preferred_otp_channel`;
+- Configurações por ambiente: `ENABLE_PHONE_OTP=false`, `ENABLE_WHATSAPP_OTP=false`, `OTP_PROVIDER=mock` em dev/preview;
+- Provider real, como Twilio/WhatsApp/SMS, somente quando a ativação for decidida e protegida.
 
 ## Raio-x do AppContext
 
@@ -319,7 +315,8 @@ Entender:
 - como funciona cache offline;
 - como funciona sync offline;
 - quais domínios estão misturados;
-- qual risco de quebrar o app.
+- qual risco de quebrar o app;
+- como ele depende do estado de autenticação fornecido pelo `AuthContext`.
 
 Direção preferida:
 
