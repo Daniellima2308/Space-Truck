@@ -117,6 +117,20 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
+  IF TG_OP = 'INSERT'
+    AND (
+      NEW.role <> 'user' OR
+      NEW.access_status <> 'waitlisted' OR
+      NEW.access_status_reason IS NOT NULL OR
+      NEW.approved_at IS NOT NULL OR
+      NEW.approved_by IS NOT NULL
+    )
+    AND COALESCE(auth.role(), '') <> 'service_role'
+    AND NOT public.is_current_user_admin()
+  THEN
+    RAISE EXCEPTION 'Only admins can insert profile access fields';
+  END IF;
+
   IF TG_OP = 'UPDATE'
     AND (
       NEW.role IS DISTINCT FROM OLD.role OR
@@ -137,11 +151,23 @@ $$;
 
 DROP TRIGGER IF EXISTS prevent_profile_access_self_promotion ON public.profiles;
 CREATE TRIGGER prevent_profile_access_self_promotion
-  BEFORE UPDATE ON public.profiles
+  BEFORE INSERT OR UPDATE ON public.profiles
   FOR EACH ROW
   EXECUTE FUNCTION public.prevent_profile_access_self_promotion();
 
 -- Tighten and extend profile policies without changing domain tables yet.
+DROP POLICY IF EXISTS "Users can insert own profile" ON public.profiles;
+CREATE POLICY "Users can insert own profile" ON public.profiles
+  FOR INSERT
+  WITH CHECK (
+    auth.uid() = user_id
+    AND role = 'user'
+    AND access_status = 'waitlisted'
+    AND access_status_reason IS NULL
+    AND approved_at IS NULL
+    AND approved_by IS NULL
+  );
+
 DROP POLICY IF EXISTS "Users can update own profile" ON public.profiles;
 CREATE POLICY "Users can update own profile" ON public.profiles
   FOR UPDATE
