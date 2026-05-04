@@ -35,12 +35,27 @@ type BinoImageProps = {
   fallbackLabel: string;
 };
 
+type CockpitMetric = {
+  icon: IconDefinition;
+  label: string;
+  value: string;
+  tone: string;
+};
+
 const BINO_ASSETS = {
   heroPhone: "/branding/bino/poses/3d/meio-corpo/bino-hero-phone.png",
   assistantPointing: "/branding/bino/poses/3d/corpo-inteiro/bino-assistant-pointing.png",
   usingPhoneMid: "/branding/bino/poses/3d/corpo-inteiro/bino-using-phone-mid.png",
   welcome: "/branding/bino/poses/3d/corpo-inteiro/bino-welcome-open-hands.png",
 };
+
+const DEMO_COCKPIT_DATA = {
+  saldo: "R$ 1.280,00",
+  custoPorKm: "R$ 2,87",
+  fretesConcluidos: "15/15",
+  diesel: "R$ 2.940",
+  proximaParada: "Uberlândia",
+} as const;
 
 const painCards: LandingCard[] = [
   {
@@ -104,9 +119,22 @@ const toolCards: LandingCard[] = [
 const routeSteps = ["Frete", "Diesel", "Despesas", "Lucro", "Manutenção", "Histórico", "Acesso"];
 
 const demoMetrics = [
-  { label: "Saldo da viagem", value: "R$ 1.280,00", tone: "text-profit" },
-  { label: "Custo por km", value: "R$ 2,87", tone: "text-warning" },
-  { label: "Fretes concluídos", value: "15/15", tone: "text-info" },
+  { label: "Saldo da viagem", value: DEMO_COCKPIT_DATA.saldo, tone: "text-profit" },
+  { label: "Custo por km", value: DEMO_COCKPIT_DATA.custoPorKm, tone: "text-warning" },
+  { label: "Fretes concluídos", value: DEMO_COCKPIT_DATA.fretesConcluidos, tone: "text-info" },
+];
+
+const cockpitMetrics: CockpitMetric[] = [
+  { icon: iconFuel, label: "Diesel", value: DEMO_COCKPIT_DATA.diesel, tone: "text-warning" },
+  { icon: iconRoute, label: "Próxima parada", value: DEMO_COCKPIT_DATA.proximaParada, tone: "text-info" },
+  { icon: iconGauge, label: "Custo/KM", value: DEMO_COCKPIT_DATA.custoPorKm, tone: "text-primary" },
+  { icon: iconCheckCircle, label: "Fretes", value: DEMO_COCKPIT_DATA.fretesConcluidos, tone: "text-profit" },
+];
+
+const assistantMessages = [
+  "Esse trecho ficou apertado porque o diesel pesou mais que o previsto.",
+  "Seu custo por km subiu. Vale revisar abastecimento e despesas.",
+  "A viagem está boa, mas ainda falta lançar um gasto para fechar a leitura.",
 ];
 
 const faqs = [
@@ -131,10 +159,6 @@ const faqs = [
       "Não. A ideia é que o Bino funcione como copiloto inteligente, explicando leituras, alertas e decisões dentro do app.",
   },
 ];
-
-function scrollToEarlyAccess() {
-  document.getElementById("pre-registro")?.scrollIntoView({ behavior: "smooth", block: "start" });
-}
 
 function BinoImage({ src, alt, className, fallbackLabel }: BinoImageProps) {
   const [assetFailed, setAssetFailed] = useState(false);
@@ -165,7 +189,7 @@ function FeatureCard({ card }: { card: LandingCard }) {
   return (
     <div className="group rounded-3xl border border-border/70 bg-secondary/35 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-secondary/55 hover:shadow-xl hover:shadow-primary/5">
       <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-        <FontAwesomeIcon icon={card.icon} className="h-5 w-5" />
+        <FontAwesomeIcon icon={card.icon} aria-hidden="true" className="h-5 w-5" />
       </div>
       <h3 className="text-base font-bold text-foreground">{card.title}</h3>
       <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.text}</p>
@@ -186,19 +210,14 @@ function MiniCockpitCard() {
 
       <div className="rounded-2xl border border-profit/20 bg-profit/10 p-4">
         <p className="text-xs text-muted-foreground">Saldo limpo estimado</p>
-        <p className="mt-1 text-3xl font-black tracking-tight text-profit">R$ 1.280,00</p>
+        <p className="mt-1 text-3xl font-black tracking-tight text-profit">{DEMO_COCKPIT_DATA.saldo}</p>
         <p className="mt-1 text-xs text-muted-foreground">Depois de frete, diesel, comissão e despesas.</p>
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        {[
-          { icon: iconFuel, label: "Diesel", value: "R$ 2.940", tone: "text-warning" },
-          { icon: iconRoute, label: "Próxima parada", value: "Uberlândia", tone: "text-info" },
-          { icon: iconGauge, label: "Custo/KM", value: "R$ 2,87", tone: "text-primary" },
-          { icon: iconCheckCircle, label: "Fretes", value: "15/15", tone: "text-profit" },
-        ].map((item) => (
+        {cockpitMetrics.map((item) => (
           <div key={item.label} className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-            <FontAwesomeIcon icon={item.icon} className={`mb-2 h-4 w-4 ${item.tone}`} />
+            <FontAwesomeIcon icon={item.icon} aria-hidden="true" className={`mb-2 h-4 w-4 ${item.tone}`} />
             <p className="text-[11px] text-muted-foreground">{item.label}</p>
             <p className="font-bold text-foreground">{item.value}</p>
           </div>
@@ -259,11 +278,7 @@ function BinoAssistantCard() {
             </h3>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
-            {[
-              "Esse trecho ficou apertado porque o diesel pesou mais que o previsto.",
-              "Seu custo por km subiu. Vale revisar abastecimento e despesas.",
-              "A viagem está boa, mas ainda falta lançar um gasto para fechar a leitura.",
-            ].map((message) => (
+            {assistantMessages.map((message) => (
               <p key={message} className="rounded-2xl border border-border/60 bg-secondary/50 p-3">
                 “{message}”
               </p>
@@ -277,14 +292,18 @@ function BinoAssistantCard() {
 
 const LandingPage = () => {
   return (
-    <main className="min-h-screen overflow-hidden bg-background text-foreground">
-      <div className="pointer-events-none fixed inset-0 -z-10 bg-[radial-gradient(circle_at_top_left,hsl(var(--primary)/0.18),transparent_32%),radial-gradient(circle_at_top_right,hsl(var(--profit)/0.12),transparent_28%),linear-gradient(180deg,hsl(var(--background)),hsl(var(--background)))]" />
-
-      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/78 backdrop-blur-xl">
+    <main
+      className="min-h-screen overflow-hidden bg-background text-foreground"
+      style={{
+        backgroundImage:
+          "radial-gradient(circle at top left, hsl(var(--primary) / 0.18), transparent 32%), radial-gradient(circle at top right, hsl(var(--profit) / 0.12), transparent 28%), linear-gradient(180deg, hsl(var(--background)), hsl(var(--background)))",
+      }}
+    >
+      <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
           <Link to="/inicio" className="flex items-center gap-3">
             <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-primary-foreground shadow-lg shadow-primary/20">
-              <FontAwesomeIcon icon={iconTruck} className="h-5 w-5" />
+              <FontAwesomeIcon icon={iconTruck} aria-hidden="true" className="h-5 w-5" />
             </div>
             <div>
               <p className="text-sm font-black uppercase tracking-[0.18em]">Space Truck</p>
@@ -302,18 +321,17 @@ const LandingPage = () => {
             <Link to="/login" className="hidden rounded-full px-4 py-2 text-sm font-bold text-muted-foreground transition-colors hover:text-foreground sm:inline-flex">
               Entrar
             </Link>
-            <button
-              type="button"
-              onClick={scrollToEarlyAccess}
+            <a
+              href="#pre-registro"
               className="rounded-full bg-primary px-4 py-2 text-sm font-black text-primary-foreground shadow-lg shadow-primary/20 transition-transform active:scale-95"
             >
               Pré-registro
-            </button>
+            </a>
           </div>
         </div>
       </header>
 
-      <section className="relative px-4 pb-20 pt-12 sm:px-6 lg:pb-28 lg:pt-18">
+      <section className="relative px-4 pb-20 pt-12 sm:px-6 lg:pb-28 lg:pt-20">
         <div className="absolute left-1/2 top-8 -z-10 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
         <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-700">
@@ -329,14 +347,13 @@ const LandingPage = () => {
             </p>
 
             <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-              <button
-                type="button"
-                onClick={scrollToEarlyAccess}
+              <a
+                href="#pre-registro"
                 className="group inline-flex items-center justify-center gap-2 rounded-2xl bg-primary px-6 py-4 text-sm font-black text-primary-foreground shadow-xl shadow-primary/20 transition-transform hover:-translate-y-0.5 active:scale-[0.98]"
               >
                 Quero acesso antecipado
-                <FontAwesomeIcon icon={iconArrowRight} className="h-4 w-4 transition-transform group-hover:translate-x-1" />
-              </button>
+                <FontAwesomeIcon icon={iconArrowRight} aria-hidden="true" className="h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </a>
               <a
                 href="#como-funciona"
                 className="inline-flex items-center justify-center rounded-2xl border border-border/70 bg-secondary/50 px-6 py-4 text-sm font-bold text-foreground transition-colors hover:bg-secondary"
@@ -385,7 +402,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section id="leituras" className="px-4 py-20 sm:px-6">
+      <section id="leituras" className="scroll-mt-20 px-4 py-20 sm:px-6">
         <div className="mx-auto max-w-7xl">
           <div className="grid items-center gap-10 lg:grid-cols-[0.8fr_1.2fr]">
             <div>
@@ -398,7 +415,7 @@ const LandingPage = () => {
               </p>
               <div className="mt-6 rounded-3xl border border-profit/20 bg-profit/10 p-5">
                 <div className="flex items-center gap-3">
-                  <FontAwesomeIcon icon={iconDollarSign} className="h-5 w-5 text-profit" />
+                  <FontAwesomeIcon icon={iconDollarSign} aria-hidden="true" className="h-5 w-5 text-profit" />
                   <p className="text-sm font-bold text-foreground">Pergunta principal</p>
                 </div>
                 <p className="mt-3 text-2xl font-black text-profit">Quanto sobrou limpo?</p>
@@ -415,7 +432,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section id="como-funciona" className="relative px-4 py-20 sm:px-6">
+      <section id="como-funciona" className="relative scroll-mt-20 px-4 py-20 sm:px-6">
         <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
         <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
           <div>
@@ -439,7 +456,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section id="bino" className="px-4 py-20 sm:px-6">
+      <section id="bino" className="scroll-mt-20 px-4 py-20 sm:px-6">
         <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[0.9fr_1.1fr]">
           <div>
             <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Assistente virtual</p>
@@ -451,12 +468,12 @@ const LandingPage = () => {
             </p>
             <div className="mt-6 grid gap-3 sm:grid-cols-2">
               <div className="rounded-2xl border border-border/70 bg-secondary/35 p-4">
-                <FontAwesomeIcon icon={iconSparkles} className="mb-3 h-5 w-5 text-primary" />
+                <FontAwesomeIcon icon={iconSparkles} aria-hidden="true" className="mb-3 h-5 w-5 text-primary" />
                 <p className="font-bold">Explica sem complicar</p>
                 <p className="mt-1 text-sm text-muted-foreground">Nada de relatório confuso. A ideia é falar a língua da estrada.</p>
               </div>
               <div className="rounded-2xl border border-border/70 bg-secondary/35 p-4">
-                <FontAwesomeIcon icon={iconShield} className="mb-3 h-5 w-5 text-profit" />
+                <FontAwesomeIcon icon={iconShield} aria-hidden="true" className="mb-3 h-5 w-5 text-profit" />
                 <p className="font-bold">Alerta com contexto</p>
                 <p className="mt-1 text-sm text-muted-foreground">Custo alto, margem apertada, manutenção chegando e dados faltando.</p>
               </div>
@@ -466,7 +483,7 @@ const LandingPage = () => {
         </div>
       </section>
 
-      <section id="pre-registro" className="px-4 py-20 sm:px-6">
+      <section id="pre-registro" className="scroll-mt-20 px-4 py-20 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
           <div className="overflow-hidden rounded-[2rem] border border-primary/20 bg-primary/10 p-6 lg:sticky lg:top-24">
             <div className="grid gap-6 sm:grid-cols-[1fr_0.65fr] sm:items-end lg:grid-cols-1">
@@ -491,7 +508,7 @@ const LandingPage = () => {
             <div className="mt-6 space-y-3">
               {["Crie seu pré-registro", "Aguarde a liberação", "Teste na rotina real"].map((item) => (
                 <div key={item} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/70 p-3">
-                  <FontAwesomeIcon icon={iconCheckCircle} className="h-4 w-4 text-profit" />
+                  <FontAwesomeIcon icon={iconCheckCircle} aria-hidden="true" className="h-4 w-4 text-profit" />
                   <span className="text-sm font-semibold">{item}</span>
                 </div>
               ))}
@@ -520,7 +537,7 @@ const LandingPage = () => {
 
             <div className="mt-5 rounded-2xl border border-warning/20 bg-warning/10 p-4">
               <div className="flex items-start gap-3">
-                <FontAwesomeIcon icon={iconLock} className="mt-0.5 h-4 w-4 text-warning" />
+                <FontAwesomeIcon icon={iconLock} aria-hidden="true" className="mt-0.5 h-4 w-4 text-warning" />
                 <p className="text-sm leading-relaxed text-muted-foreground">
                   O formulário funcional será conectado na próxima etapa do beta gate. Por enquanto, o caminho seguro é criar conta e preparar o status de acesso.
                 </p>
@@ -533,7 +550,7 @@ const LandingPage = () => {
                 className="inline-flex flex-1 items-center justify-center gap-2 rounded-2xl bg-primary px-5 py-4 text-sm font-black text-primary-foreground shadow-lg shadow-primary/20 transition-transform active:scale-[0.98]"
               >
                 Criar meu pré-registro
-                <FontAwesomeIcon icon={iconArrowRight} className="h-4 w-4" />
+                <FontAwesomeIcon icon={iconArrowRight} aria-hidden="true" className="h-4 w-4" />
               </Link>
               <Link
                 to="/login"
