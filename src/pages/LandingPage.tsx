@@ -10,7 +10,6 @@ import {
   iconFuel,
   iconGauge,
   iconLock,
-  iconMapPin,
   iconReceipt,
   iconRoute,
   iconShield,
@@ -27,6 +26,24 @@ type LandingCard = {
   title: string;
   text: string;
   icon: IconDefinition;
+};
+
+type BinoImageProps = {
+  src: string;
+  alt: string;
+  className?: string;
+  fallbackLabel: string;
+};
+
+const BINO_ASSET_BASE = "/branding/bino/poses/bino-1";
+
+const BINO_ASSETS = {
+  heroPhone: `${BINO_ASSET_BASE}/bino-hero-phone.png`,
+  assistantPointing: `${BINO_ASSET_BASE}/bino-assistant-pointing.png`,
+  confident: `${BINO_ASSET_BASE}/bino-confident-crossed-arms.png`,
+  usingPhoneMid: `${BINO_ASSET_BASE}/bino-using-phone-mid.png`,
+  usingPhoneClose: `${BINO_ASSET_BASE}/bino-using-phone-close.png`,
+  welcome: `${BINO_ASSET_BASE}/bino-welcome-open-hands.png`,
 };
 
 const painCards: LandingCard[] = [
@@ -88,14 +105,12 @@ const toolCards: LandingCard[] = [
   },
 ];
 
-const routeSteps = [
-  "Frete",
-  "Diesel",
-  "Despesas",
-  "Lucro",
-  "Manutenção",
-  "Histórico",
-  "Acesso",
+const routeSteps = ["Frete", "Diesel", "Despesas", "Lucro", "Manutenção", "Histórico", "Acesso"];
+
+const demoMetrics = [
+  { label: "Saldo da viagem", value: "R$ 1.280,00", tone: "text-profit" },
+  { label: "Custo por km", value: "R$ 2,87", tone: "text-warning" },
+  { label: "Fretes concluídos", value: "15/15", tone: "text-info" },
 ];
 
 const faqs = [
@@ -121,42 +136,131 @@ const faqs = [
   },
 ];
 
-const demoMetrics = [
-  { label: "Saldo da viagem", value: "R$ 1.280,00", tone: "text-profit" },
-  { label: "Custo por km", value: "R$ 2,87", tone: "text-warning" },
-  { label: "Fretes concluídos", value: "15/15", tone: "text-info" },
-];
-
 function scrollToEarlyAccess() {
   document.getElementById("pre-registro")?.scrollIntoView({ behavior: "smooth", block: "start" });
 }
 
-function BinoAssistantCard() {
+function BinoImage({ src, alt, className, fallbackLabel }: BinoImageProps) {
   const [assetFailed, setAssetFailed] = useState(false);
-  const binoAssetPath = "/branding/bino/bino-assistente.png";
 
+  if (assetFailed) {
+    return (
+      <div className="flex min-h-48 w-full flex-col items-center justify-center rounded-[2rem] border border-dashed border-primary/40 bg-primary/10 p-6 text-center">
+        <span className="text-4xl font-black text-primary">B</span>
+        <span className="mt-2 max-w-36 text-xs font-semibold text-muted-foreground">{fallbackLabel}</span>
+      </div>
+    );
+  }
+
+  return <img src={src} alt={alt} className={className} onError={() => setAssetFailed(true)} />;
+}
+
+function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
+  return (
+    <div className="mx-auto max-w-3xl text-center">
+      <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">{eyebrow}</p>
+      <h2 className="mt-3 text-3xl font-black tracking-tight text-foreground sm:text-4xl">{title}</h2>
+      <p className="mt-4 text-base leading-relaxed text-muted-foreground">{text}</p>
+    </div>
+  );
+}
+
+function FeatureCard({ card }: { card: LandingCard }) {
+  return (
+    <div className="group rounded-3xl border border-border/70 bg-secondary/35 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-secondary/55 hover:shadow-xl hover:shadow-primary/5">
+      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
+        <FontAwesomeIcon icon={card.icon} className="h-5 w-5" />
+      </div>
+      <h3 className="text-base font-bold text-foreground">{card.title}</h3>
+      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.text}</p>
+    </div>
+  );
+}
+
+function MiniCockpitCard() {
+  return (
+    <div className="rounded-[1.7rem] border border-border/70 bg-background/95 p-4 shadow-2xl shadow-primary/10 backdrop-blur">
+      <div className="mb-4 flex items-center justify-between">
+        <div>
+          <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Space Truck</p>
+          <p className="text-sm font-bold text-foreground">Viagem em leitura</p>
+        </div>
+        <span className="rounded-full bg-profit/15 px-2.5 py-1 text-[10px] font-bold uppercase text-profit">Ativa</span>
+      </div>
+
+      <div className="rounded-2xl border border-profit/20 bg-profit/10 p-4">
+        <p className="text-xs text-muted-foreground">Saldo limpo estimado</p>
+        <p className="mt-1 text-3xl font-black tracking-tight text-profit">R$ 1.280,00</p>
+        <p className="mt-1 text-xs text-muted-foreground">Depois de frete, diesel, comissão e despesas.</p>
+      </div>
+
+      <div className="mt-3 grid grid-cols-2 gap-2">
+        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
+          <FontAwesomeIcon icon={iconFuel} className="mb-2 h-4 w-4 text-warning" />
+          <p className="text-[11px] text-muted-foreground">Diesel</p>
+          <p className="font-bold text-foreground">R$ 2.940</p>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
+          <FontAwesomeIcon icon={iconRoute} className="mb-2 h-4 w-4 text-info" />
+          <p className="text-[11px] text-muted-foreground">Próxima parada</p>
+          <p className="font-bold text-foreground">Uberlândia</p>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
+          <FontAwesomeIcon icon={iconGauge} className="mb-2 h-4 w-4 text-primary" />
+          <p className="text-[11px] text-muted-foreground">Custo/KM</p>
+          <p className="font-bold text-foreground">R$ 2,87</p>
+        </div>
+        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
+          <FontAwesomeIcon icon={iconCheckCircle} className="mb-2 h-4 w-4 text-profit" />
+          <p className="text-[11px] text-muted-foreground">Fretes</p>
+          <p className="font-bold text-foreground">15/15</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function HeroVisual() {
+  return (
+    <div className="relative mx-auto w-full max-w-lg animate-in fade-in slide-in-from-bottom-4 duration-700">
+      <div className="absolute -inset-8 rounded-full bg-primary/20 blur-3xl" />
+      <div className="relative overflow-hidden rounded-[2.4rem] border border-primary/20 bg-gradient-to-b from-secondary/95 to-background p-4 shadow-2xl shadow-primary/10">
+        <div className="absolute right-4 top-4 z-10 rounded-full border border-primary/20 bg-background/80 px-3 py-1 text-[10px] font-black uppercase tracking-[0.18em] text-primary backdrop-blur">
+          Copiloto IA
+        </div>
+        <div className="grid gap-4 md:grid-cols-[1fr_0.85fr] md:items-center">
+          <div className="relative min-h-[360px] overflow-hidden rounded-[2rem] bg-black/80">
+            <div className="absolute inset-x-6 bottom-0 top-6 rounded-full bg-primary/10 blur-3xl" />
+            <BinoImage
+              src={BINO_ASSETS.heroPhone}
+              alt="Bino apresentando o Space Truck em um celular"
+              fallbackLabel="Bino hero phone"
+              className="relative z-10 h-full min-h-[360px] w-full object-contain object-bottom drop-shadow-2xl"
+            />
+          </div>
+          <div className="md:-ml-16 md:mr-1">
+            <MiniCockpitCard />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function BinoAssistantCard() {
   return (
     <div className="relative overflow-hidden rounded-[2rem] border border-primary/20 bg-background/80 p-5 shadow-2xl shadow-primary/5 backdrop-blur">
       <div className="absolute -right-10 -top-10 h-36 w-36 rounded-full bg-primary/20 blur-3xl" />
       <div className="absolute -bottom-10 left-1/2 h-28 w-28 -translate-x-1/2 rounded-full bg-profit/10 blur-3xl" />
 
       <div className="relative grid gap-4 sm:grid-cols-[0.9fr_1.1fr] sm:items-center">
-        <div className="flex min-h-[210px] items-end justify-center rounded-3xl border border-border/70 bg-secondary/35 p-4">
-          {!assetFailed ? (
-            <img
-              src={binoAssetPath}
-              alt="Bino, assistente virtual do Space Truck"
-              className="max-h-64 w-auto object-contain drop-shadow-2xl"
-              onError={() => setAssetFailed(true)}
-            />
-          ) : (
-            <div className="flex h-52 w-40 flex-col items-center justify-center rounded-[2rem] border border-dashed border-primary/40 bg-primary/10 text-center">
-              <span className="text-4xl font-black text-primary">B</span>
-              <span className="mt-2 max-w-28 text-xs font-semibold text-muted-foreground">
-                Asset oficial do Bino entra aqui
-              </span>
-            </div>
-          )}
+        <div className="flex min-h-[260px] items-end justify-center overflow-hidden rounded-3xl border border-border/70 bg-black/75 p-4">
+          <BinoImage
+            src={BINO_ASSETS.assistantPointing}
+            alt="Bino apontando e explicando as leituras do Space Truck"
+            fallbackLabel="Bino apontando"
+            className="max-h-80 w-auto object-contain object-bottom drop-shadow-2xl"
+          />
         </div>
 
         <div className="space-y-4">
@@ -179,88 +283,6 @@ function BinoAssistantCard() {
           </div>
         </div>
       </div>
-    </div>
-  );
-}
-
-function AppCockpitPreview() {
-  return (
-    <div className="relative mx-auto w-full max-w-sm animate-in fade-in slide-in-from-bottom-4 duration-700">
-      <div className="absolute -inset-8 rounded-full bg-primary/20 blur-3xl" />
-      <div className="relative rounded-[2.2rem] border border-primary/20 bg-gradient-to-b from-secondary/95 to-background p-3 shadow-2xl shadow-primary/10">
-        <div className="rounded-[1.7rem] border border-border/70 bg-background p-4">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-muted-foreground">Space Truck</p>
-              <p className="text-sm font-bold text-foreground">Viagem em leitura</p>
-            </div>
-            <span className="rounded-full bg-profit/15 px-2.5 py-1 text-[10px] font-bold uppercase text-profit">
-              Ativa
-            </span>
-          </div>
-
-          <div className="rounded-2xl border border-profit/20 bg-profit/10 p-4">
-            <p className="text-xs text-muted-foreground">Saldo limpo estimado</p>
-            <p className="mt-1 text-3xl font-black tracking-tight text-profit">R$ 1.280,00</p>
-            <p className="mt-1 text-xs text-muted-foreground">Depois de frete, diesel, comissão e despesas.</p>
-          </div>
-
-          <div className="mt-3 grid grid-cols-2 gap-2">
-            <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-              <FontAwesomeIcon icon={iconFuel} className="mb-2 h-4 w-4 text-warning" />
-              <p className="text-[11px] text-muted-foreground">Diesel</p>
-              <p className="font-bold text-foreground">R$ 2.940</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-              <FontAwesomeIcon icon={iconRoute} className="mb-2 h-4 w-4 text-info" />
-              <p className="text-[11px] text-muted-foreground">Próxima parada</p>
-              <p className="font-bold text-foreground">Uberlândia</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-              <FontAwesomeIcon icon={iconGauge} className="mb-2 h-4 w-4 text-primary" />
-              <p className="text-[11px] text-muted-foreground">Custo/KM</p>
-              <p className="font-bold text-foreground">R$ 2,87</p>
-            </div>
-            <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-              <FontAwesomeIcon icon={iconCheckCircle} className="mb-2 h-4 w-4 text-profit" />
-              <p className="text-[11px] text-muted-foreground">Fretes</p>
-              <p className="font-bold text-foreground">15/15</p>
-            </div>
-          </div>
-
-          <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/10 p-3">
-            <div className="flex items-center gap-2">
-              <FontAwesomeIcon icon={iconSparkles} className="h-4 w-4 text-primary" />
-              <p className="text-xs font-semibold text-foreground">Leitura do Bino</p>
-            </div>
-            <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-              Viagem saudável até agora. O diesel pesou, mas o saldo ainda ficou positivo.
-            </p>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
-  return (
-    <div className="mx-auto max-w-3xl text-center">
-      <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">{eyebrow}</p>
-      <h2 className="mt-3 text-3xl font-black tracking-tight text-foreground sm:text-4xl">{title}</h2>
-      <p className="mt-4 text-base leading-relaxed text-muted-foreground">{text}</p>
-    </div>
-  );
-}
-
-function FeatureCard({ card }: { card: LandingCard }) {
-  return (
-    <div className="group rounded-3xl border border-border/70 bg-secondary/35 p-5 transition-all duration-300 hover:-translate-y-1 hover:border-primary/40 hover:bg-secondary/55 hover:shadow-xl hover:shadow-primary/5">
-      <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-2xl bg-primary/10 text-primary transition-transform duration-300 group-hover:scale-110">
-        <FontAwesomeIcon icon={card.icon} className="h-5 w-5" />
-      </div>
-      <h3 className="text-base font-bold text-foreground">{card.title}</h3>
-      <p className="mt-2 text-sm leading-relaxed text-muted-foreground">{card.text}</p>
     </div>
   );
 }
@@ -305,7 +327,7 @@ const LandingPage = () => {
 
       <section className="relative px-4 pb-20 pt-12 sm:px-6 lg:pb-28 lg:pt-18">
         <div className="absolute left-1/2 top-8 -z-10 h-[480px] w-[480px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.05fr_0.95fr]">
+        <div className="mx-auto grid max-w-7xl items-center gap-12 lg:grid-cols-[1.02fr_0.98fr]">
           <div className="max-w-3xl animate-in fade-in slide-in-from-bottom-4 duration-700">
             <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-primary/25 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.2em] text-primary">
               <span className="h-2 w-2 rounded-full bg-profit animate-pulse" />
@@ -345,7 +367,7 @@ const LandingPage = () => {
             </div>
           </div>
 
-          <AppCockpitPreview />
+          <HeroVisual />
         </div>
       </section>
 
@@ -407,14 +429,24 @@ const LandingPage = () => {
 
       <section id="como-funciona" className="relative px-4 py-20 sm:px-6">
         <div className="absolute inset-x-0 top-1/2 -z-10 h-px bg-gradient-to-r from-transparent via-primary/40 to-transparent" />
-        <div className="mx-auto max-w-7xl">
-          <SectionTitle
-            eyebrow="Como funciona"
-            title="Da boleia para o painel, do painel para a decisão."
-            text="A experiência pública mostra a promessa. O app interno transforma a operação em leitura prática para quem roda."
-          />
-          <div className="mt-10 grid gap-4 lg:grid-cols-3">
-            {toolCards.map((card) => <FeatureCard key={card.title} card={card} />)}
+        <div className="mx-auto grid max-w-7xl items-center gap-10 lg:grid-cols-[1.1fr_0.9fr]">
+          <div>
+            <SectionTitle
+              eyebrow="Como funciona"
+              title="Da boleia para o painel, do painel para a decisão."
+              text="A experiência pública mostra a promessa. O app interno transforma a operação em leitura prática para quem roda."
+            />
+            <div className="mt-10 grid gap-4 lg:grid-cols-3">
+              {toolCards.map((card) => <FeatureCard key={card.title} card={card} />)}
+            </div>
+          </div>
+          <div className="mx-auto w-full max-w-sm overflow-hidden rounded-[2rem] border border-border/70 bg-black/75 p-4 shadow-2xl shadow-primary/5">
+            <BinoImage
+              src={BINO_ASSETS.usingPhoneMid}
+              alt="Bino usando o celular com o Space Truck"
+              fallbackLabel="Bino usando celular"
+              className="max-h-[520px] w-full object-contain object-bottom drop-shadow-2xl"
+            />
           </div>
         </div>
       </section>
@@ -448,14 +480,26 @@ const LandingPage = () => {
 
       <section id="pre-registro" className="px-4 py-20 sm:px-6">
         <div className="mx-auto grid max-w-7xl gap-8 lg:grid-cols-[0.9fr_1.1fr] lg:items-start">
-          <div className="rounded-[2rem] border border-primary/20 bg-primary/10 p-6 lg:sticky lg:top-24">
-            <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Acesso antecipado</p>
-            <h2 className="mt-3 text-3xl font-black tracking-tight text-foreground">
-              Entre na lista e acompanhe a chegada do Space Truck.
-            </h2>
-            <p className="mt-4 text-base leading-relaxed text-muted-foreground">
-              A liberação será feita aos poucos para testar com qualidade e ouvir caminhoneiros reais antes do lançamento geral.
-            </p>
+          <div className="overflow-hidden rounded-[2rem] border border-primary/20 bg-primary/10 p-6 lg:sticky lg:top-24">
+            <div className="grid gap-6 sm:grid-cols-[1fr_0.65fr] sm:items-end lg:grid-cols-1">
+              <div>
+                <p className="text-xs font-bold uppercase tracking-[0.28em] text-primary">Acesso antecipado</p>
+                <h2 className="mt-3 text-3xl font-black tracking-tight text-foreground">
+                  Entre na lista e acompanhe a chegada do Space Truck.
+                </h2>
+                <p className="mt-4 text-base leading-relaxed text-muted-foreground">
+                  A liberação será feita aos poucos para testar com qualidade e ouvir caminhoneiros reais antes do lançamento geral.
+                </p>
+              </div>
+              <div className="mx-auto w-full max-w-56 rounded-[1.5rem] bg-black/70 p-3">
+                <BinoImage
+                  src={BINO_ASSETS.welcome}
+                  alt="Bino recebendo o usuário no acesso antecipado"
+                  fallbackLabel="Bino boas-vindas"
+                  className="max-h-72 w-full object-contain object-bottom drop-shadow-2xl"
+                />
+              </div>
+            </div>
             <div className="mt-6 space-y-3">
               {["Crie seu pré-registro", "Aguarde a liberação", "Teste na rotina real"].map((item) => (
                 <div key={item} className="flex items-center gap-3 rounded-2xl border border-border/60 bg-background/70 p-3">
