@@ -48,6 +48,7 @@ space-truck-history-mobile.png
 
 - não subir prints com dados pessoais reais;
 - evitar e-mail, telefone, placa real e localização sensível;
+- remover metadados EXIF/IPTC/XMP antes de publicar, incluindo GPS, dispositivo e data/hora; verificar a remoção no exportador usado ou com ferramenta própria antes do upload;
 - preferir dados demonstrativos;
 - manter boa resolução e contraste;
 - se o print for usado dentro de mockup de celular, manter margem segura e legibilidade.
