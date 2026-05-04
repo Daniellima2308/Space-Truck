@@ -33,6 +33,7 @@ import HelpCenterPage from "./pages/HelpCenterPage";
 import HelpTopicDetailPage from "./pages/HelpTopicDetailPage";
 import SupportRequestPage from "./pages/SupportRequestPage";
 import SupportTicketsPage from "./pages/SupportTicketsPage";
+import WaitlistPage from "./pages/WaitlistPage";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -79,6 +80,8 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/waitlist" element={<WaitlistPage />} />
+            <Route path="/lista-de-espera" element={<WaitlistPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
