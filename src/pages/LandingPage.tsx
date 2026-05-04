@@ -35,15 +35,11 @@ type BinoImageProps = {
   fallbackLabel: string;
 };
 
-const BINO_ASSET_BASE = "/branding/bino/poses/bino-1";
-
 const BINO_ASSETS = {
-  heroPhone: `${BINO_ASSET_BASE}/bino-hero-phone.png`,
-  assistantPointing: `${BINO_ASSET_BASE}/bino-assistant-pointing.png`,
-  confident: `${BINO_ASSET_BASE}/bino-confident-crossed-arms.png`,
-  usingPhoneMid: `${BINO_ASSET_BASE}/bino-using-phone-mid.png`,
-  usingPhoneClose: `${BINO_ASSET_BASE}/bino-using-phone-close.png`,
-  welcome: `${BINO_ASSET_BASE}/bino-welcome-open-hands.png`,
+  heroPhone: "/branding/bino/poses/3d/meio-corpo/bino-hero-phone.png",
+  assistantPointing: "/branding/bino/poses/3d/corpo-inteiro/bino-assistant-pointing.png",
+  usingPhoneMid: "/branding/bino/poses/3d/corpo-inteiro/bino-using-phone-mid.png",
+  welcome: "/branding/bino/poses/3d/corpo-inteiro/bino-welcome-open-hands.png",
 };
 
 const painCards: LandingCard[] = [
@@ -195,26 +191,18 @@ function MiniCockpitCard() {
       </div>
 
       <div className="mt-3 grid grid-cols-2 gap-2">
-        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-          <FontAwesomeIcon icon={iconFuel} className="mb-2 h-4 w-4 text-warning" />
-          <p className="text-[11px] text-muted-foreground">Diesel</p>
-          <p className="font-bold text-foreground">R$ 2.940</p>
-        </div>
-        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-          <FontAwesomeIcon icon={iconRoute} className="mb-2 h-4 w-4 text-info" />
-          <p className="text-[11px] text-muted-foreground">Próxima parada</p>
-          <p className="font-bold text-foreground">Uberlândia</p>
-        </div>
-        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-          <FontAwesomeIcon icon={iconGauge} className="mb-2 h-4 w-4 text-primary" />
-          <p className="text-[11px] text-muted-foreground">Custo/KM</p>
-          <p className="font-bold text-foreground">R$ 2,87</p>
-        </div>
-        <div className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
-          <FontAwesomeIcon icon={iconCheckCircle} className="mb-2 h-4 w-4 text-profit" />
-          <p className="text-[11px] text-muted-foreground">Fretes</p>
-          <p className="font-bold text-foreground">15/15</p>
-        </div>
+        {[
+          { icon: iconFuel, label: "Diesel", value: "R$ 2.940", tone: "text-warning" },
+          { icon: iconRoute, label: "Próxima parada", value: "Uberlândia", tone: "text-info" },
+          { icon: iconGauge, label: "Custo/KM", value: "R$ 2,87", tone: "text-primary" },
+          { icon: iconCheckCircle, label: "Fretes", value: "15/15", tone: "text-profit" },
+        ].map((item) => (
+          <div key={item.label} className="rounded-2xl border border-border/70 bg-secondary/50 p-3">
+            <FontAwesomeIcon icon={item.icon} className={`mb-2 h-4 w-4 ${item.tone}`} />
+            <p className="text-[11px] text-muted-foreground">{item.label}</p>
+            <p className="font-bold text-foreground">{item.value}</p>
+          </div>
+        ))}
       </div>
     </div>
   );
@@ -271,15 +259,15 @@ function BinoAssistantCard() {
             </h3>
           </div>
           <div className="space-y-2 text-sm text-muted-foreground">
-            <p className="rounded-2xl border border-border/60 bg-secondary/50 p-3">
-              “Esse trecho ficou apertado porque o diesel pesou mais que o previsto.”
-            </p>
-            <p className="rounded-2xl border border-border/60 bg-secondary/50 p-3">
-              “Seu custo por km subiu. Vale revisar abastecimento e despesas.”
-            </p>
-            <p className="rounded-2xl border border-border/60 bg-secondary/50 p-3">
-              “A viagem está boa, mas ainda falta lançar um gasto para fechar a leitura.”
-            </p>
+            {[
+              "Esse trecho ficou apertado porque o diesel pesou mais que o previsto.",
+              "Seu custo por km subiu. Vale revisar abastecimento e despesas.",
+              "A viagem está boa, mas ainda falta lançar um gasto para fechar a leitura.",
+            ].map((message) => (
+              <p key={message} className="rounded-2xl border border-border/60 bg-secondary/50 p-3">
+                “{message}”
+              </p>
+            ))}
           </div>
         </div>
       </div>
