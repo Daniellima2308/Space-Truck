@@ -33,6 +33,7 @@ type BinoImageProps = {
   alt: string;
   className?: string;
   fallbackLabel: string;
+  loading?: "eager" | "lazy";
 };
 
 type CockpitMetric = {
@@ -160,7 +161,7 @@ const faqs = [
   },
 ];
 
-function BinoImage({ src, alt, className, fallbackLabel }: BinoImageProps) {
+function BinoImage({ src, alt, className, fallbackLabel, loading = "lazy" }: BinoImageProps) {
   const [assetFailed, setAssetFailed] = useState(false);
 
   if (assetFailed) {
@@ -172,7 +173,7 @@ function BinoImage({ src, alt, className, fallbackLabel }: BinoImageProps) {
     );
   }
 
-  return <img src={src} alt={alt} className={className} onError={() => setAssetFailed(true)} />;
+  return <img src={src} alt={alt} className={className} loading={loading} onError={() => setAssetFailed(true)} />;
 }
 
 function SectionTitle({ eyebrow, title, text }: { eyebrow: string; title: string; text: string }) {
@@ -242,6 +243,7 @@ function HeroVisual() {
               src={BINO_ASSETS.heroPhone}
               alt="Bino apresentando o Space Truck em um celular"
               fallbackLabel="Bino hero phone"
+              loading="eager"
               className="relative z-10 h-full min-h-[360px] w-full object-contain object-bottom drop-shadow-2xl"
             />
           </div>
@@ -266,6 +268,7 @@ function BinoAssistantCard() {
             src={BINO_ASSETS.assistantPointing}
             alt="Bino apontando e explicando as leituras do Space Truck"
             fallbackLabel="Bino apontando"
+            loading="lazy"
             className="max-h-80 w-auto object-contain object-bottom drop-shadow-2xl"
           />
         </div>
@@ -450,6 +453,7 @@ const LandingPage = () => {
               src={BINO_ASSETS.usingPhoneMid}
               alt="Bino usando o celular com o Space Truck"
               fallbackLabel="Bino usando celular"
+              loading="lazy"
               className="max-h-[520px] w-full object-contain object-bottom drop-shadow-2xl"
             />
           </div>
@@ -501,6 +505,7 @@ const LandingPage = () => {
                   src={BINO_ASSETS.welcome}
                   alt="Bino recebendo o usuário no acesso antecipado"
                   fallbackLabel="Bino boas-vindas"
+                  loading="lazy"
                   className="max-h-72 w-full object-contain object-bottom drop-shadow-2xl"
                 />
               </div>
