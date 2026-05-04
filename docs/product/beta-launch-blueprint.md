@@ -29,7 +29,7 @@ O objetivo é definir:
 
 ## Estado atual considerado
 
-O Space Truck já possui app interno com rotas, login, cadastro, AuthGuard, AuthContext, AppContext, Supabase, workflows e docs de arquitetura.
+O Space Truck já possui app interno com rotas, login, cadastro, `AuthGuard`, `AuthContext`, `AppContext`, Supabase, workflows e docs de arquitetura.
 
 Hoje, em `src/App.tsx`:
 
@@ -55,9 +55,7 @@ Este blueprint planeja essas partes como evolução do produto existente.
 
 ## Princípio central
 
-A landing não deve ser um “site bonito separado”.
-
-Ela deve ser a fachada pública do Space Truck.
+A landing não deve ser um “site bonito separado”. Ela deve ser a fachada pública do Space Truck.
 
 A pessoa chega, entende a promessa, cria conta ou entra na lista, e depois é conduzida para espera, aprovação e app interno.
 
@@ -134,17 +132,17 @@ Preferir frases como:
 Fluxo ideal:
 
 1. Visitante acessa `/`.
-2. Vê a landing pública.
-3. Entende promessa e benefícios.
-4. Clica em `Quero acesso antecipado`.
-5. Vai para fluxo de cadastro/login.
-6. Cria conta ou entra com Google/e-mail.
-7. Completa dados mínimos.
-8. Fica como `waitlisted`.
-9. Vê tela de espera.
-10. Daniel aprova pelo admin.
-11. Usuário passa para `approved`.
-12. Usuário entra no app interno.
+1. Vê a landing pública.
+1. Entende promessa e benefícios.
+1. Clica em `Quero acesso antecipado`.
+1. Vai para fluxo de cadastro/login.
+1. Cria conta ou entra com Google/e-mail.
+1. Completa dados mínimos.
+1. Fica como `waitlisted`.
+1. Vê tela de espera.
+1. Daniel aprova pelo admin.
+1. Usuário passa para `approved`.
+1. Usuário entra no app interno.
 
 ## Arquitetura de navegação desejada
 
@@ -191,17 +189,17 @@ Em poucos segundos, a landing precisa responder:
 
 ### Estrutura recomendada da landing
 
-1. Hero principal;
-2. Dor real;
-3. Solução do Space Truck;
-4. Leituras que o app entrega;
-5. Como funciona o acesso antecipado;
-6. Prévia do app / mock funcional;
-7. Bino como guia;
-8. Formulário ou CTA de acesso;
-9. Confiança e privacidade;
-10. FAQ curto;
-11. CTA final.
+1. Hero principal.
+1. Dor real.
+1. Solução do Space Truck.
+1. Leituras que o app entrega.
+1. Como funciona o acesso antecipado.
+1. Prévia do app ou mock funcional.
+1. Bino como guia.
+1. Formulário ou CTA de acesso.
+1. Confiança e privacidade.
+1. FAQ curto.
+1. CTA final.
 
 ## Seção 1 — Hero principal
 
@@ -361,17 +359,9 @@ Bloco 5 — `Manutenção`
 
 ### Passos
 
-1. `Entre na lista`
-
-Texto: `Informe seus dados principais e o que mais quer controlar no app.`
-
-2. `Aguarde a liberação`
-
-Texto: `O acesso será liberado aos poucos para manter qualidade e ouvir os primeiros usuários.`
-
-3. `Teste na rotina real`
-
-Texto: `Use o app em viagens reais e ajude a deixar o Space Truck mais certeiro.`
+- `Entre na lista`: informe seus dados principais e o que mais quer controlar no app.
+- `Aguarde a liberação`: o acesso será liberado aos poucos para manter qualidade e ouvir os primeiros usuários.
+- `Teste na rotina real`: use o app em viagens reais e ajude a deixar o Space Truck mais certeiro.
 
 ## Seção 6 — Bino como guia
 
@@ -420,13 +410,13 @@ O formulário deve ser curto o suficiente para converter, mas inteligente o bast
 
 ### Campos mínimos recomendados
 
-1. Nome ou apelido;
-2. WhatsApp;
-3. E-mail;
-4. Cidade/UF base;
-5. Perfil;
-6. Principal interesse;
-7. Consentimento WhatsApp.
+1. Nome ou apelido.
+1. WhatsApp.
+1. E-mail.
+1. Cidade/UF base.
+1. Perfil.
+1. Principal interesse.
+1. Consentimento WhatsApp.
 
 ### Perfil
 
@@ -549,7 +539,7 @@ Mostrar:
 - mensagem genérica;
 - canal de contato.
 
-#### erro de perfil
+#### Erro de perfil
 
 Mostrar:
 
@@ -866,21 +856,17 @@ Esta parte não precisa ser implementada agora, mas deve guiar o texto futuro.
 ### Boas-vindas à lista
 
 > Bem-vindo à lista de acesso antecipado do Space Truck 🚛
->
 > Você entrou no grupo dos primeiros caminhoneiros que vão acompanhar a chegada do app. Estamos criando o Space Truck para ajudar na leitura da viagem: frete, custos, despesas, manutenção e quanto sobra de verdade no fim do trecho.
->
 > Quando seu acesso for liberado, avisaremos por aqui.
 
 ### Aprovação de acesso
 
 > Seu acesso ao Space Truck foi liberado 🚛
->
 > Agora você já pode entrar no app e começar a testar as ferramentas de controle de viagem, frete, despesas e lucro.
 
 ### Lembrete de cadastro incompleto
 
 > Falta pouco para entrar na lista do Space Truck.
->
 > Complete seus dados para que possamos liberar seu acesso quando chegar sua vez.
 
 ## Critérios de qualidade antes de implementar visual
@@ -976,24 +962,24 @@ Ajustar Playwright, smoke, UI health e migração gradual para `/app/*`.
 Antes de codar a landing:
 
 1. A primeira landing será em `/inicio`, `/acesso-antecipado` ou já em `/`?
-2. O cadastro beta deve exigir conta imediatamente ou aceitar lead sem conta?
-3. Qual será o texto principal final do hero?
-4. Bino entra na primeira versão ou depois?
-5. O formulário terá campo de dor aberta ou só opções?
-6. Admin inicial precisa aprovar manualmente todo mundo ou alguns usuários entram direto como teste interno?
-7. A tela de espera deve permitir atualizar contato já na primeira versão?
+1. O cadastro beta deve exigir conta imediatamente ou aceitar lead sem conta?
+1. Qual será o texto principal final do hero?
+1. Bino entra na primeira versão ou depois?
+1. O formulário terá campo de dor aberta ou só opções?
+1. Admin inicial precisa aprovar manualmente todo mundo ou alguns usuários entram direto como teste interno?
+1. A tela de espera deve permitir atualizar contato já na primeira versão?
 
 ## Recomendação objetiva
 
 A melhor sequência é:
 
 1. implementar modelo de acesso e backfill seguro;
-2. criar domínio de acesso no frontend;
-3. criar tela de espera;
-4. criar landing em rota segura;
-5. conectar formulário/cadastro;
-6. criar admin inicial;
-7. só depois migrar `/` para landing e app para `/app/*`.
+1. criar domínio de acesso no frontend;
+1. criar tela de espera;
+1. criar landing em rota segura;
+1. conectar formulário/cadastro;
+1. criar admin inicial;
+1. só depois migrar `/` para landing e app para `/app/*`.
 
 Isso reduz risco de quebrar o app atual e evita trancar o Daniel fora da própria boleia.
 
