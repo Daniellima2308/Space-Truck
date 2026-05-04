@@ -10,6 +10,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
 import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
+import LandingPage from "./pages/LandingPage";
 import Dashboard from "./pages/Dashboard";
 import VehiclesPage from "./pages/VehiclesPage";
 import NewTripPage from "./pages/NewTripPage";
@@ -79,6 +80,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <Routes>
+            <Route path="/inicio" element={<LandingPage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
