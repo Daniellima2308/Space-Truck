@@ -11,7 +11,8 @@ import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
 import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
-import { appPath, nestedRoutePath, toLegacyAppRedirectPath } from "@/lib/routes";
+import { appPath, legacyToAppPath, nestedRoutePath } from "@/lib/routes";
+import { useAuth } from "@/context/auth-context";
 import LandingPage from "./pages/LandingPage";
 import WaitingAccessPage from "./pages/WaitingAccessPage";
 import Dashboard from "./pages/Dashboard";
@@ -41,12 +42,44 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+const LEGACY_INTERNAL_ROUTES = [
+  "/vehicles",
+  "/new-trip",
+  "/trip/*",
+  "/freight-analysis",
+  "/history",
+  "/perfil",
+  "/operation",
+  "/tools",
+  "/more",
+  "/help/*",
+  SUPPORT_REQUEST_ROUTE,
+  "/menu",
+  "/maintenance",
+  "/personal-expenses",
+  "/px/*",
+];
+
+function RootRoute() {
+  const { user, loading } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="w-8 h-8 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+      </div>
+    );
+  }
+
+  return user ? <Navigate to={appPath()} replace /> : <LandingPage />;
+}
+
 function LegacyAppRedirect() {
   const location = useLocation();
 
   return (
     <Navigate
-      to={`${toLegacyAppRedirectPath(location.pathname)}${location.search}${location.hash}`}
+      to={`${legacyToAppPath(location.pathname)}${location.search}${location.hash}`}
       replace
     />
   );
@@ -96,7 +129,7 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/" element={<LandingPage />} />
+            <Route path="/" element={<RootRoute />} />
             <Route path="/inicio" element={<Navigate to="/" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
@@ -117,20 +150,9 @@ const App = () => (
             <Route path={`${appPath()}/*`} element={<ProtectedApp />} />
 
             {/* Temporary legacy internal route redirects */}
-            <Route path="/vehicles" element={<LegacyAppRedirect />} />
-            <Route path="/new-trip" element={<LegacyAppRedirect />} />
-            <Route path="/trip/*" element={<LegacyAppRedirect />} />
-            <Route path="/freight-analysis" element={<LegacyAppRedirect />} />
-            <Route path="/history" element={<LegacyAppRedirect />} />
-            <Route path="/perfil" element={<LegacyAppRedirect />} />
-            <Route path="/operation" element={<LegacyAppRedirect />} />
-            <Route path="/tools" element={<LegacyAppRedirect />} />
-            <Route path="/more" element={<LegacyAppRedirect />} />
-            <Route path="/help/*" element={<LegacyAppRedirect />} />
-            <Route path="/menu" element={<LegacyAppRedirect />} />
-            <Route path="/maintenance" element={<LegacyAppRedirect />} />
-            <Route path="/personal-expenses" element={<LegacyAppRedirect />} />
-            <Route path="/px/*" element={<LegacyAppRedirect />} />
+            {LEGACY_INTERNAL_ROUTES.map((path) => (
+              <Route key={path} path={path} element={<LegacyAppRedirect />} />
+            ))}
 
             <Route path="*" element={<NotFound />} />
           </Routes>
