@@ -2,7 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
 import { AccessGuard } from "@/components/AccessGuard";
@@ -11,6 +11,7 @@ import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
 import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
+import { appPath, nestedRoutePath, toLegacyAppRedirectPath } from "@/lib/routes";
 import LandingPage from "./pages/LandingPage";
 import WaitingAccessPage from "./pages/WaitingAccessPage";
 import Dashboard from "./pages/Dashboard";
@@ -40,31 +41,43 @@ import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
 
+function LegacyAppRedirect() {
+  const location = useLocation();
+
+  return (
+    <Navigate
+      to={`${toLegacyAppRedirectPath(location.pathname)}${location.search}${location.hash}`}
+      replace
+    />
+  );
+}
+
 function ProtectedApp() {
   return (
     <AccessGuard>
       <AppProvider>
         <Routes>
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/vehicles" element={<VehiclesPage />} />
-          <Route path="/new-trip" element={<NewTripPage />} />
-          <Route path="/trip/ativa" element={<ActiveTripRedirectPage />} />
-          <Route path="/trip/:id" element={<TripDetailPage />} />
-          <Route path="/freight-analysis" element={<FreightAnalysisPage />} />
-          <Route path="/history" element={<HistoryPage />} />
-          <Route path="/perfil" element={<ProfilePage />} />
-          <Route path="/operation" element={<OperationPage />} />
-          <Route path="/tools" element={<ToolsPage />} />
-          <Route path="/more" element={<MorePage />} />
-          <Route path="/help" element={<HelpCenterPage />} />
-          <Route path="/help/topico/:topicId" element={<HelpTopicDetailPage />} />
-          <Route path="/help/tickets" element={<SupportTicketsPage />} />
-          <Route path={SUPPORT_REQUEST_ROUTE} element={<SupportRequestPage />} />
-          <Route path="/menu" element={<ProfilePage />} />
-          <Route path="/maintenance" element={<MaintenancePage />} />
-          <Route path="/personal-expenses" element={<PersonalExpensesPage />} />
-          <Route path="/px" element={<PXDigitalPage />} />
-          <Route path="/px/convite/:channelId" element={<PXInvitePage />} />
+          <Route index element={<Dashboard />} />
+          <Route path={nestedRoutePath("/vehicles")} element={<VehiclesPage />} />
+          <Route path={nestedRoutePath("/new-trip")} element={<NewTripPage />} />
+          <Route path={nestedRoutePath("/trip/ativa")} element={<ActiveTripRedirectPage />} />
+          <Route path={nestedRoutePath("/trip/:id")} element={<TripDetailPage />} />
+          <Route path={nestedRoutePath("/freight-analysis")} element={<FreightAnalysisPage />} />
+          <Route path={nestedRoutePath("/history")} element={<HistoryPage />} />
+          <Route path={nestedRoutePath("/perfil")} element={<ProfilePage />} />
+          <Route path={nestedRoutePath("/operation")} element={<OperationPage />} />
+          <Route path={nestedRoutePath("/tools")} element={<ToolsPage />} />
+          <Route path={nestedRoutePath("/more")} element={<MorePage />} />
+          <Route path={nestedRoutePath("/help")} element={<HelpCenterPage />} />
+          <Route path={nestedRoutePath("/help/topico/:topicId")} element={<HelpTopicDetailPage />} />
+          <Route path={nestedRoutePath("/help/tickets")} element={<SupportTicketsPage />} />
+          <Route path={nestedRoutePath(SUPPORT_REQUEST_ROUTE)} element={<SupportRequestPage />} />
+          <Route path={nestedRoutePath("/menu")} element={<ProfilePage />} />
+          <Route path={nestedRoutePath("/maintenance")} element={<MaintenancePage />} />
+          <Route path={nestedRoutePath("/personal-expenses")} element={<PersonalExpensesPage />} />
+          <Route path={nestedRoutePath("/px")} element={<PXDigitalPage />} />
+          <Route path={nestedRoutePath("/px/convite/:channelId")} element={<PXInvitePage />} />
+          <Route path="*" element={<NotFound />} />
         </Routes>
         <OnboardingTour />
         <BottomNav />
@@ -83,7 +96,8 @@ const App = () => (
         <BrowserRouter>
           <Routes>
             {/* Public routes */}
-            <Route path="/inicio" element={<LandingPage />} />
+            <Route path="/" element={<LandingPage />} />
+            <Route path="/inicio" element={<Navigate to="/" replace />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
@@ -100,7 +114,25 @@ const App = () => (
             />
 
             {/* Protected app routes */}
-            <Route path="/*" element={<ProtectedApp />} />
+            <Route path={`${appPath()}/*`} element={<ProtectedApp />} />
+
+            {/* Temporary legacy internal route redirects */}
+            <Route path="/vehicles" element={<LegacyAppRedirect />} />
+            <Route path="/new-trip" element={<LegacyAppRedirect />} />
+            <Route path="/trip/*" element={<LegacyAppRedirect />} />
+            <Route path="/freight-analysis" element={<LegacyAppRedirect />} />
+            <Route path="/history" element={<LegacyAppRedirect />} />
+            <Route path="/perfil" element={<LegacyAppRedirect />} />
+            <Route path="/operation" element={<LegacyAppRedirect />} />
+            <Route path="/tools" element={<LegacyAppRedirect />} />
+            <Route path="/more" element={<LegacyAppRedirect />} />
+            <Route path="/help/*" element={<LegacyAppRedirect />} />
+            <Route path="/menu" element={<LegacyAppRedirect />} />
+            <Route path="/maintenance" element={<LegacyAppRedirect />} />
+            <Route path="/personal-expenses" element={<LegacyAppRedirect />} />
+            <Route path="/px/*" element={<LegacyAppRedirect />} />
+
+            <Route path="*" element={<NotFound />} />
           </Routes>
         </BrowserRouter>
       </AuthProvider>
