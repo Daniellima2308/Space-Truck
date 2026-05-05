@@ -2,11 +2,11 @@ import AxeBuilder from "@axe-core/playwright";
 import { expect, test } from "@playwright/test";
 
 test.describe("Space Truck accessibility smoke", () => {
-  test("has no critical accessibility violations on the auth entry screen", async ({ page }) => {
+  test("has no critical accessibility violations on the public landing screen", async ({ page }) => {
     await page.goto("/");
 
     await expect(page).toHaveTitle(/space truck/i);
-    await expect(page.locator("body")).toContainText(/continuar com google|acessar minha conta|criar conta gratuita/i);
+    await expect(page.locator("body")).toContainText(/a rota do lucro real|acesso antecipado|quero acesso antecipado/i);
 
     const results = await new AxeBuilder({ page })
       .withTags(["wcag2a", "wcag2aa", "wcag21a", "wcag21aa"])
