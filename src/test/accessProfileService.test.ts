@@ -1,27 +1,31 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { getAccessProfile } from "@/features/access/accessProfileService";
 
-const maybeSingleMock = vi.fn();
-const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
-const selectMock = vi.fn(() => ({ eq: eqMock }));
-const fromMock = vi.fn(() => ({ select: selectMock }));
+const supabaseMocks = vi.hoisted(() => {
+  const maybeSingleMock = vi.fn();
+  const eqMock = vi.fn(() => ({ maybeSingle: maybeSingleMock }));
+  const selectMock = vi.fn(() => ({ eq: eqMock }));
+  const fromMock = vi.fn(() => ({ select: selectMock }));
+
+  return { fromMock, selectMock, eqMock, maybeSingleMock };
+});
 
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: {
-    from: fromMock,
+    from: supabaseMocks.fromMock,
   },
 }));
 
 describe("getAccessProfile", () => {
   beforeEach(() => {
-    fromMock.mockClear();
-    selectMock.mockClear();
-    eqMock.mockClear();
-    maybeSingleMock.mockReset();
+    supabaseMocks.fromMock.mockClear();
+    supabaseMocks.selectMock.mockClear();
+    supabaseMocks.eqMock.mockClear();
+    supabaseMocks.maybeSingleMock.mockReset();
   });
 
   it("maps a profile access row into the app access model", async () => {
-    maybeSingleMock.mockResolvedValueOnce({
+    supabaseMocks.maybeSingleMock.mockResolvedValueOnce({
       data: {
         user_id: "user-123",
         role: "admin",
@@ -42,20 +46,20 @@ describe("getAccessProfile", () => {
       approvedBy: "user-123",
     });
 
-    expect(fromMock).toHaveBeenCalledWith("profiles");
-    expect(selectMock).toHaveBeenCalledWith("user_id, role, access_status, access_status_reason, approved_at, approved_by");
-    expect(eqMock).toHaveBeenCalledWith("user_id", "user-123");
+    expect(supabaseMocks.fromMock).toHaveBeenCalledWith("profiles");
+    expect(supabaseMocks.selectMock).toHaveBeenCalledWith("user_id, role, access_status, access_status_reason, approved_at, approved_by");
+    expect(supabaseMocks.eqMock).toHaveBeenCalledWith("user_id", "user-123");
   });
 
   it("returns null when the profile row does not exist", async () => {
-    maybeSingleMock.mockResolvedValueOnce({ data: null, error: null });
+    supabaseMocks.maybeSingleMock.mockResolvedValueOnce({ data: null, error: null });
 
     await expect(getAccessProfile("missing-user")).resolves.toBeNull();
   });
 
   it("throws when Supabase returns an error", async () => {
     const error = new Error("profiles query failed");
-    maybeSingleMock.mockResolvedValueOnce({ data: null, error });
+    supabaseMocks.maybeSingleMock.mockResolvedValueOnce({ data: null, error });
 
     await expect(getAccessProfile("user-123")).rejects.toThrow("profiles query failed");
   });
