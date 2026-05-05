@@ -6,12 +6,18 @@ describe("app route helpers", () => {
     expect(appPath()).toBe("/app");
     expect(appPath("")).toBe("/app");
     expect(appPath("/")).toBe("/app");
+    expect(appPath("/app")).toBe("/app");
   });
 
   it("builds nested internal app paths", () => {
     expect(appPath("vehicles")).toBe("/app/vehicles");
     expect(appPath("/vehicles")).toBe("/app/vehicles");
     expect(appPath("/trip/ativa")).toBe("/app/trip/ativa");
+  });
+
+  it("does not double-prefix already-namespaced app paths", () => {
+    expect(appPath("/app/history")).toBe("/app/history");
+    expect(appPath("/app/trip/ativa")).toBe("/app/trip/ativa");
   });
 
   it("converts legacy internal paths to the app namespace", () => {
