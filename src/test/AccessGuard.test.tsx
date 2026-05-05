@@ -111,7 +111,25 @@ describe("AccessGuard", () => {
     expect(screen.getByText("Fila de espera")).toBeInTheDocument();
   });
 
-  it("shows a retryable error when the access profile query fails without cached approved data", () => {
+  it("uses cached denied access data during a background refetch error", () => {
+    accessProfileMock.isError = true;
+    accessProfileMock.isFetching = true;
+    accessProfileMock.data = {
+      userId: "user-123",
+      role: "user",
+      accessStatus: "waitlisted",
+      accessStatusReason: "signup_waitlist",
+      approvedAt: null,
+      approvedBy: null,
+    };
+
+    renderGuard();
+
+    expect(screen.getByText("Fila de espera")).toBeInTheDocument();
+    expect(screen.queryByText("Não foi possível verificar seu acesso.")).not.toBeInTheDocument();
+  });
+
+  it("shows a retryable error when the access profile query fails without cached access data", () => {
     accessProfileMock.isError = true;
 
     renderGuard();
