@@ -1,8 +1,12 @@
+import { useEffect } from "react";
 import { useAuth } from "@/context/auth-context";
+import type { AccessStatus } from "@/features/access/accessTypes";
+import { isApprovedAccessProfile } from "@/features/access/accessTypes";
 import { BINO_LANDING_ASSETS } from "@/features/access/waitingAccessAssets";
 import { useAccessProfile } from "@/features/access/useAccessProfile";
 import {
   FontAwesomeIcon,
+  iconAlertTriangle,
   iconCheckCircle,
   iconClock3,
   iconLogOut,
@@ -10,26 +14,92 @@ import {
   iconSparkles,
   iconTruck,
 } from "@/lib/icons";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 
-function statusMessage(status: string | undefined) {
+type WaitingAccessCopy = {
+  badge: string;
+  heading: string;
+  message: string;
+  badgeTone: string;
+  iconTone: string;
+  icon: typeof iconCheckCircle;
+};
+
+export function getWaitingAccessCopy(status: AccessStatus | undefined): WaitingAccessCopy {
   switch (status) {
+    case "approved":
+      return {
+        badge: "Acesso liberado",
+        heading: "Seu acesso já está aprovado.",
+        message: "Você já pode entrar no Space Truck. Vamos te levar para a área interna do app.",
+        badgeTone: "border-profit/25 bg-profit/10 text-profit",
+        iconTone: "text-profit",
+        icon: iconCheckCircle,
+      };
     case "suspended":
-      return "Seu acesso está pausado no momento. Quando houver atualização, você será avisado pelos canais cadastrados.";
+      return {
+        badge: "Acesso pausado",
+        heading: "Seu acesso está pausado no momento.",
+        message: "Quando houver atualização, você será avisado pelos canais cadastrados.",
+        badgeTone: "border-warning/25 bg-warning/10 text-warning",
+        iconTone: "text-warning",
+        icon: iconAlertTriangle,
+      };
     case "blocked":
-      return "Seu acesso não está liberado no momento. Entre em contato com o suporte se achar que isso foi um engano.";
+      return {
+        badge: "Acesso não liberado",
+        heading: "Seu acesso não está liberado.",
+        message: "Entre em contato com o suporte se achar que isso foi um engano.",
+        badgeTone: "border-destructive/25 bg-destructive/10 text-destructive",
+        iconTone: "text-destructive",
+        icon: iconAlertTriangle,
+      };
     case "deactivated":
-      return "Essa conta não está ativa para uso do Space Truck no momento.";
+      return {
+        badge: "Conta inativa",
+        heading: "Essa conta não está ativa para uso do Space Truck.",
+        message: "Se precisar voltar a usar o app, entre em contato com o suporte quando disponível.",
+        badgeTone: "border-muted-foreground/25 bg-secondary/60 text-muted-foreground",
+        iconTone: "text-muted-foreground",
+        icon: iconAlertTriangle,
+      };
     case "waitlisted":
-    default:
-      return "Seu pré-registro está confirmado. O Space Truck ainda está em acesso controlado e você será avisado quando sua liberação chegar.";
+      return {
+        badge: "Pré-registro confirmado",
+        heading: "Você está na fila de acesso do Space Truck.",
+        message: "Seu pré-registro está confirmado. O Space Truck ainda está em acesso controlado e você será avisado quando sua liberação chegar.",
+        badgeTone: "border-profit/25 bg-profit/10 text-profit",
+        iconTone: "text-profit",
+        icon: iconCheckCircle,
+      };
+    case undefined:
+      return {
+        badge: "Perfil em preparação",
+        heading: "Seu perfil ainda está sendo preparado.",
+        message: "Não encontramos o status de acesso dessa conta ainda. Tente novamente em instantes ou saia e entre de novo.",
+        badgeTone: "border-warning/25 bg-warning/10 text-warning",
+        iconTone: "text-warning",
+        icon: iconAlertTriangle,
+      };
+    default: {
+      const exhaustiveStatus: never = status;
+      return exhaustiveStatus;
+    }
   }
 }
 
 const WaitingAccessPage = () => {
   const { user, signOut } = useAuth();
+  const navigate = useNavigate();
   const accessProfileQuery = useAccessProfile(user?.id);
   const accessStatus = accessProfileQuery.data?.accessStatus;
+  const copy = getWaitingAccessCopy(accessStatus);
+
+  useEffect(() => {
+    if (isApprovedAccessProfile(accessProfileQuery.data)) {
+      navigate("/", { replace: true });
+    }
+  }, [accessProfileQuery.data, navigate]);
 
   return (
     <main className="min-h-screen overflow-hidden bg-background text-foreground">
@@ -59,16 +129,16 @@ const WaitingAccessPage = () => {
 
         <div className="grid items-center gap-8 lg:grid-cols-[1.05fr_0.95fr]">
           <div className="rounded-[2rem] border border-primary/20 bg-secondary/35 p-6 shadow-2xl shadow-primary/5 backdrop-blur sm:p-8">
-            <div className="mb-6 inline-flex items-center gap-2 rounded-full border border-profit/25 bg-profit/10 px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] text-profit">
-              <FontAwesomeIcon icon={iconCheckCircle} aria-hidden="true" className="h-3.5 w-3.5" />
-              Pré-registro confirmado
+            <div className={`mb-6 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-bold uppercase tracking-[0.18em] ${copy.badgeTone}`}>
+              <FontAwesomeIcon icon={copy.icon} aria-hidden="true" className={`h-3.5 w-3.5 ${copy.iconTone}`} />
+              {copy.badge}
             </div>
 
             <h1 className="max-w-2xl text-4xl font-black leading-tight tracking-tight text-foreground sm:text-5xl">
-              Você está na fila de acesso do Space Truck.
+              {copy.heading}
             </h1>
             <p className="mt-5 max-w-2xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-              {statusMessage(accessStatus)}
+              {copy.message}
             </p>
 
             <div className="mt-8 grid gap-3 sm:grid-cols-3">
