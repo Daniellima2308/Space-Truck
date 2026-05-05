@@ -1,21 +1,22 @@
 import { useLocation, useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { appPath } from "@/lib/routes";
 import type { IconDefinition } from "@/lib/icons";
 import { FontAwesomeIcon, iconHome, iconOperacao, iconWrench, iconHistory, iconMoreHorizontal } from "@/lib/icons";
 
 const NAV_ITEMS: { path: string; label: string; icon: IconDefinition; id: string }[] = [
-  { path: "/", label: "Início", icon: iconHome, id: "nav-home" },
-  { path: "/operation", label: "Operação", icon: iconOperacao, id: "nav-operation" },
-  { path: "/tools", label: "Ferramentas", icon: iconWrench, id: "nav-tools" },
-  { path: "/history", label: "Histórico", icon: iconHistory, id: "nav-history" },
-  { path: "/more", label: "Mais", icon: iconMoreHorizontal, id: "nav-more" },
+  { path: appPath(), label: "Início", icon: iconHome, id: "nav-home" },
+  { path: appPath("/operation"), label: "Operação", icon: iconOperacao, id: "nav-operation" },
+  { path: appPath("/tools"), label: "Ferramentas", icon: iconWrench, id: "nav-tools" },
+  { path: appPath("/history"), label: "Histórico", icon: iconHistory, id: "nav-history" },
+  { path: appPath("/more"), label: "Mais", icon: iconMoreHorizontal, id: "nav-more" },
 ];
 
 export function BottomNav() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const hiddenPaths = ["/login", "/register", "/forgot-password", "/reset-password", "/new-trip", "/trip/"];
+  const hiddenPaths = [appPath("/new-trip"), appPath("/trip/")];
   const shouldHide = hiddenPaths.some((p) => location.pathname.startsWith(p));
   if (shouldHide) return null;
 
@@ -27,8 +28,8 @@ export function BottomNav() {
       <div className="flex items-stretch justify-around h-[64px] max-w-lg mx-auto">
         {NAV_ITEMS.map((item) => {
           const isActive =
-            item.path === "/"
-              ? location.pathname === "/"
+            item.path === appPath()
+              ? location.pathname === appPath()
               : location.pathname.startsWith(item.path);
           return (
             <button

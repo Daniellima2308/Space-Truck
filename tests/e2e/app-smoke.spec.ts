@@ -1,7 +1,9 @@
 import { expect, test } from "@playwright/test";
+import { resetBrowserState } from "./helpers/browserState";
 
 test.describe("Space Truck app smoke", () => {
-  test("loads the app shell without crashing", async ({ page }) => {
+  test("loads the public landing shell without crashing", async ({ page }) => {
+    await resetBrowserState(page);
     await page.goto("/");
 
     await expect(page).toHaveTitle(/space truck/i);
@@ -9,6 +11,6 @@ test.describe("Space Truck app smoke", () => {
 
     const appRoot = page.locator("#root");
     await expect(appRoot).toBeVisible();
-    await expect(appRoot).toContainText(/continuar com google|acessar minha conta|criar conta gratuita/i);
+    await expect(appRoot).toContainText(/a rota do lucro real|acesso antecipado|quero acesso antecipado/i);
   });
 });
