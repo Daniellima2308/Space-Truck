@@ -2,7 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AccessProfile, AccessStatus } from "@/features/access/accessTypes";
-import WaitingAccessPage, { getWaitingAccessCopy } from "@/pages/WaitingAccessPage";
+import { getWaitingAccessCopy } from "@/features/access/waitingAccessCopy";
+import WaitingAccessPage from "@/pages/WaitingAccessPage";
 
 const mockedNavigate = vi.fn();
 const mockedSignOut = vi.fn();
@@ -101,6 +102,24 @@ describe("WaitingAccessPage", () => {
     expect(screen.getByText("Acesso não liberado")).toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Seu acesso não está liberado." })).toBeInTheDocument();
     expect(screen.queryByText("Pré-registro confirmado")).not.toBeInTheDocument();
+  });
+
+  it("renders the suspended access state", () => {
+    accessProfileMock.data = profileWithStatus("suspended");
+
+    renderWaitingAccessPage();
+
+    expect(screen.getByText("Acesso pausado")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Seu acesso está pausado no momento." })).toBeInTheDocument();
+  });
+
+  it("renders the deactivated access state", () => {
+    accessProfileMock.data = profileWithStatus("deactivated");
+
+    renderWaitingAccessPage();
+
+    expect(screen.getByText("Conta inativa")).toBeInTheDocument();
+    expect(screen.getByRole("heading", { name: "Essa conta não está ativa para uso do Space Truck." })).toBeInTheDocument();
   });
 
   it("renders a missing-profile preparation state", () => {
