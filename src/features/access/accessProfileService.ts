@@ -10,6 +10,16 @@ type ProfileAccessRow = {
   approved_by: string | null;
 };
 
+type BetaProfileAccessClient = {
+  from(table: "profiles"): {
+    select(columns: string): {
+      eq(column: "user_id", value: string): {
+        maybeSingle(): Promise<{ data: ProfileAccessRow | null; error: Error | null }>;
+      };
+    };
+  };
+};
+
 const mapAccessProfile = (row: ProfileAccessRow): AccessProfile => ({
   userId: row.user_id,
   role: row.role,
@@ -21,15 +31,7 @@ const mapAccessProfile = (row: ProfileAccessRow): AccessProfile => ({
 
 export async function getAccessProfile(userId: string): Promise<AccessProfile | null> {
   // TODO: remove this narrow cast after regenerating Supabase types from the live schema.
-  const supabaseWithBetaProfileColumns = supabase as typeof supabase & {
-    from(table: "profiles"): {
-      select(columns: string): {
-        eq(column: "user_id", value: string): {
-          maybeSingle(): Promise<{ data: ProfileAccessRow | null; error: Error | null }>;
-        };
-      };
-    };
-  };
+  const supabaseWithBetaProfileColumns = supabase as unknown as BetaProfileAccessClient;
 
   const { data, error } = await supabaseWithBetaProfileColumns
     .from("profiles")
