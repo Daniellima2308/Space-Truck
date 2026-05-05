@@ -5,12 +5,14 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/context/AuthContext";
 import { AppProvider } from "@/context/AppContext";
+import { AccessGuard } from "@/components/AccessGuard";
 import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
 import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
 import LandingPage from "./pages/LandingPage";
+import WaitingAccessPage from "./pages/WaitingAccessPage";
 import Dashboard from "./pages/Dashboard";
 import VehiclesPage from "./pages/VehiclesPage";
 import NewTripPage from "./pages/NewTripPage";
@@ -40,7 +42,7 @@ const queryClient = new QueryClient();
 
 function ProtectedApp() {
   return (
-    <AuthGuard>
+    <AccessGuard>
       <AppProvider>
         <Routes>
           <Route path="/" element={<Dashboard />} />
@@ -68,7 +70,7 @@ function ProtectedApp() {
         <BottomNav />
         <DevPreviewBadge />
       </AppProvider>
-    </AuthGuard>
+    </AccessGuard>
   );
 }
 
@@ -86,6 +88,16 @@ const App = () => (
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/forgot-password" element={<ForgotPasswordPage />} />
             <Route path="/reset-password" element={<ResetPasswordPage />} />
+
+            {/* Authenticated beta access route */}
+            <Route
+              path="/aguardando"
+              element={
+                <AuthGuard>
+                  <WaitingAccessPage />
+                </AuthGuard>
+              }
+            />
 
             {/* Protected app routes */}
             <Route path="/*" element={<ProtectedApp />} />
