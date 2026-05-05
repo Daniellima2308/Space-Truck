@@ -1,0 +1,34 @@
+import { supabase } from "@/integrations/supabase/client";
+import type { AccessProfile } from "./accessTypes";
+
+type ProfileAccessRow = {
+  user_id: string;
+  role: AccessProfile["role"];
+  access_status: AccessProfile["accessStatus"];
+  access_status_reason: string | null;
+  approved_at: string | null;
+  approved_by: string | null;
+};
+
+const mapAccessProfile = (row: ProfileAccessRow): AccessProfile => ({
+  userId: row.user_id,
+  role: row.role,
+  accessStatus: row.access_status,
+  accessStatusReason: row.access_status_reason,
+  approvedAt: row.approved_at,
+  approvedBy: row.approved_by,
+});
+
+export async function getAccessProfile(userId: string): Promise<AccessProfile | null> {
+  const { data, error } = await supabase
+    .from("profiles")
+    .select("user_id, role, access_status, access_status_reason, approved_at, approved_by")
+    .eq("user_id", userId)
+    .maybeSingle<ProfileAccessRow>();
+
+  if (error) {
+    throw error;
+  }
+
+  return data ? mapAccessProfile(data) : null;
+}
