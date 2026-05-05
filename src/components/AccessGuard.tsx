@@ -56,7 +56,7 @@ export function AccessGuard({ children }: { children: React.ReactNode }) {
     return <LoadingScreen />;
   }
 
-  if (accessProfileQuery.isError && !isApprovedAccessProfile(accessProfileQuery.data)) {
+  if (accessProfileQuery.isError && !accessProfileQuery.data) {
     return <AccessCheckErrorScreen onRetry={() => void accessProfileQuery.refetch()} />;
   }
 
