@@ -6,13 +6,14 @@ export function appPath(path = "") {
     return APP_HOME_PATH;
   }
 
-  return `${APP_BASE_PATH}${path.startsWith("/") ? path : `/${path}`}`;
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${APP_BASE_PATH}${normalizedPath}`;
 }
 
-export function toLegacyAppRedirectPath(pathname: string) {
+export function legacyToAppPath(pathname: string) {
   return appPath(pathname);
 }
 
 export function nestedRoutePath(path: string) {
-  return path.replace(/^\//, "");
+  return path.replace(/^\/+/, "");
 }
