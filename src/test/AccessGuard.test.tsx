@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { AccessGuard } from "@/components/AccessGuard";
@@ -14,6 +14,7 @@ const accessProfileMock = vi.hoisted(() => ({
   isLoading: false,
   isFetching: false,
   isError: false,
+  refetch: vi.fn(),
 }));
 
 vi.mock("@/context/auth-context", () => ({
@@ -60,9 +61,27 @@ describe("AccessGuard", () => {
     accessProfileMock.isLoading = false;
     accessProfileMock.isFetching = false;
     accessProfileMock.isError = false;
+    accessProfileMock.refetch.mockReset();
   });
 
   it("renders protected content for approved users", () => {
+    accessProfileMock.data = {
+      userId: "user-123",
+      role: "admin",
+      accessStatus: "approved",
+      accessStatusReason: null,
+      approvedAt: "2026-05-04T00:00:00Z",
+      approvedBy: "user-123",
+    };
+
+    renderGuard();
+
+    expect(screen.getByText("Área interna liberada")).toBeInTheDocument();
+  });
+
+  it("keeps approved cached users inside the app during a background refetch error", () => {
+    accessProfileMock.isError = true;
+    accessProfileMock.isFetching = true;
     accessProfileMock.data = {
       userId: "user-123",
       role: "admin",
@@ -90,6 +109,18 @@ describe("AccessGuard", () => {
     renderGuard();
 
     expect(screen.getByText("Fila de espera")).toBeInTheDocument();
+  });
+
+  it("shows a retryable error when the access profile query fails without cached approved data", () => {
+    accessProfileMock.isError = true;
+
+    renderGuard();
+
+    expect(screen.getByText("Não foi possível verificar seu acesso.")).toBeInTheDocument();
+    expect(screen.queryByText("Fila de espera")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: /Tentar novamente/i }));
+    expect(accessProfileMock.refetch).toHaveBeenCalledTimes(1);
   });
 
   it("redirects unauthenticated users to login", () => {
