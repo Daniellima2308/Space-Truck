@@ -7,6 +7,11 @@ export function appPath(path = "") {
   }
 
   const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+
+  if (normalizedPath === APP_BASE_PATH || normalizedPath.startsWith(`${APP_BASE_PATH}/`)) {
+    return normalizedPath;
+  }
+
   return `${APP_BASE_PATH}${normalizedPath}`;
 }
 
