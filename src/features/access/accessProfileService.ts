@@ -20,11 +20,22 @@ const mapAccessProfile = (row: ProfileAccessRow): AccessProfile => ({
 });
 
 export async function getAccessProfile(userId: string): Promise<AccessProfile | null> {
-  const { data, error } = await supabase
+  // TODO: remove this narrow cast after regenerating Supabase types from the live schema.
+  const supabaseWithBetaProfileColumns = supabase as typeof supabase & {
+    from(table: "profiles"): {
+      select(columns: string): {
+        eq(column: "user_id", value: string): {
+          maybeSingle(): Promise<{ data: ProfileAccessRow | null; error: Error | null }>;
+        };
+      };
+    };
+  };
+
+  const { data, error } = await supabaseWithBetaProfileColumns
     .from("profiles")
     .select("user_id, role, access_status, access_status_reason, approved_at, approved_by")
     .eq("user_id", userId)
-    .maybeSingle<ProfileAccessRow>();
+    .maybeSingle();
 
   if (error) {
     throw error;
