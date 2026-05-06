@@ -2,6 +2,7 @@ import { appendFileSync, existsSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
 const summaryPath = resolve(process.cwd(), "coverage/coverage-summary.json");
+const metricKeys = ["statements", "branches", "functions", "lines"];
 
 if (!existsSync(summaryPath)) {
   console.error(`Coverage summary not found at ${summaryPath}.`);
@@ -9,27 +10,49 @@ if (!existsSync(summaryPath)) {
   process.exit(1);
 }
 
-const coverageSummary = JSON.parse(readFileSync(summaryPath, "utf8"));
-const total = coverageSummary.total;
+let coverageSummary;
 
-if (!total) {
-  console.error("coverage-summary.json does not contain a total coverage block.");
+try {
+  coverageSummary = JSON.parse(readFileSync(summaryPath, "utf8"));
+} catch (error) {
+  const message = error instanceof Error ? error.message : String(error);
+  console.error(`Invalid coverage summary at ${summaryPath}.`);
+  console.error(`Failed to parse coverage-summary.json: ${message}`);
   process.exit(1);
 }
 
-const rows = [
-  ["Statements", total.statements?.pct],
-  ["Branches", total.branches?.pct],
-  ["Functions", total.functions?.pct],
-  ["Lines", total.lines?.pct],
-];
+const total = coverageSummary?.total;
 
-const formatPct = (value) => (typeof value === "number" ? `${value.toFixed(2)}%` : "n/a");
+if (!total || typeof total !== "object") {
+  console.error("coverage-summary.json does not contain a valid total coverage block.");
+  process.exit(1);
+}
 
+function getCoveragePct(key) {
+  const value = total[key]?.pct;
+
+  if (!Number.isFinite(value)) {
+    console.error(`coverage-summary.json contains an invalid ${key}.pct coverage value.`);
+    process.exit(1);
+  }
+
+  return value;
+}
+
+const rows = metricKeys.map((key) => [
+  key[0].toUpperCase() + key.slice(1),
+  getCoveragePct(key),
+]);
+
+const formatPct = (value) => `${value.toFixed(2)}%`;
+
+console.log("──────────────────────────────");
 console.log("Coverage summary");
+console.log("──────────────────────────────");
 for (const [label, value] of rows) {
   console.log(`${label}: ${formatPct(value)}`);
 }
+console.log("──────────────────────────────");
 
 const stepSummaryPath = process.env.GITHUB_STEP_SUMMARY;
 
