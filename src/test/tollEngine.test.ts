@@ -60,6 +60,21 @@ describe("tollEngine", () => {
     expect(result.matches).toHaveLength(0);
   });
 
+  it("retorna geometria insuficiente quando a rota fica curta após remover coordenadas inválidas", () => {
+    const result = calculateRouteToll({
+      routePath: [
+        { lat: 0, lon: 0 },
+        { lat: 91, lon: 0 },
+      ],
+      axles: 6,
+      tollPoints: [buildTollPoint({ id: "toll-1", lat: 0, lon: 0 })],
+    });
+
+    expect(result.total).toBe(0);
+    expect(result.source).toBe("insufficient_route_geometry");
+    expect(result.matches).toHaveLength(0);
+  });
+
   it("retorna geometria insuficiente quando o número de eixos não é suportado", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,
