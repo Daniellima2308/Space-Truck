@@ -22,12 +22,10 @@ export function calculateTollFromRememberedRoute(params: {
 
   if (!routePath) return null;
 
-  const result = calculateRouteToll({
+  return calculateRouteToll({
     routePath,
     axles: params.axles,
   });
-
-  return result.total > 0 ? result : null;
 }
 
 export async function calculateToll(
