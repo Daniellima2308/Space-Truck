@@ -24,6 +24,14 @@ interface Coordinates {
   lon: number;
 }
 
+interface TomTomRoutePoint {
+  latitude?: unknown;
+  longitude?: unknown;
+  lat?: unknown;
+  lon?: unknown;
+  lng?: unknown;
+}
+
 interface GeocodeDiagnostic {
   coords: Coordinates | null;
   reason: string | null;
@@ -35,6 +43,7 @@ interface RouteFunctionPayload {
   distanceKm: number | null;
   originCoords: Coordinates | null;
   destCoords: Coordinates | null;
+  routePath: Coordinates[];
   reason: string | null;
   reasonCode?: string | null;
   originQueryUsed?: string;
@@ -69,6 +78,54 @@ function buildLocationCandidates(raw: string): string[] {
   ].filter(Boolean);
 
   return [...new Set(candidates)];
+}
+
+function normalizeRoutePoint(point: TomTomRoutePoint): Coordinates | null {
+  const lat = typeof point.latitude === "number" ? point.latitude : point.lat;
+  const lon =
+    typeof point.longitude === "number"
+      ? point.longitude
+      : typeof point.lon === "number"
+        ? point.lon
+        : point.lng;
+
+  if (typeof lat !== "number" || typeof lon !== "number") return null;
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return null;
+
+  return { lat, lon };
+}
+
+function areSameCoordinates(a: Coordinates, b: Coordinates): boolean {
+  return Math.abs(a.lat - b.lat) < 0.000001 && Math.abs(a.lon - b.lon) < 0.000001;
+}
+
+function dedupeSequentialCoordinates(points: Coordinates[]): Coordinates[] {
+  const deduped: Coordinates[] = [];
+
+  for (const point of points) {
+    const previous = deduped[deduped.length - 1];
+    if (!previous || !areSameCoordinates(previous, point)) {
+      deduped.push(point);
+    }
+  }
+
+  return deduped;
+}
+
+function extractRoutePath(route: unknown): Coordinates[] {
+  const legs = Array.isArray((route as { legs?: unknown }).legs)
+    ? ((route as { legs: unknown[] }).legs)
+    : [];
+
+  const points = legs.flatMap((leg) => {
+    const legPoints = (leg as { points?: unknown }).points;
+    if (!Array.isArray(legPoints)) return [];
+    return legPoints
+      .map((point) => normalizeRoutePoint(point as TomTomRoutePoint))
+      .filter((point): point is Coordinates => Boolean(point));
+  });
+
+  return dedupeSequentialCoordinates(points);
 }
 
 async function geocodeLocation(
@@ -131,6 +188,7 @@ serve(async (req) => {
         distanceKm: null,
         originCoords: null,
         destCoords: null,
+        routePath: [],
         reason: "Método não permitido para cálculo de rota.",
         reasonCode: "method_not_allowed",
       },
@@ -146,6 +204,7 @@ serve(async (req) => {
         distanceKm: null,
         originCoords: null,
         destCoords: null,
+        routePath: [],
         reason: "Serviço de rota indisponível no momento.",
         reasonCode: "missing_api_key",
       } satisfies RouteFunctionPayload,
@@ -164,6 +223,7 @@ serve(async (req) => {
         distanceKm: null,
         originCoords: null,
         destCoords: null,
+        routePath: [],
         reason: "Origem e destino não foram enviados corretamente.",
         reasonCode: "invalid_json_body",
       } satisfies RouteFunctionPayload,
@@ -183,6 +243,7 @@ serve(async (req) => {
         distanceKm: null,
         originCoords: null,
         destCoords: null,
+        routePath: [],
         reason:
           "Origem e destino precisam ser informados para calcular a rota.",
         reasonCode: "invalid_payload",
@@ -202,6 +263,7 @@ serve(async (req) => {
           distanceKm: null,
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
+          routePath: [],
           reason:
             originGeo.reason ||
             destinationGeo.reason ||
@@ -235,6 +297,7 @@ serve(async (req) => {
           distanceKm: null,
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
+          routePath: [],
           reason: "Não deu para calcular a rota deste trecho agora.",
           reasonCode: "routing_http_error",
           originQueryUsed: originGeo.queryUsed,
@@ -245,7 +308,8 @@ serve(async (req) => {
     }
 
     const routeData = await routeResponse.json();
-    const routeLengthMeters = routeData?.routes?.[0]?.summary?.lengthInMeters;
+    const route = routeData?.routes?.[0];
+    const routeLengthMeters = route?.summary?.lengthInMeters;
 
     if (typeof routeLengthMeters !== "number") {
       console.error("[calculate-route] routing_without_valid_route", {
@@ -259,6 +323,7 @@ serve(async (req) => {
           distanceKm: null,
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
+          routePath: [],
           reason: "Ainda não conseguimos estimar a distância deste trecho.",
           reasonCode: "routing_without_valid_route",
           originQueryUsed: originGeo.queryUsed,
@@ -268,11 +333,17 @@ serve(async (req) => {
       );
     }
 
+    const routePath = extractRoutePath(route);
+
     return jsonResponse(
       {
         distanceKm: Math.round(routeLengthMeters / 1000),
         originCoords: originGeo.coords,
         destCoords: destinationGeo.coords,
+        routePath:
+          routePath.length > 1
+            ? routePath
+            : [originGeo.coords, destinationGeo.coords],
         reason: null,
         reasonCode: null,
         originQueryUsed: originGeo.queryUsed,
@@ -292,6 +363,7 @@ serve(async (req) => {
         distanceKm: null,
         originCoords: null,
         destCoords: null,
+        routePath: [],
         reason: "Não deu para calcular a rota agora.",
         reasonCode: "unexpected_error",
       } satisfies RouteFunctionPayload,
