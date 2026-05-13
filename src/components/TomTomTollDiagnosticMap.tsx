@@ -122,18 +122,21 @@ function createTollMarkerElement(item: TollRouteDiagnosticItem): HTMLElement {
   const marker = document.createElement("button");
   marker.type = "button";
   marker.title = `${item.order}. ${item.name}`;
-  marker.style.width = "38px";
-  marker.style.height = "44px";
+  marker.style.width = "46px";
+  marker.style.height = "54px";
   marker.style.border = "0";
   marker.style.background = "transparent";
   marker.style.padding = "0";
   marker.style.cursor = "pointer";
-  marker.style.filter = "drop-shadow(0 10px 18px rgba(0, 0, 0, 0.35))";
+  marker.style.filter = "drop-shadow(0 14px 20px rgba(0, 0, 0, 0.48))";
 
   marker.innerHTML = `
-    <span style="position:relative;display:flex;width:34px;height:34px;align-items:center;justify-content:center;border-radius:999px;background:linear-gradient(135deg,#facc15,#f97316);border:3px solid #111827;color:#111827;font-size:12px;font-weight:950;line-height:1;box-shadow:0 0 0 3px rgba(250,204,21,.28);">
-      ${item.order}
-      <span style="position:absolute;left:50%;bottom:-7px;width:14px;height:14px;background:#f97316;border-right:3px solid #111827;border-bottom:3px solid #111827;transform:translateX(-50%) rotate(45deg);border-bottom-right-radius:4px;"></span>
+    <span style="position:relative;display:block;width:42px;height:50px;">
+      <span style="position:absolute;left:50%;top:0;display:flex;width:38px;height:38px;align-items:center;justify-content:center;border-radius:16px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 52%,#facc15 100%);border:3px solid #07111f;color:#ffffff;font-size:13px;font-weight:950;line-height:1;transform:translateX(-50%);box-shadow:0 0 0 4px rgba(34,197,94,.24), inset 0 1px 0 rgba(255,255,255,.28);">
+        ${item.order}
+      </span>
+      <span style="position:absolute;left:50%;bottom:6px;width:16px;height:16px;background:#16a34a;border-right:3px solid #07111f;border-bottom:3px solid #07111f;transform:translateX(-50%) rotate(45deg);border-bottom-right-radius:5px;"></span>
+      <span style="position:absolute;left:50%;top:5px;width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.9);transform:translateX(7px);"></span>
     </span>
   `;
 
@@ -142,19 +145,20 @@ function createTollMarkerElement(item: TollRouteDiagnosticItem): HTMLElement {
 
 function createEndpointMarkerElement(label: string, tone: "start" | "end"): HTMLElement {
   const marker = document.createElement("div");
-  const color = tone === "start" ? "#22c55e" : "#ef4444";
-  marker.style.width = "26px";
-  marker.style.height = "26px";
-  marker.style.borderRadius = "999px";
+  const isStart = tone === "start";
+  const color = isStart ? "#22c55e" : "#ef4444";
+  marker.style.width = "32px";
+  marker.style.height = "32px";
+  marker.style.borderRadius = "14px";
   marker.style.display = "flex";
   marker.style.alignItems = "center";
   marker.style.justifyContent = "center";
-  marker.style.background = color;
+  marker.style.background = `linear-gradient(135deg, ${color}, ${isStart ? "#15803d" : "#b91c1c"})`;
   marker.style.color = "#ffffff";
-  marker.style.fontSize = "10px";
-  marker.style.fontWeight = "900";
-  marker.style.border = "3px solid #111827";
-  marker.style.boxShadow = "0 8px 18px rgba(0,0,0,.35)";
+  marker.style.fontSize = "11px";
+  marker.style.fontWeight = "950";
+  marker.style.border = "3px solid #07111f";
+  marker.style.boxShadow = "0 10px 20px rgba(0,0,0,.42), 0 0 0 4px rgba(255,255,255,.16)";
   marker.textContent = label;
   return marker;
 }
