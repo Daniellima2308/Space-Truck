@@ -78,23 +78,27 @@ function ensureTomTomPopupStyles(): void {
   const style = document.createElement("style");
   style.id = TOMTOM_POPUP_STYLE_ID;
   style.textContent = `
-    .space-truck-toll-popup .tt-popup-content {
-      padding: 0;
-      border-radius: 18px;
-      background: #111827;
-      color: #f9fafb;
-      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.42);
-      border: 1px solid rgba(34, 197, 94, 0.35);
-      overflow: hidden;
+    .space-truck-toll-popup .tt-popup-content,
+    .space-truck-toll-popup .mapboxgl-popup-content {
+      padding: 0 !important;
+      border-radius: 20px !important;
+      background: #0b1220 !important;
+      color: #f8fafc !important;
+      box-shadow: 0 24px 80px rgba(0, 0, 0, 0.52) !important;
+      border: 1px solid rgba(34, 197, 94, 0.48) !important;
+      overflow: hidden !important;
     }
-    .space-truck-toll-popup .tt-popup-tip {
-      border-top-color: #111827 !important;
-      border-bottom-color: #111827 !important;
+    .space-truck-toll-popup .tt-popup-tip,
+    .space-truck-toll-popup .mapboxgl-popup-tip {
+      border-top-color: #0b1220 !important;
+      border-bottom-color: #0b1220 !important;
     }
-    .space-truck-toll-popup .tt-popup-close-button {
-      color: #d1d5db;
-      font-size: 18px;
-      padding: 8px 10px;
+    .space-truck-toll-popup .tt-popup-close-button,
+    .space-truck-toll-popup .mapboxgl-popup-close-button {
+      color: #ffffff !important;
+      font-size: 18px !important;
+      padding: 8px 10px !important;
+      opacity: 0.95 !important;
     }
   `;
   document.head.appendChild(style);
@@ -160,23 +164,23 @@ function buildPopupHtml(item: TollRouteDiagnosticItem): string {
   const location = [item.city, item.uf].filter(Boolean).join(" • ");
 
   return `
-    <div style="min-width:230px;max-width:280px;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
-      <div style="padding:12px 14px 10px;background:linear-gradient(135deg,rgba(34,197,94,.22),rgba(250,204,21,.16));border-bottom:1px solid rgba(255,255,255,.08);">
-        <div style="font-size:10px;font-weight:900;letter-spacing:.16em;text-transform:uppercase;color:#86efac;">#${item.order} • ${escapeHtml(item.uf)}</div>
-        <div style="margin-top:4px;font-size:16px;font-weight:950;line-height:1.1;color:#fff;">${escapeHtml(item.name)}</div>
+    <div style="min-width:245px;max-width:285px;background:#0b1220;color:#f8fafc;border-radius:20px;overflow:hidden;font-family:Inter,system-ui,-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;">
+      <div style="padding:13px 15px 11px;background:linear-gradient(135deg,#0f2b1c 0%,#12351f 58%,#3a3f10 100%);border-bottom:1px solid rgba(255,255,255,.1);">
+        <div style="font-size:10px;font-weight:950;letter-spacing:.18em;text-transform:uppercase;color:#4ade80;">#${item.order} • ${escapeHtml(item.uf)}</div>
+        <div style="margin-top:5px;font-size:17px;font-weight:950;line-height:1.12;color:#ffffff;text-shadow:0 1px 2px rgba(0,0,0,.45);">${escapeHtml(item.name)}</div>
       </div>
-      <div style="padding:12px 14px 14px;">
+      <div style="padding:13px 15px 15px;background:#0b1220;">
         <div style="display:flex;justify-content:space-between;gap:12px;align-items:flex-start;">
-          <div style="color:#d1d5db;font-size:12px;line-height:1.45;">
-            <div>${escapeHtml(road)}${item.km ? ` • KM ${escapeHtml(item.km)}` : ""}</div>
+          <div style="color:#cbd5e1;font-size:12px;line-height:1.5;font-weight:650;">
+            <div style="color:#f1f5f9;">${escapeHtml(road)}${item.km ? ` • KM ${escapeHtml(item.km)}` : ""}</div>
             <div>${escapeHtml(location || "Local não informado")}</div>
             <div>${escapeHtml(item.concessionaire || "Concessionária não informada")}</div>
           </div>
-          <div style="white-space:nowrap;color:#4ade80;font-size:16px;font-weight:950;">${formatCurrency(item.value)}</div>
+          <div style="white-space:nowrap;color:#4ade80;font-size:17px;font-weight:950;text-shadow:0 0 18px rgba(74,222,128,.25);">${formatCurrency(item.value)}</div>
         </div>
-        <div style="margin-top:10px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
-          <div style="border-radius:12px;background:rgba(255,255,255,.07);padding:8px;color:#e5e7eb;font-size:11px;">Após<br/><strong style="color:#fff;">${item.distanceAlongRouteKm} km</strong></div>
-          <div style="border-radius:12px;background:rgba(255,255,255,.07);padding:8px;color:#e5e7eb;font-size:11px;">Da rota<br/><strong style="color:#fff;">${item.distanceFromRouteKm} km</strong></div>
+        <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
+          <div style="border-radius:14px;background:rgba(255,255,255,.08);padding:9px;color:#94a3b8;font-size:11px;font-weight:700;">Após<br/><strong style="display:block;margin-top:2px;color:#ffffff;font-size:12px;">${item.distanceAlongRouteKm} km</strong></div>
+          <div style="border-radius:14px;background:rgba(34,197,94,.14);padding:9px;color:#86efac;font-size:11px;font-weight:800;">Da rota<br/><strong style="display:block;margin-top:2px;color:#ffffff;font-size:12px;">${Math.round(item.distanceFromRouteKm * 1000)} m</strong></div>
         </div>
       </div>
     </div>
