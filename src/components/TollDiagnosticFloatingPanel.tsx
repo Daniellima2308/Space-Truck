@@ -14,9 +14,17 @@ function formatCurrency(value: number): string {
 }
 
 function getDiagnosticTitle(diagnostic: TollRouteDiagnostic): string {
-  if (diagnostic.source === "no_route_path") return "Diagnóstico do pedágio";
+  if (diagnostic.source === "no_route_path") return "Pedágios da rota";
   if (diagnostic.tollCount === 0) return "Nenhum pedágio encontrado";
   return `${diagnostic.tollCount} pedágio${diagnostic.tollCount === 1 ? "" : "s"} na rota`;
+}
+
+function getSourceLabel(source: TollRouteDiagnostic["source"]): string {
+  if (source === "space_truck_toll_base") return "Base Space Truck";
+  if (source === "no_route_path") return "Sem geometria da rota";
+  if (source === "no_toll_points_found") return "Sem pontos encontrados";
+  if (source === "insufficient_route_geometry") return "Geometria insuficiente";
+  return source;
 }
 
 export function TollDiagnosticFloatingPanel() {
@@ -40,7 +48,7 @@ export function TollDiagnosticFloatingPanel() {
   }, []);
 
   const title = useMemo(() => {
-    return diagnostic ? getDiagnosticTitle(diagnostic) : "Diagnóstico do pedágio";
+    return diagnostic ? getDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
 
   if (!diagnostic) return null;
@@ -50,36 +58,59 @@ export function TollDiagnosticFloatingPanel() {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="fixed bottom-24 right-4 z-50 rounded-full border border-primary/40 bg-background/95 px-4 py-3 text-xs font-bold text-foreground shadow-xl backdrop-blur supports-[backdrop-filter]:bg-background/75"
+        className="fixed bottom-[5.75rem] right-4 z-50 flex items-center gap-3 rounded-2xl border border-primary/35 bg-card/95 px-4 py-3 text-left text-foreground shadow-2xl backdrop-blur supports-[backdrop-filter]:bg-card/85"
       >
-        {diagnostic.source === "no_route_path" ? "Ver diagnóstico" : `Ver ${diagnostic.tollCount} pedágio${diagnostic.tollCount === 1 ? "" : "s"}`}
+        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground shadow-lg">
+          $
+        </span>
+        <span className="min-w-0">
+          <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-primary">Pedágios</span>
+          <span className="block max-w-36 truncate text-sm font-black">
+            {diagnostic.source === "no_route_path" ? "Ver diagnóstico" : `${diagnostic.tollCount} pontos • ${formatCurrency(diagnostic.total)}`}
+          </span>
+        </span>
       </button>
 
       {open && (
-        <div className="fixed inset-0 z-[70] bg-black/60 backdrop-blur-sm" role="dialog" aria-modal="true">
-          <div className="absolute inset-x-3 bottom-3 max-h-[86vh] overflow-hidden rounded-3xl border border-border bg-background shadow-2xl">
+        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md" role="dialog" aria-modal="true">
+          <div className="absolute inset-x-2 bottom-2 max-h-[92vh] overflow-hidden rounded-[2rem] border border-primary/20 bg-background shadow-2xl">
             <div className="sticky top-0 z-10 border-b border-border bg-background/95 p-4 backdrop-blur">
               <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">Space Truck</p>
-                  <h2 className="text-lg font-black text-foreground">{title}</h2>
+                <div className="min-w-0">
+                  <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Space Truck</p>
+                  <h2 className="text-2xl font-black leading-tight text-foreground">{title}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Total {formatCurrency(diagnostic.total)} • Fonte {diagnostic.source} • Corredor {diagnostic.routeCorridorKm} km
+                    {getSourceLabel(diagnostic.source)} • Corredor {diagnostic.routeCorridorKm} km
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => setOpen(false)}
-                  className="rounded-full border border-border px-3 py-2 text-sm font-bold text-foreground"
+                  className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-black text-foreground shadow-sm"
                 >
                   Fechar
                 </button>
               </div>
+
+              <div className="mt-4 grid grid-cols-3 gap-2">
+                <div className="rounded-2xl border border-border bg-card p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
+                  <p className="mt-1 text-sm font-black text-profit">{formatCurrency(diagnostic.total)}</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Pontos</p>
+                  <p className="mt-1 text-sm font-black text-foreground">{diagnostic.tollCount}</p>
+                </div>
+                <div className="rounded-2xl border border-border bg-card p-3">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Precisão</p>
+                  <p className="mt-1 text-sm font-black text-primary">{Math.round(diagnostic.routeCorridorKm * 1000)} m</p>
+                </div>
+              </div>
             </div>
 
-            <div className="max-h-[70vh] overflow-y-auto p-4 pb-6">
+            <div className="max-h-[72vh] overflow-y-auto p-4 pb-8">
               {diagnostic.reason && (
-                <div className="mb-4 rounded-2xl border border-warning/30 bg-warning/10 p-3 text-sm text-foreground">
+                <div className="mb-4 rounded-3xl border border-warning/30 bg-warning/10 p-4 text-sm text-foreground">
                   {diagnostic.reason}
                 </div>
               )}
@@ -87,34 +118,38 @@ export function TollDiagnosticFloatingPanel() {
               <TomTomTollDiagnosticMap diagnostic={diagnostic} />
 
               {diagnostic.items.length === 0 ? (
-                <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
+                <div className="rounded-3xl border border-border bg-muted/20 p-5 text-sm text-muted-foreground">
                   Nenhuma praça foi listada neste diagnóstico. Se o campo de pedágio ficou como estimado, provavelmente a rota não entregou geometria suficiente para cruzar com a base interna.
                 </div>
               ) : (
                 <div className="space-y-3">
                   {diagnostic.items.map((item) => (
-                    <div key={`${item.id}-${item.order}`} className="rounded-2xl border border-border bg-card p-4 shadow-sm">
+                    <button
+                      key={`${item.id}-${item.order}`}
+                      type="button"
+                      className="w-full rounded-3xl border border-border bg-card p-4 text-left shadow-sm transition hover:border-primary/40 hover:bg-muted/20"
+                    >
                       <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[11px] font-bold uppercase tracking-[0.14em] text-primary">#{item.order} • {item.uf}</p>
-                          <h3 className="mt-1 text-base font-black text-foreground">{item.name}</h3>
-                          <p className="mt-1 text-xs text-muted-foreground">
+                        <div className="min-w-0">
+                          <p className="text-[11px] font-black uppercase tracking-[0.14em] text-primary">#{item.order} • {item.uf}</p>
+                          <h3 className="mt-1 text-lg font-black leading-tight text-foreground">{item.name}</h3>
+                          <p className="mt-2 text-xs font-semibold text-muted-foreground">
                             {item.road || "Rodovia não informada"}{item.km ? ` • KM ${item.km}` : ""}
                           </p>
                           <p className="mt-1 text-xs text-muted-foreground">
                             {item.city || "Cidade não informada"} • {item.concessionaire || "Concessionária não informada"}
                           </p>
                         </div>
-                        <div className="text-right">
-                          <p className="text-base font-black text-profit">{formatCurrency(item.value)}</p>
-                          <p className="mt-1 text-[11px] text-muted-foreground">{item.distanceFromRouteKm} km da rota</p>
+                        <div className="shrink-0 text-right">
+                          <p className="text-lg font-black text-profit">{formatCurrency(item.value)}</p>
+                          <p className="mt-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">{Math.round(item.distanceFromRouteKm * 1000)} m da rota</p>
                         </div>
                       </div>
-                      <div className="mt-3 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
-                        <span className="rounded-xl bg-muted/30 px-3 py-2">Após {item.distanceAlongRouteKm} km</span>
-                        <span className="rounded-xl bg-muted/30 px-3 py-2">Sentido: {item.direction || "não informado"}</span>
+                      <div className="mt-4 grid grid-cols-2 gap-2 text-[11px] text-muted-foreground">
+                        <span className="rounded-2xl bg-muted/30 px-3 py-2">Após <strong className="text-foreground">{item.distanceAlongRouteKm} km</strong></span>
+                        <span className="rounded-2xl bg-muted/30 px-3 py-2">Sentido: <strong className="text-foreground">{item.direction || "não informado"}</strong></span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                 </div>
               )}
