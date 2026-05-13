@@ -41,7 +41,9 @@ interface RouteResolution {
 
 const ROUTE_PROVIDER = "tomtom";
 const CACHE_HIT_WRITE_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const ROUTE_PATH_CACHE_MAX_ENTRIES = 25;
 const COUNTRY_TOKENS = new Set(["brazil", "brasil", "br"]);
+const routePathMemoryCache = new Map<string, Coordinates[]>();
 
 function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
   const normalized = errorMessage.toLowerCase();
@@ -63,6 +65,60 @@ function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
 
 function logRouteDebug(event: string, details: Record<string, unknown>) {
   console.info(`[routeApi] ${event}`, details);
+}
+
+function normalizeCoordKeyPart(value: number): string {
+  return value.toFixed(5);
+}
+
+function buildRoutePathCacheKey(params: {
+  originLat: number;
+  originLon: number;
+  destLat: number;
+  destLon: number;
+}): string {
+  return [
+    normalizeCoordKeyPart(params.originLat),
+    normalizeCoordKeyPart(params.originLon),
+    normalizeCoordKeyPart(params.destLat),
+    normalizeCoordKeyPart(params.destLon),
+  ].join("|");
+}
+
+function rememberRoutePath(result: RouteResult): void {
+  if (result.routePath.length < 2) return;
+
+  const cacheKey = buildRoutePathCacheKey({
+    originLat: result.originCoords.lat,
+    originLon: result.originCoords.lon,
+    destLat: result.destCoords.lat,
+    destLon: result.destCoords.lon,
+  });
+
+  routePathMemoryCache.delete(cacheKey);
+  routePathMemoryCache.set(cacheKey, result.routePath);
+
+  while (routePathMemoryCache.size > ROUTE_PATH_CACHE_MAX_ENTRIES) {
+    const oldestKey = routePathMemoryCache.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    routePathMemoryCache.delete(oldestKey);
+  }
+}
+
+export function getRememberedRoutePath(params: {
+  originLat: number;
+  originLon: number;
+  destLat: number;
+  destLon: number;
+}): Coordinates[] | null {
+  const cacheKey = buildRoutePathCacheKey(params);
+  const cached = routePathMemoryCache.get(cacheKey);
+  if (!cached || cached.length < 2) return null;
+
+  routePathMemoryCache.delete(cacheKey);
+  routePathMemoryCache.set(cacheKey, cached);
+
+  return cached;
 }
 
 function normalizeRoutePath(
@@ -146,6 +202,13 @@ async function resolveRoute(
       response.destCoords
     ) {
       const routePath = normalizeRoutePath(response);
+      const result: RouteResult = {
+        distanceKm: response.distanceKm,
+        originCoords: response.originCoords,
+        destCoords: response.destCoords,
+        routePath,
+      };
+      rememberRoutePath(result);
 
       logRouteDebug("provider_success", {
         origin,
@@ -156,12 +219,7 @@ async function resolveRoute(
       });
 
       return {
-        result: {
-          distanceKm: response.distanceKm,
-          originCoords: response.originCoords,
-          destCoords: response.destCoords,
-          routePath,
-        },
+        result,
         reason: null,
         originQueryUsed: response.originQueryUsed,
         destinationQueryUsed: response.destinationQueryUsed,
