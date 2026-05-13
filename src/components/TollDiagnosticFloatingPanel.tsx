@@ -44,13 +44,13 @@ function InlineTollMapButton({ diagnostic, onOpen }: { diagnostic: TollRouteDiag
     <button
       type="button"
       onClick={onOpen}
-      className="absolute right-2 top-1/2 z-10 flex h-10 -translate-y-1/2 items-center gap-2 rounded-2xl border border-primary/40 bg-primary px-3 text-left text-primary-foreground shadow-lg transition active:scale-[0.98]"
-      aria-label="Ver pedágios da rota no mapa"
+      className="absolute right-2 top-[1.85rem] z-10 flex h-9 items-center gap-1.5 rounded-xl border border-primary/40 bg-primary px-2.5 text-left text-primary-foreground shadow-lg transition active:scale-[0.98]"
+      aria-label="Ver pedágio da rota no mapa"
     >
-      <span className="flex h-6 w-6 items-center justify-center rounded-xl bg-primary-foreground/20 text-xs font-black">$</span>
+      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-foreground/20 text-xs font-black">$</span>
       <span className="leading-none">
-        <span className="block text-[10px] font-black uppercase tracking-[0.12em]">Ver mapa</span>
-        <span className="block text-[10px] font-bold opacity-90">{details}</span>
+        <span className="block text-[9px] font-black uppercase tracking-[0.08em]">Ver pedágio</span>
+        <span className="block text-[9px] font-bold opacity-90">{details}</span>
       </span>
     </button>
   );
@@ -103,7 +103,7 @@ export function TollDiagnosticFloatingPanel() {
       originalPaddingRightRef.current = input.style.paddingRight;
       originalPositionRef.current = container.style.position;
       container.style.position = "relative";
-      input.style.paddingRight = "7.75rem";
+      input.style.paddingRight = "8.35rem";
       preparedInputRef.current = input;
     };
 
