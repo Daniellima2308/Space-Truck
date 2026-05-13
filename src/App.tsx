@@ -10,6 +10,7 @@ import { AuthGuard } from "@/components/AuthGuard";
 import { BottomNav } from "@/components/BottomNav";
 import { OnboardingTour } from "@/components/OnboardingTour";
 import { DevPreviewBadge } from "@/components/DevPreviewBadge";
+import { TollDiagnosticFloatingPanel } from "@/components/TollDiagnosticFloatingPanel";
 import { SUPPORT_REQUEST_ROUTE } from "@/features/help/supportRequestOptions";
 import { appPath, legacyToAppPath, nestedRoutePath } from "@/lib/routes";
 import { useAuth } from "@/context/auth-context";
@@ -114,6 +115,7 @@ function ProtectedApp() {
         </Routes>
         <OnboardingTour />
         <BottomNav />
+        <TollDiagnosticFloatingPanel />
         <DevPreviewBadge />
       </AppProvider>
     </AccessGuard>
