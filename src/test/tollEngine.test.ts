@@ -105,6 +105,28 @@ describe("tollEngine", () => {
     ]);
   });
 
+  it("ordena pedágios pela sequência da viagem e informa posição na rota", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "third", lat: 0.01, lon: 0.75, tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "first", lat: 0.01, lon: 0.25, tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "second", lat: 0.01, lon: 0.5, tariffs: { 6: 10 } }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.matches.map((match) => match.point.id)).toEqual([
+      "first",
+      "second",
+      "third",
+    ]);
+    expect(result.matches.map((match) => match.routeOrder)).toEqual([1, 2, 3]);
+    expect(result.matches[0].distanceAlongRouteKm).toBeLessThan(result.matches[1].distanceAlongRouteKm);
+    expect(result.matches[1].distanceAlongRouteKm).toBeLessThan(result.matches[2].distanceAlongRouteKm);
+  });
+
   it("deduplica registros equivalentes da mesma praça física", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,
@@ -136,6 +158,7 @@ describe("tollEngine", () => {
 
     expect(result.total).toBe(30);
     expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].routeOrder).toBe(1);
   });
 
   it("ignora praças fora do corredor da rota", () => {
