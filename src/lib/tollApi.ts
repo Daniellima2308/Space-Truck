@@ -1,4 +1,4 @@
-import { getRememberedRoutePath } from "@/lib/routeApi";
+import { getRememberedRoutePath, type Coordinates } from "@/lib/routeApi";
 import {
   calculateRouteToll,
   type TollCalculationResult,
@@ -24,6 +24,8 @@ export interface TollRouteDiagnosticItem {
   uf: string;
   concessionaire: string;
   direction: string | null;
+  lat: number;
+  lon: number;
   distanceAlongRouteKm: number;
   distanceFromRouteKm: number;
 }
@@ -33,6 +35,7 @@ export interface TollRouteDiagnostic {
   tollCount: number;
   source: TollRouteDiagnosticSource;
   routeCorridorKm: number;
+  routePath: Coordinates[];
   items: TollRouteDiagnosticItem[];
   reason?: string;
 }
@@ -52,17 +55,19 @@ function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
     tollCount: 0,
     source: "no_route_path",
     routeCorridorKm: 0,
+    routePath: [],
     items: [],
     reason: "Route distance exists, but route geometry was not available for toll matching.",
   };
 }
 
-function mapTollDiagnostic(result: TollApiCalculationResult): TollRouteDiagnostic {
+function mapTollDiagnostic(result: TollApiCalculationResult, routePath: Coordinates[]): TollRouteDiagnostic {
   return {
     total: result.total,
     tollCount: result.matches.length,
     source: result.source,
     routeCorridorKm: result.routeCorridorKm,
+    routePath,
     items: result.matches.map((match) => ({
       order: match.routeOrder,
       id: match.point.id,
@@ -74,10 +79,26 @@ function mapTollDiagnostic(result: TollApiCalculationResult): TollRouteDiagnosti
       uf: match.point.uf,
       concessionaire: match.point.concessionaire,
       direction: match.point.direction,
+      lat: match.point.lat,
+      lon: match.point.lon,
       distanceAlongRouteKm: match.distanceAlongRouteKm,
       distanceFromRouteKm: match.distanceFromRouteKm,
     })),
   };
+}
+
+function getRoutePathForParams(params: {
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+}): Coordinates[] | null {
+  return getRememberedRoutePath({
+    originLat: params.originLat,
+    originLon: params.originLng,
+    destLat: params.destLat,
+    destLon: params.destLng,
+  });
 }
 
 export function calculateTollFromRememberedRoute(params: {
@@ -87,13 +108,7 @@ export function calculateTollFromRememberedRoute(params: {
   destLng: number;
   axles: number;
 }): TollApiCalculationResult | null {
-  const routePath = getRememberedRoutePath({
-    originLat: params.originLat,
-    originLon: params.originLng,
-    destLat: params.destLat,
-    destLon: params.destLng,
-  });
-
+  const routePath = getRoutePathForParams(params);
   if (!routePath) return null;
 
   return calculateRouteToll({
@@ -109,8 +124,18 @@ export function calculateTollDiagnosticFromRememberedRoute(params: {
   destLng: number;
   axles: number;
 }): TollRouteDiagnostic {
-  const result = calculateTollFromRememberedRoute(params);
-  const diagnostic = result ? mapTollDiagnostic(result) : buildNoRoutePathDiagnostic();
+  const routePath = getRoutePathForParams(params);
+  if (!routePath) {
+    const diagnostic = buildNoRoutePathDiagnostic();
+    publishTollDiagnostic(diagnostic);
+    return diagnostic;
+  }
+
+  const result = calculateRouteToll({
+    routePath,
+    axles: params.axles,
+  });
+  const diagnostic = mapTollDiagnostic(result, routePath);
   publishTollDiagnostic(diagnostic);
   return diagnostic;
 }
