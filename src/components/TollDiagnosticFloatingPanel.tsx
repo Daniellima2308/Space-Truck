@@ -28,29 +28,30 @@ function getSourceLabel(source: TollRouteDiagnostic["source"]): string {
   return source;
 }
 
-function findTollFieldContainer(): HTMLElement | null {
+function findTollFieldGrid(): HTMLElement | null {
   const tollInput = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
     .find((input) => input.placeholder === "Ex: R$ 350,00");
 
-  return tollInput?.parentElement ?? null;
+  return tollInput?.parentElement?.parentElement ?? null;
 }
 
 function InlineTollMapButton({ diagnostic, onOpen }: { diagnostic: TollRouteDiagnostic; onOpen: () => void }) {
   const details = diagnostic.source === "no_route_path"
-    ? "diagnóstico"
+    ? "Diagnóstico da rota"
     : `${diagnostic.tollCount} ponto${diagnostic.tollCount === 1 ? "" : "s"}`;
 
   return (
     <button
       type="button"
       onClick={onOpen}
-      className="absolute right-2 top-[1.85rem] z-10 flex h-9 items-center gap-1.5 rounded-xl border border-primary/40 bg-primary px-2.5 text-left text-primary-foreground shadow-lg transition active:scale-[0.98]"
+      className="mt-[1.55rem] flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/35 bg-primary px-3 text-primary-foreground shadow-lg transition active:scale-[0.98]"
+      style={{ gridColumn: "2 / 3", gridRow: "2 / 3", alignSelf: "start" }}
       aria-label="Ver pedágio da rota no mapa"
     >
-      <span className="flex h-6 w-6 items-center justify-center rounded-lg bg-primary-foreground/20 text-xs font-black">$</span>
-      <span className="leading-none">
-        <span className="block text-[9px] font-black uppercase tracking-[0.08em]">Ver pedágio</span>
-        <span className="block text-[9px] font-bold opacity-90">{details}</span>
+      <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-primary-foreground/20 text-sm font-black">$</span>
+      <span className="min-w-0 text-left leading-none">
+        <span className="block text-[10px] font-black uppercase tracking-[0.1em]">Ver pedágio</span>
+        <span className="mt-1 block truncate text-[10px] font-bold opacity-90">{details}</span>
       </span>
     </button>
   );
@@ -62,9 +63,6 @@ export function TollDiagnosticFloatingPanel() {
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
   const [focusedTollId, setFocusedTollId] = useState<string | null>(null);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
-  const preparedInputRef = useRef<HTMLInputElement | null>(null);
-  const originalPaddingRightRef = useRef<string>("");
-  const originalPositionRef = useRef<string>("");
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -92,34 +90,14 @@ export function TollDiagnosticFloatingPanel() {
   useEffect(() => {
     if (typeof window === "undefined" || !diagnostic) return;
 
-    const prepareTarget = () => {
-      const container = findTollFieldContainer();
-      const input = container?.querySelector<HTMLInputElement>('input[placeholder="Ex: R$ 350,00"]') ?? null;
+    const updateTarget = () => setButtonContainer(findTollFieldGrid());
 
-      setButtonContainer(container);
-      if (!container || !input || preparedInputRef.current === input) return;
-
-      if (preparedInputRef.current) {
-        preparedInputRef.current.style.paddingRight = originalPaddingRightRef.current;
-      }
-
-      originalPaddingRightRef.current = input.style.paddingRight;
-      originalPositionRef.current = container.style.position;
-      container.style.position = "relative";
-      input.style.paddingRight = "8.35rem";
-      preparedInputRef.current = input;
-    };
-
-    prepareTarget();
-    const observer = new MutationObserver(prepareTarget);
+    updateTarget();
+    const observer = new MutationObserver(updateTarget);
     observer.observe(document.body, { childList: true, subtree: true });
 
-    return () => {
-      observer.disconnect();
-      if (preparedInputRef.current) preparedInputRef.current.style.paddingRight = originalPaddingRightRef.current;
-      if (buttonContainer) buttonContainer.style.position = originalPositionRef.current;
-    };
-  }, [diagnostic, buttonContainer]);
+    return () => observer.disconnect();
+  }, [diagnostic]);
 
   const title = useMemo(() => {
     return diagnostic ? getDiagnosticTitle(diagnostic) : "Pedágios da rota";
@@ -184,7 +162,7 @@ export function TollDiagnosticFloatingPanel() {
                 </div>
               )}
 
-              <div ref={mapSectionRef} className="scroll-mt-4">
+              <div ref={mapSectionRef} className="scroll-mt-48">
                 <TomTomTollDiagnosticMap
                   diagnostic={diagnostic}
                   focusedTollId={focusedTollId}
