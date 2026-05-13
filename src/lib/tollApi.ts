@@ -6,6 +6,12 @@ import {
 
 export type TollApiCalculationResult = TollCalculationResult;
 
+declare global {
+  interface Window {
+    __SPACE_TRUCK_LAST_TOLL_DIAGNOSTIC__?: TollRouteDiagnostic;
+  }
+}
+
 export interface TollRouteDiagnosticItem {
   order: number;
   id: string;
@@ -74,6 +80,20 @@ function mapTollDiagnostic(result: TollApiCalculationResult): TollRouteDiagnosti
   };
 }
 
+function publishTollDiagnostic(diagnostic: TollRouteDiagnostic | null): void {
+  if (typeof window === "undefined" || !diagnostic) return;
+
+  window.__SPACE_TRUCK_LAST_TOLL_DIAGNOSTIC__ = diagnostic;
+
+  console.info("[Space Truck] Diagnóstico de pedágios", {
+    total: diagnostic.total,
+    tollCount: diagnostic.tollCount,
+    source: diagnostic.source,
+    routeCorridorKm: diagnostic.routeCorridorKm,
+  });
+  console.table(diagnostic.items);
+}
+
 export function calculateTollDiagnosticFromRememberedRoute(params: {
   originLat: number;
   originLng: number;
@@ -82,7 +102,9 @@ export function calculateTollDiagnosticFromRememberedRoute(params: {
   axles: number;
 }): TollRouteDiagnostic | null {
   const result = calculateTollFromRememberedRoute(params);
-  return result ? mapTollDiagnostic(result) : null;
+  const diagnostic = result ? mapTollDiagnostic(result) : null;
+  publishTollDiagnostic(diagnostic);
+  return diagnostic;
 }
 
 export async function calculateToll(
@@ -92,7 +114,7 @@ export async function calculateToll(
   destLng: number,
   axles: number,
 ): Promise<number | null> {
-  const result = calculateTollFromRememberedRoute({
+  const diagnostic = calculateTollDiagnosticFromRememberedRoute({
     originLat,
     originLng,
     destLat,
@@ -100,5 +122,5 @@ export async function calculateToll(
     axles,
   });
 
-  return result?.total ?? null;
+  return diagnostic?.total ?? null;
 }
