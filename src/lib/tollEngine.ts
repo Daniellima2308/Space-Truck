@@ -113,11 +113,10 @@ function bearingProjectionDistanceKm(
   return haversineDistanceKm(point, closest);
 }
 
-export function getDistanceFromRouteKm(
+function getDistanceFromNormalizedRouteKm(
   point: Coordinates,
-  routePath: Coordinates[],
+  normalizedPath: Coordinates[],
 ): number {
-  const normalizedPath = normalizeRoutePath(routePath);
   if (normalizedPath.length < MIN_ROUTE_POINTS_FOR_GEOMETRY) return Infinity;
 
   let minDistance = Infinity;
@@ -132,6 +131,13 @@ export function getDistanceFromRouteKm(
   }
 
   return minDistance;
+}
+
+export function getDistanceFromRouteKm(
+  point: Coordinates,
+  routePath: Coordinates[],
+): number {
+  return getDistanceFromNormalizedRouteKm(point, normalizeRoutePath(routePath));
 }
 
 export function calculateRouteToll({
@@ -157,7 +163,7 @@ export function calculateRouteToll({
       const tollValue = point.tariffs[normalizedAxles];
       if (typeof tollValue !== "number" || tollValue <= 0) return null;
 
-      const distanceFromRouteKm = getDistanceFromRouteKm(
+      const distanceFromRouteKm = getDistanceFromNormalizedRouteKm(
         { lat: point.lat, lon: point.lon },
         normalizedPath,
       );
