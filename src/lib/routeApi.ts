@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "./supabaseClient";
 
-interface Coordinates {
+export interface Coordinates {
   lat: number;
   lon: number;
 }
@@ -10,6 +10,7 @@ export interface RouteResult {
   distanceKm: number;
   originCoords: Coordinates;
   destCoords: Coordinates;
+  routePath: Coordinates[];
 }
 
 export interface RouteDistanceDiagnostic {
@@ -24,6 +25,7 @@ interface RouteFunctionResponse {
   distanceKm: number | null;
   originCoords: Coordinates | null;
   destCoords: Coordinates | null;
+  routePath?: Coordinates[] | null;
   reason: string | null;
   reasonCode?: string | null;
   originQueryUsed?: string;
@@ -39,7 +41,9 @@ interface RouteResolution {
 
 const ROUTE_PROVIDER = "tomtom";
 const CACHE_HIT_WRITE_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
+const ROUTE_PATH_CACHE_MAX_ENTRIES = 25;
 const COUNTRY_TOKENS = new Set(["brazil", "brasil", "br"]);
+const routePathMemoryCache = new Map<string, Coordinates[]>();
 
 function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
   const normalized = errorMessage.toLowerCase();
@@ -61,6 +65,80 @@ function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
 
 function logRouteDebug(event: string, details: Record<string, unknown>) {
   console.info(`[routeApi] ${event}`, details);
+}
+
+function normalizeCoordKeyPart(value: number): string {
+  return value.toFixed(5);
+}
+
+function buildRoutePathCacheKey(params: {
+  originLat: number;
+  originLon: number;
+  destLat: number;
+  destLon: number;
+}): string {
+  return [
+    normalizeCoordKeyPart(params.originLat),
+    normalizeCoordKeyPart(params.originLon),
+    normalizeCoordKeyPart(params.destLat),
+    normalizeCoordKeyPart(params.destLon),
+  ].join("|");
+}
+
+function rememberRoutePath(result: RouteResult): void {
+  if (result.routePath.length < 2) return;
+
+  const cacheKey = buildRoutePathCacheKey({
+    originLat: result.originCoords.lat,
+    originLon: result.originCoords.lon,
+    destLat: result.destCoords.lat,
+    destLon: result.destCoords.lon,
+  });
+
+  routePathMemoryCache.delete(cacheKey);
+  routePathMemoryCache.set(cacheKey, result.routePath);
+
+  while (routePathMemoryCache.size > ROUTE_PATH_CACHE_MAX_ENTRIES) {
+    const oldestKey = routePathMemoryCache.keys().next().value as string | undefined;
+    if (!oldestKey) break;
+    routePathMemoryCache.delete(oldestKey);
+  }
+}
+
+/**
+ * Recupera uma geometria de rota do cache em memória.
+ * Efeito colateral esperado: quando encontra a rota, move a entrada para o fim
+ * do Map para marcá-la como usada recentemente na estratégia LRU.
+ */
+export function getRememberedRoutePath(params: {
+  originLat: number;
+  originLon: number;
+  destLat: number;
+  destLon: number;
+}): Coordinates[] | null {
+  const cacheKey = buildRoutePathCacheKey(params);
+  const cached = routePathMemoryCache.get(cacheKey);
+  if (!cached || cached.length < 2) return null;
+
+  routePathMemoryCache.delete(cacheKey);
+  routePathMemoryCache.set(cacheKey, cached);
+
+  return cached;
+}
+
+function normalizeRoutePath(
+  response: RouteFunctionResponse,
+): Coordinates[] {
+  const points = Array.isArray(response.routePath)
+    ? response.routePath.filter((point): point is Coordinates => (
+      typeof point?.lat === "number" &&
+      typeof point?.lon === "number" &&
+      Number.isFinite(point.lat) &&
+      Number.isFinite(point.lon)
+    ))
+    : [];
+
+  return points.length > 1 ? points : [];
 }
 
 export function normalizeRouteLabel(value: string): string {
@@ -122,19 +200,25 @@ async function resolveRoute(
       response.originCoords &&
       response.destCoords
     ) {
+      const routePath = normalizeRoutePath(response);
+      const result: RouteResult = {
+        distanceKm: response.distanceKm,
+        originCoords: response.originCoords,
+        destCoords: response.destCoords,
+        routePath,
+      };
+      rememberRoutePath(result);
+
       logRouteDebug("provider_success", {
         origin,
         destination,
         provider: ROUTE_PROVIDER,
         distanceKm: response.distanceKm,
+        routePathPoints: routePath.length,
       });
 
       return {
-        result: {
-          distanceKm: response.distanceKm,
-          originCoords: response.originCoords,
-          destCoords: response.destCoords,
-        },
+        result,
         reason: null,
         originQueryUsed: response.originQueryUsed,
         destinationQueryUsed: response.destinationQueryUsed,

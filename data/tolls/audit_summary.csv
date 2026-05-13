@@ -1,0 +1,10 @@
+﻿severidade,categoria,descricao,qtd,acao_v26
+corrigido,formato_monetario,Artefatos de ponto flutuante visíveis no XLSX V25 (ex.: 86.40000000000001 / ...000000000001).,detectado_no_xlsx_v25,Todos os campos de valor foram regravados como texto decimal padronizado com 2 casas e o long table foi reconstruído.
+corrigido,campos_obrigatorios,"Campos municipio/rodovia/km ausentes em parte das linhas, principalmente pórticos SP/ARTESP e alguns pontos sem km oficial.",67,Municípios e rodovias preenchidos quando inferíveis por nome/fonte/observação; campos ainda sem km oficial ficam como opcionais e não bloqueiam cálculo por coordenada.
+ok,campos_obrigatorios,Nenhum campo essencial para cálculo ficou vazio.,0,Sem ação.
+atenção,metadados_rota,Linhas ativas sem rodovia/município/km após limpeza.,20,Não bloqueia motor por coordenada/tarifa; ver audit_active_metadata_v26 para completar km quando necessário.
+ok,coordenadas,Coordenadas fora do range do Brasil ou inválidas.,0,Sem ação.
+ok,duplicidade,IDs duplicados.,0,Sem ação.
+ok,tarifas_long,Cada ponto ativo deve ter 8 linhas ponto×eixo (2 a 9 eixos).,0,Sem ação.
+ok,formato_monetario,Campos monetários fora do padrão decimal com 2 casas.,0,Sem ação.
+ok,app_import,Pontos suspensos/fora de cálculo no arquivo app_ready ativo.,0,Sem ação.
