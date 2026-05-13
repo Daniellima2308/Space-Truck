@@ -1,0 +1,19 @@
+{
+  "versao": "V26_APP_READY_AUDITADA",
+  "base_origem": "V25_GEO_ALTA_FINAL",
+  "linhas_fisicas": 716,
+  "entram_calculo": 688,
+  "fora_calculo": 28,
+  "linhas_ponto_eixo": 5504,
+  "geo_alta": 716,
+  "geo_media": 0,
+  "geo_baixa": 0,
+  "valor_alta": 451,
+  "valor_media": 184,
+  "valor_baixa": 81,
+  "correcoes_changelog": 7429,
+  "issues_erro": 0,
+  "issues_atencao": 1,
+  "issues_corrigido": 2,
+  "pronto_para_app": true
+}

@@ -1,0 +1,21 @@
+﻿row,id,campo,uf,nome
+625,rj_municipal_viario_transolimpica_principal_sulacap,km,RJ,Praça principal Transolímpica - Sulacap
+626,rj_municipal_lamsa_linha_amarela_agua_santa,km,RJ,Praça Linha Amarela - Água Santa
+661,mt_rodovia_da_mudanca_p1,km,MT,P1 Lucas do Rio Verde / Groslândia
+662,mt_rodovia_da_mudanca_p2,km,MT,P2 Tapurah / Ana Terra
+663,mt_intervias_mt_242_p1,km,MT,P1 Nova Ubiratã
+664,mt_apasi_p1,km,MT,P1 Ipiranga do Norte
+670,mt_via_brasil_mt_246_p1,km,MT,P1 Rosário Oeste
+671,mt_via_brasil_mt_246_p2,km,MT,P2 Barra do Bugres
+672,mt_via_brasil_mt_246_p3,km,MT,P3 Tangará da Serra 1
+673,mt_via_brasil_mt_246_p4,km,MT,P4 Tangará da Serra 2
+692,ba_estadual_cbn_cia_aeroporto,km,BA,Praça CIA-Aeroporto
+693,ba_estadual_cbn_via_parafuso,km,BA,Praça Via Parafuso
+694,ba_estadual_cbn_canal_trafego,km,BA,Praça Canal de Tráfego
+695,ba_estadual_cbn_candeias_simoes_filho,km,BA,Praça Candeias / Simões Filho
+696,ba_estadual_cbn_pojuca_mata_sao_joao,km,BA,Praça Pojuca / Mata de São João
+697,ba_estadual_cbn_via_metropolitana,km,BA,Praça Via Metropolitana
+702,pe_estadual_rota_do_atlantico_guaibu,km,PE,Guaibú / Cabo de Santo Agostinho
+703,pe_estadual_rota_do_atlantico_suape,km,PE,Suape / Rota do Atlântico
+704,pe_estadual_rota_do_atlantico_ipojuca_sul,km,PE,Ipojuca Sul
+705,pe_estadual_rota_do_atlantico_ipojuca,km,PE,Ipojuca / Nossa Senhora do Ó
