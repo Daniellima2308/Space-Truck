@@ -138,13 +138,7 @@ function normalizeRoutePath(
     ))
     : [];
 
-  if (points.length > 1) return points;
-
-  if (response.originCoords && response.destCoords) {
-    return [response.originCoords, response.destCoords];
-  }
-
-  return [];
+  return points.length > 1 ? points : [];
 }
 
 export function normalizeRouteLabel(value: string): string {
