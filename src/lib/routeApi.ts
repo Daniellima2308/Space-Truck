@@ -1,7 +1,7 @@
 import { supabase } from "@/integrations/supabase/client";
 import { invokeEdgeFunction } from "./supabaseClient";
 
-interface Coordinates {
+export interface Coordinates {
   lat: number;
   lon: number;
 }
@@ -10,6 +10,7 @@ export interface RouteResult {
   distanceKm: number;
   originCoords: Coordinates;
   destCoords: Coordinates;
+  routePath: Coordinates[];
 }
 
 export interface RouteDistanceDiagnostic {
@@ -24,6 +25,7 @@ interface RouteFunctionResponse {
   distanceKm: number | null;
   originCoords: Coordinates | null;
   destCoords: Coordinates | null;
+  routePath?: Coordinates[] | null;
   reason: string | null;
   reasonCode?: string | null;
   originQueryUsed?: string;
@@ -61,6 +63,27 @@ function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
 
 function logRouteDebug(event: string, details: Record<string, unknown>) {
   console.info(`[routeApi] ${event}`, details);
+}
+
+function normalizeRoutePath(
+  response: RouteFunctionResponse,
+): Coordinates[] {
+  const points = Array.isArray(response.routePath)
+    ? response.routePath.filter((point): point is Coordinates => (
+      typeof point?.lat === "number" &&
+      typeof point?.lon === "number" &&
+      Number.isFinite(point.lat) &&
+      Number.isFinite(point.lon)
+    ))
+    : [];
+
+  if (points.length > 1) return points;
+
+  if (response.originCoords && response.destCoords) {
+    return [response.originCoords, response.destCoords];
+  }
+
+  return [];
 }
 
 export function normalizeRouteLabel(value: string): string {
@@ -122,11 +145,14 @@ async function resolveRoute(
       response.originCoords &&
       response.destCoords
     ) {
+      const routePath = normalizeRoutePath(response);
+
       logRouteDebug("provider_success", {
         origin,
         destination,
         provider: ROUTE_PROVIDER,
         distanceKm: response.distanceKm,
+        routePathPoints: routePath.length,
       });
 
       return {
@@ -134,6 +160,7 @@ async function resolveRoute(
           distanceKm: response.distanceKm,
           originCoords: response.originCoords,
           destCoords: response.destCoords,
+          routePath,
         },
         reason: null,
         originQueryUsed: response.originQueryUsed,
