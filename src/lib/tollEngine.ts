@@ -9,6 +9,7 @@ import {
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.08;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
+const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
 
 export type TollCalculationSource =
   | typeof SPACE_TRUCK_TOLL_BASE_SOURCE
@@ -194,17 +195,33 @@ function normalizePhysicalPointPart(value: string | null | undefined): string {
 
 function buildPhysicalPointKey(match: TollPointCandidate): string {
   const { point } = match;
-  const stableParts = [point.concessionaire, point.road, point.km, point.city, point.name]
+  const stableParts = [point.concessionaire, point.road, point.km, point.city]
     .map(normalizePhysicalPointPart)
     .filter(Boolean);
 
-  if (stableParts.length >= 3) return stableParts.join("|");
+  if (stableParts.length >= 2) return stableParts.join("|");
 
   return [
     ...stableParts,
-    point.lat.toFixed(4),
-    point.lon.toFixed(4),
+    point.lat.toFixed(3),
+    point.lon.toFixed(3),
   ].join("|");
+}
+
+function shouldTreatAsSameRouteCharge(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  const sameRoad = normalizePhysicalPointPart(a.point.road) === normalizePhysicalPointPart(b.point.road);
+  const sameConcessionaire = normalizePhysicalPointPart(a.point.concessionaire) === normalizePhysicalPointPart(b.point.concessionaire);
+  const sameCity = normalizePhysicalPointPart(a.point.city) === normalizePhysicalPointPart(b.point.city);
+  const closeOnRoute = Math.abs(a.distanceAlongRouteKm - b.distanceAlongRouteKm) <= SAME_ROUTE_POSITION_TOLERANCE_KM;
+
+  return closeOnRoute && (sameRoad || (sameConcessionaire && sameCity));
+}
+
+function chooseBestPhysicalMatch(current: TollPointCandidate | undefined, next: TollPointCandidate): TollPointCandidate {
+  if (!current) return next;
+  if (next.tollValue > current.tollValue) return next;
+  if (next.tollValue === current.tollValue && next.distanceFromRouteKm < current.distanceFromRouteKm) return next;
+  return current;
 }
 
 function dedupePhysicalTollMatches(matches: TollPointCandidate[]): TollPointCandidate[] {
@@ -212,18 +229,24 @@ function dedupePhysicalTollMatches(matches: TollPointCandidate[]): TollPointCand
 
   for (const match of matches) {
     const key = buildPhysicalPointKey(match);
-    const current = byPhysicalPoint.get(key);
-
-    if (
-      !current ||
-      match.tollValue > current.tollValue ||
-      (match.tollValue === current.tollValue && match.distanceFromRouteKm < current.distanceFromRouteKm)
-    ) {
-      byPhysicalPoint.set(key, match);
-    }
+    byPhysicalPoint.set(key, chooseBestPhysicalMatch(byPhysicalPoint.get(key), match));
   }
 
-  return [...byPhysicalPoint.values()];
+  const ordered = [...byPhysicalPoint.values()].sort((a, b) => a.distanceAlongRouteKm - b.distanceAlongRouteKm);
+  const deduped: TollPointCandidate[] = [];
+
+  for (const match of ordered) {
+    const duplicateIndex = deduped.findIndex((current) => shouldTreatAsSameRouteCharge(current, match));
+
+    if (duplicateIndex === -1) {
+      deduped.push(match);
+      continue;
+    }
+
+    deduped[duplicateIndex] = chooseBestPhysicalMatch(deduped[duplicateIndex], match);
+  }
+
+  return deduped;
 }
 
 function orderTollMatches(matches: TollPointCandidate[]): TollPointMatch[] {
