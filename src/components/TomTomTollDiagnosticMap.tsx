@@ -14,6 +14,13 @@ const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   maximumFractionDigits: 2,
 });
 
+type TomTomPopup = {
+  setHTML: (html: string) => TomTomPopup;
+  setLngLat?: (lngLat: [number, number]) => TomTomPopup;
+  addTo?: (map: TomTomMap) => TomTomPopup;
+  remove?: () => void;
+};
+
 type TomTomMarker = {
   setLngLat: (lngLat: [number, number]) => TomTomMarker;
   setPopup: (popup: unknown) => TomTomMarker;
@@ -26,13 +33,14 @@ type TomTomMap = {
   addSource: (id: string, source: unknown) => void;
   addLayer: (layer: unknown) => void;
   fitBounds: (bounds: unknown, options?: unknown) => void;
+  flyTo?: (options: unknown) => void;
   remove: () => void;
 };
 
 type TomTomSdk = {
   map: (options: unknown) => TomTomMap;
   Marker: new (options?: unknown) => TomTomMarker;
-  Popup: new (options?: unknown) => { setHTML: (html: string) => unknown };
+  Popup: new (options?: unknown) => TomTomPopup;
   LngLatBounds: new () => { extend: (lngLat: [number, number]) => void };
 };
 
@@ -40,6 +48,12 @@ declare global {
   interface Window {
     tt?: TomTomSdk;
   }
+}
+
+interface TomTomTollDiagnosticMapProps {
+  diagnostic: TollRouteDiagnostic;
+  focusedTollId?: string | null;
+  focusRequestKey?: number;
 }
 
 function loadTomTomSdk(): Promise<TomTomSdk> {
@@ -200,11 +214,18 @@ function addEndpointMarkers(tt: TomTomSdk, map: TomTomMap, routePath: Coordinate
   markers.push(new tt.Marker({ element: createEndpointMarkerElement("F", "end") }).setLngLat([last.lon, last.lat]).addTo(map));
 }
 
-export function TomTomTollDiagnosticMap({ diagnostic }: { diagnostic: TollRouteDiagnostic }) {
+export function TomTomTollDiagnosticMap({
+  diagnostic,
+  focusedTollId,
+  focusRequestKey = 0,
+}: TomTomTollDiagnosticMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<TomTomMap | null>(null);
   const markersRef = useRef<TomTomMarker[]>([]);
+  const markersByIdRef = useRef(new Map<string, TomTomMarker>());
+  const popupsByIdRef = useRef(new Map<string, TomTomPopup>());
   const [status, setStatus] = useState<string | null>(null);
+  const [mapReady, setMapReady] = useState(false);
 
   useEffect(() => {
     const apiKey = import.meta.env.VITE_TOMTOM_API_KEY as string | undefined;
@@ -218,6 +239,7 @@ export function TomTomTollDiagnosticMap({ diagnostic }: { diagnostic: TollRouteD
     }
 
     let disposed = false;
+    setMapReady(false);
 
     loadTomTomSdk()
       .then((tt) => {
@@ -227,6 +249,8 @@ export function TomTomTollDiagnosticMap({ diagnostic }: { diagnostic: TollRouteD
         setStatus(null);
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
+        markersByIdRef.current.clear();
+        popupsByIdRef.current.clear();
         mapRef.current?.remove();
 
         const first = diagnostic.routePath[0];
@@ -285,10 +309,14 @@ export function TomTomTollDiagnosticMap({ diagnostic }: { diagnostic: TollRouteD
               .setLngLat([item.lon, item.lat])
               .setPopup(popup)
               .addTo(map);
+
             markersRef.current.push(marker);
+            markersByIdRef.current.set(item.id, marker);
+            popupsByIdRef.current.set(item.id, popup);
           });
 
           map.fitBounds(bounds, { padding: 54, maxZoom: 13 });
+          setMapReady(true);
         });
       })
       .catch(() => {
@@ -297,12 +325,30 @@ export function TomTomTollDiagnosticMap({ diagnostic }: { diagnostic: TollRouteD
 
     return () => {
       disposed = true;
+      setMapReady(false);
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
+      markersByIdRef.current.clear();
+      popupsByIdRef.current.clear();
       mapRef.current?.remove();
       mapRef.current = null;
     };
   }, [diagnostic]);
+
+  useEffect(() => {
+    if (!focusedTollId || !mapReady || !mapRef.current) return;
+
+    const item = diagnostic.items.find((current) => current.id === focusedTollId);
+    const popup = popupsByIdRef.current.get(focusedTollId);
+    if (!item || !popup) return;
+
+    mapRef.current.flyTo?.({ center: [item.lon, item.lat], zoom: 13, essential: true });
+
+    window.setTimeout(() => {
+      popup.setLngLat?.([item.lon, item.lat]);
+      popup.addTo?.(mapRef.current as TomTomMap);
+    }, 260);
+  }, [diagnostic.items, focusedTollId, focusRequestKey, mapReady]);
 
   if (diagnostic.routePath.length < 2) return null;
 
