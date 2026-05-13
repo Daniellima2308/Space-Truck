@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import type { TollRouteDiagnostic } from "@/lib/tollApi";
+import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
 
 const currencyFormatter = new Intl.NumberFormat("pt-BR", {
   style: "currency",
@@ -82,6 +83,8 @@ export function TollDiagnosticFloatingPanel() {
                   {diagnostic.reason}
                 </div>
               )}
+
+              <TomTomTollDiagnosticMap diagnostic={diagnostic} />
 
               {diagnostic.items.length === 0 ? (
                 <div className="rounded-2xl border border-border bg-muted/20 p-4 text-sm text-muted-foreground">
