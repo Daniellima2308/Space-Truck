@@ -7,7 +7,7 @@ import {
 } from "@/lib/tollPoints";
 
 const EARTH_RADIUS_KM = 6371;
-const DEFAULT_ROUTE_CORRIDOR_KM = 0.5;
+const DEFAULT_ROUTE_CORRIDOR_KM = 0.08;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 
 export type TollCalculationSource =
@@ -194,14 +194,16 @@ function normalizePhysicalPointPart(value: string | null | undefined): string {
 
 function buildPhysicalPointKey(match: TollPointCandidate): string {
   const { point } = match;
+  const stableParts = [point.concessionaire, point.road, point.km, point.city, point.name]
+    .map(normalizePhysicalPointPart)
+    .filter(Boolean);
+
+  if (stableParts.length >= 3) return stableParts.join("|");
 
   return [
-    normalizePhysicalPointPart(point.concessionaire),
-    normalizePhysicalPointPart(point.road),
-    normalizePhysicalPointPart(point.km),
-    normalizePhysicalPointPart(point.city),
-    point.lat.toFixed(5),
-    point.lon.toFixed(5),
+    ...stableParts,
+    point.lat.toFixed(4),
+    point.lon.toFixed(4),
   ].join("|");
 }
 
