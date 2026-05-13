@@ -9,4 +9,4 @@ Escopo inicial aprovado:
 - preservar a separação entre base de dados, motor de cálculo e interface;
 - evoluir o cálculo para usar geometria da rota antes da integração final.
 
-Este commit não altera comportamento do aplicativo.
+Esta branch altera o comportamento em tempo de execução no fluxo de cálculo de pedágio.
