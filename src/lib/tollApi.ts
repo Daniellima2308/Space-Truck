@@ -5,6 +5,7 @@ import {
 } from "@/lib/tollEngine";
 
 export type TollApiCalculationResult = TollCalculationResult;
+export type TollRouteDiagnosticSource = TollApiCalculationResult["source"] | "no_route_path";
 
 declare global {
   interface Window {
@@ -30,31 +31,30 @@ export interface TollRouteDiagnosticItem {
 export interface TollRouteDiagnostic {
   total: number;
   tollCount: number;
-  source: TollApiCalculationResult["source"];
+  source: TollRouteDiagnosticSource;
   routeCorridorKm: number;
   items: TollRouteDiagnosticItem[];
+  reason?: string;
 }
 
-export function calculateTollFromRememberedRoute(params: {
-  originLat: number;
-  originLng: number;
-  destLat: number;
-  destLng: number;
-  axles: number;
-}): TollApiCalculationResult | null {
-  const routePath = getRememberedRoutePath({
-    originLat: params.originLat,
-    originLon: params.originLng,
-    destLat: params.destLat,
-    destLon: params.destLng,
-  });
+function publishTollDiagnostic(diagnostic: TollRouteDiagnostic): void {
+  if (typeof window === "undefined") return;
 
-  if (!routePath) return null;
+  window.__SPACE_TRUCK_LAST_TOLL_DIAGNOSTIC__ = diagnostic;
+  window.dispatchEvent(new CustomEvent("space-truck:toll-diagnostic", { detail: diagnostic }));
+  console.info("[Space Truck] Toll diagnostic", diagnostic);
+  console.table(diagnostic.items);
+}
 
-  return calculateRouteToll({
-    routePath,
-    axles: params.axles,
-  });
+function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
+  return {
+    total: 0,
+    tollCount: 0,
+    source: "no_route_path",
+    routeCorridorKm: 0,
+    items: [],
+    reason: "Route distance exists, but route geometry was not available for toll matching.",
+  };
 }
 
 function mapTollDiagnostic(result: TollApiCalculationResult): TollRouteDiagnostic {
@@ -80,18 +80,26 @@ function mapTollDiagnostic(result: TollApiCalculationResult): TollRouteDiagnosti
   };
 }
 
-function publishTollDiagnostic(diagnostic: TollRouteDiagnostic | null): void {
-  if (typeof window === "undefined" || !diagnostic) return;
-
-  window.__SPACE_TRUCK_LAST_TOLL_DIAGNOSTIC__ = diagnostic;
-
-  console.info("[Space Truck] Diagnóstico de pedágios", {
-    total: diagnostic.total,
-    tollCount: diagnostic.tollCount,
-    source: diagnostic.source,
-    routeCorridorKm: diagnostic.routeCorridorKm,
+export function calculateTollFromRememberedRoute(params: {
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  axles: number;
+}): TollApiCalculationResult | null {
+  const routePath = getRememberedRoutePath({
+    originLat: params.originLat,
+    originLon: params.originLng,
+    destLat: params.destLat,
+    destLon: params.destLng,
   });
-  console.table(diagnostic.items);
+
+  if (!routePath) return null;
+
+  return calculateRouteToll({
+    routePath,
+    axles: params.axles,
+  });
 }
 
 export function calculateTollDiagnosticFromRememberedRoute(params: {
@@ -100,9 +108,9 @@ export function calculateTollDiagnosticFromRememberedRoute(params: {
   destLat: number;
   destLng: number;
   axles: number;
-}): TollRouteDiagnostic | null {
+}): TollRouteDiagnostic {
   const result = calculateTollFromRememberedRoute(params);
-  const diagnostic = result ? mapTollDiagnostic(result) : null;
+  const diagnostic = result ? mapTollDiagnostic(result) : buildNoRoutePathDiagnostic();
   publishTollDiagnostic(diagnostic);
   return diagnostic;
 }
@@ -122,5 +130,5 @@ export async function calculateToll(
     axles,
   });
 
-  return diagnostic?.total ?? null;
+  return diagnostic.source === "no_route_path" ? null : diagnostic.total;
 }
