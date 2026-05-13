@@ -39,6 +39,6 @@ A conversão para o app deve conseguir identificar, quando disponíveis:
 
 ## Regra de uso
 
-Somente as praças ativas e marcadas para calcular pedágio devem virar código em `src/lib/tollData`.
+Somente as praças ativas e marcadas para calcular pedágio devem virar código em `src/lib/tollPoints.ts`.
 
 Os documentos desta pasta são fonte bruta/auditada. O app não deve importar diretamente arquivos desta pasta em runtime.
