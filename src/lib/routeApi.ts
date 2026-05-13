@@ -105,6 +105,11 @@ function rememberRoutePath(result: RouteResult): void {
   }
 }
 
+/**
+ * Recupera uma geometria de rota do cache em memória.
+ * Efeito colateral esperado: quando encontra a rota, move a entrada para o fim
+ * do Map para marcá-la como usada recentemente na estratégia LRU.
+ */
 export function getRememberedRoutePath(params: {
   originLat: number;
   originLon: number;
