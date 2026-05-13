@@ -340,10 +340,7 @@ serve(async (req) => {
         distanceKm: Math.round(routeLengthMeters / 1000),
         originCoords: originGeo.coords,
         destCoords: destinationGeo.coords,
-        routePath:
-          routePath.length > 1
-            ? routePath
-            : [originGeo.coords, destinationGeo.coords],
+        routePath: routePath.length > 1 ? routePath : [],
         reason: null,
         reasonCode: null,
         originQueryUsed: originGeo.queryUsed,
