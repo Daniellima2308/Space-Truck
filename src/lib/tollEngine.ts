@@ -7,7 +7,7 @@ import {
 } from "@/lib/tollPoints";
 
 const EARTH_RADIUS_KM = 6371;
-const DEFAULT_ROUTE_CORRIDOR_KM = 2.5;
+const DEFAULT_ROUTE_CORRIDOR_KM = 0.5;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 
 export type TollCalculationSource =
