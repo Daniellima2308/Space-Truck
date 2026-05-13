@@ -105,6 +105,39 @@ describe("tollEngine", () => {
     ]);
   });
 
+  it("deduplica registros equivalentes da mesma praça física", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "same-place-a",
+          lat: 0.01,
+          lon: 0.5,
+          road: "BR-000",
+          km: "100",
+          city: "Cidade teste",
+          concessionaire: "Concessionária teste",
+          tariffs: { 6: 30 },
+        }),
+        buildTollPoint({
+          id: "same-place-b",
+          lat: 0.01,
+          lon: 0.5,
+          road: "BR-000",
+          km: "100",
+          city: "Cidade teste",
+          concessionaire: "Concessionária teste",
+          tariffs: { 6: 30 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(30);
+    expect(result.matches).toHaveLength(1);
+  });
+
   it("ignora praças fora do corredor da rota", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,
