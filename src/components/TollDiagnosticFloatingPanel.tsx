@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import type { TollRouteDiagnostic } from "@/lib/tollApi";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
 
@@ -27,9 +28,41 @@ function getSourceLabel(source: TollRouteDiagnostic["source"]): string {
   return source;
 }
 
+function findTollFieldContainer(): HTMLElement | null {
+  const tollInput = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
+    .find((input) => input.placeholder === "Ex: R$ 350,00");
+
+  return tollInput?.parentElement ?? null;
+}
+
+function InlineTollMapButton({ diagnostic, onOpen }: { diagnostic: TollRouteDiagnostic; onOpen: () => void }) {
+  const details = diagnostic.source === "no_route_path"
+    ? "diagnóstico"
+    : `${diagnostic.tollCount} ponto${diagnostic.tollCount === 1 ? "" : "s"}`;
+
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      className="absolute right-2 top-1/2 z-10 flex h-10 -translate-y-1/2 items-center gap-2 rounded-2xl border border-primary/40 bg-primary px-3 text-left text-primary-foreground shadow-lg transition active:scale-[0.98]"
+      aria-label="Ver pedágios da rota no mapa"
+    >
+      <span className="flex h-6 w-6 items-center justify-center rounded-xl bg-primary-foreground/20 text-xs font-black">$</span>
+      <span className="leading-none">
+        <span className="block text-[10px] font-black uppercase tracking-[0.12em]">Ver mapa</span>
+        <span className="block text-[10px] font-bold opacity-90">{details}</span>
+      </span>
+    </button>
+  );
+}
+
 export function TollDiagnosticFloatingPanel() {
   const [diagnostic, setDiagnostic] = useState<TollRouteDiagnostic | null>(null);
   const [open, setOpen] = useState(false);
+  const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
+  const preparedInputRef = useRef<HTMLInputElement | null>(null);
+  const originalPaddingRightRef = useRef<string>("");
+  const originalPositionRef = useRef<string>("");
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -53,6 +86,38 @@ export function TollDiagnosticFloatingPanel() {
     };
   }, []);
 
+  useEffect(() => {
+    if (typeof window === "undefined" || !diagnostic) return;
+
+    const prepareTarget = () => {
+      const container = findTollFieldContainer();
+      const input = container?.querySelector<HTMLInputElement>('input[placeholder="Ex: R$ 350,00"]') ?? null;
+
+      setButtonContainer(container);
+      if (!container || !input || preparedInputRef.current === input) return;
+
+      if (preparedInputRef.current) {
+        preparedInputRef.current.style.paddingRight = originalPaddingRightRef.current;
+      }
+
+      originalPaddingRightRef.current = input.style.paddingRight;
+      originalPositionRef.current = container.style.position;
+      container.style.position = "relative";
+      input.style.paddingRight = "7.75rem";
+      preparedInputRef.current = input;
+    };
+
+    prepareTarget();
+    const observer = new MutationObserver(prepareTarget);
+    observer.observe(document.body, { childList: true, subtree: true });
+
+    return () => {
+      observer.disconnect();
+      if (preparedInputRef.current) preparedInputRef.current.style.paddingRight = originalPaddingRightRef.current;
+      if (buttonContainer) buttonContainer.style.position = originalPositionRef.current;
+    };
+  }, [diagnostic, buttonContainer]);
+
   const title = useMemo(() => {
     return diagnostic ? getDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
@@ -61,6 +126,11 @@ export function TollDiagnosticFloatingPanel() {
 
   return (
     <>
+      {buttonContainer && createPortal(
+        <InlineTollMapButton diagnostic={diagnostic} onOpen={() => setOpen(true)} />,
+        buttonContainer,
+      )}
+
       {open && (
         <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md" role="dialog" aria-modal="true">
           <div className="absolute inset-x-2 bottom-2 max-h-[92vh] overflow-hidden rounded-[2rem] border border-primary/20 bg-background shadow-2xl">
