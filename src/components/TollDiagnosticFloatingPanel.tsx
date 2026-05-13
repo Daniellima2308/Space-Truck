@@ -43,8 +43,14 @@ export function TollDiagnosticFloatingPanel() {
       setDiagnostic(detail);
     };
 
+    const handleOpen = () => setOpen(true);
+
     window.addEventListener("space-truck:toll-diagnostic", handleDiagnostic);
-    return () => window.removeEventListener("space-truck:toll-diagnostic", handleDiagnostic);
+    window.addEventListener("space-truck:open-toll-diagnostic", handleOpen);
+    return () => {
+      window.removeEventListener("space-truck:toll-diagnostic", handleDiagnostic);
+      window.removeEventListener("space-truck:open-toll-diagnostic", handleOpen);
+    };
   }, []);
 
   const title = useMemo(() => {
@@ -55,22 +61,6 @@ export function TollDiagnosticFloatingPanel() {
 
   return (
     <>
-      <button
-        type="button"
-        onClick={() => setOpen(true)}
-        className="fixed bottom-[5.75rem] right-4 z-50 flex items-center gap-3 rounded-2xl border border-primary/35 bg-card/95 px-4 py-3 text-left text-foreground shadow-2xl backdrop-blur supports-[backdrop-filter]:bg-card/85"
-      >
-        <span className="flex h-10 w-10 items-center justify-center rounded-2xl bg-primary text-lg font-black text-primary-foreground shadow-lg">
-          $
-        </span>
-        <span className="min-w-0">
-          <span className="block text-[11px] font-black uppercase tracking-[0.16em] text-primary">Pedágios</span>
-          <span className="block max-w-36 truncate text-sm font-black">
-            {diagnostic.source === "no_route_path" ? "Ver diagnóstico" : `${diagnostic.tollCount} pontos • ${formatCurrency(diagnostic.total)}`}
-          </span>
-        </span>
-      </button>
-
       {open && (
         <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md" role="dialog" aria-modal="true">
           <div className="absolute inset-x-2 bottom-2 max-h-[92vh] overflow-hidden rounded-[2rem] border border-primary/20 bg-background shadow-2xl">
