@@ -1,7 +1,33 @@
-import { invokeEdgeFunction } from "./supabaseClient";
+import { getRememberedRoutePath } from "@/lib/routeApi";
+import {
+  calculateRouteToll,
+  type TollCalculationResult,
+} from "@/lib/tollEngine";
 
-interface TollResult {
-  tollCost: number;
+export type TollApiCalculationResult = TollCalculationResult;
+
+export function calculateTollFromRememberedRoute(params: {
+  originLat: number;
+  originLng: number;
+  destLat: number;
+  destLng: number;
+  axles: number;
+}): TollApiCalculationResult | null {
+  const routePath = getRememberedRoutePath({
+    originLat: params.originLat,
+    originLon: params.originLng,
+    destLat: params.destLat,
+    destLon: params.destLng,
+  });
+
+  if (!routePath) return null;
+
+  const result = calculateRouteToll({
+    routePath,
+    axles: params.axles,
+  });
+
+  return result.total > 0 ? result : null;
 }
 
 export async function calculateToll(
@@ -9,19 +35,15 @@ export async function calculateToll(
   originLng: number,
   destLat: number,
   destLng: number,
-  axles: number
+  axles: number,
 ): Promise<number | null> {
-  try {
-    const result = await invokeEdgeFunction<TollResult>("calculate-toll", {
-      originLat,
-      originLng: originLng,
-      destLat,
-      destLng: destLng,
-      axles,
-    });
-    return result.tollCost ?? null;
-  } catch (error) {
-    console.error("TollGuru API error:", error);
-    return null;
-  }
+  const result = calculateTollFromRememberedRoute({
+    originLat,
+    originLng,
+    destLat,
+    destLng,
+    axles,
+  });
+
+  return result?.total ?? null;
 }
