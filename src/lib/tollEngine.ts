@@ -133,6 +133,46 @@ function getDistanceFromNormalizedRouteKm(
   return minDistance;
 }
 
+function normalizePhysicalPointPart(value: string | null | undefined): string {
+  return (value || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .trim();
+}
+
+function buildPhysicalPointKey(match: TollPointMatch): string {
+  const { point } = match;
+
+  return [
+    normalizePhysicalPointPart(point.concessionaire),
+    normalizePhysicalPointPart(point.road),
+    normalizePhysicalPointPart(point.km),
+    normalizePhysicalPointPart(point.city),
+    point.lat.toFixed(5),
+    point.lon.toFixed(5),
+  ].join("|");
+}
+
+function dedupePhysicalTollMatches(matches: TollPointMatch[]): TollPointMatch[] {
+  const byPhysicalPoint = new Map<string, TollPointMatch>();
+
+  for (const match of matches) {
+    const key = buildPhysicalPointKey(match);
+    const current = byPhysicalPoint.get(key);
+
+    if (
+      !current ||
+      match.tollValue > current.tollValue ||
+      (match.tollValue === current.tollValue && match.distanceFromRouteKm < current.distanceFromRouteKm)
+    ) {
+      byPhysicalPoint.set(key, match);
+    }
+  }
+
+  return [...byPhysicalPoint.values()];
+}
+
 export function getDistanceFromRouteKm(
   point: Coordinates,
   routePath: Coordinates[],
@@ -158,26 +198,27 @@ export function calculateRouteToll({
     };
   }
 
-  const matches = tollPoints
-    .map((point) => {
-      const tollValue = point.tariffs[normalizedAxles];
-      if (typeof tollValue !== "number" || tollValue <= 0) return null;
+  const matches = dedupePhysicalTollMatches(
+    tollPoints
+      .map((point) => {
+        const tollValue = point.tariffs[normalizedAxles];
+        if (typeof tollValue !== "number" || tollValue <= 0) return null;
 
-      const distanceFromRouteKm = getDistanceFromNormalizedRouteKm(
-        { lat: point.lat, lon: point.lon },
-        normalizedPath,
-      );
+        const distanceFromRouteKm = getDistanceFromNormalizedRouteKm(
+          { lat: point.lat, lon: point.lon },
+          normalizedPath,
+        );
 
-      if (distanceFromRouteKm > routeCorridorKm) return null;
+        if (distanceFromRouteKm > routeCorridorKm) return null;
 
-      return {
-        point,
-        tollValue,
-        distanceFromRouteKm: round2(distanceFromRouteKm),
-      } satisfies TollPointMatch;
-    })
-    .filter((match): match is TollPointMatch => Boolean(match))
-    .sort((a, b) => a.distanceFromRouteKm - b.distanceFromRouteKm);
+        return {
+          point,
+          tollValue,
+          distanceFromRouteKm: round2(distanceFromRouteKm),
+        } satisfies TollPointMatch;
+      })
+      .filter((match): match is TollPointMatch => Boolean(match)),
+  ).sort((a, b) => a.distanceFromRouteKm - b.distanceFromRouteKm);
 
   if (matches.length === 0) {
     return {
