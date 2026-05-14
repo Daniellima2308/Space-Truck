@@ -239,6 +239,8 @@ export function TomTomTollDiagnosticMap({
     }
 
     let disposed = false;
+    const mapMarkers: TomTomMarker[] = [];
+    const mapPopupsById = new Map<string, TomTomPopup>();
     setMapReady(false);
 
     loadTomTomSdk()
@@ -248,8 +250,8 @@ export function TomTomTollDiagnosticMap({
         ensureTomTomPopupStyles();
         setStatus(null);
         markersRef.current.forEach((marker) => marker.remove());
-        markersRef.current = [];
-        popupsByIdRef.current.clear();
+        markersRef.current = mapMarkers;
+        popupsByIdRef.current = mapPopupsById;
         mapRef.current?.remove();
 
         const first = diagnostic.routePath[0];
@@ -299,7 +301,7 @@ export function TomTomTollDiagnosticMap({
           const bounds = new tt.LngLatBounds();
           diagnostic.routePath.forEach((point) => bounds.extend([point.lon, point.lat]));
 
-          addEndpointMarkers(tt, map, diagnostic.routePath, markersRef.current);
+          addEndpointMarkers(tt, map, diagnostic.routePath, mapMarkers);
 
           diagnostic.items.forEach((item) => {
             bounds.extend([item.lon, item.lat]);
@@ -309,8 +311,8 @@ export function TomTomTollDiagnosticMap({
               .setPopup(popup)
               .addTo(map);
 
-            markersRef.current.push(marker);
-            popupsByIdRef.current.set(item.id, popup);
+            mapMarkers.push(marker);
+            mapPopupsById.set(item.id, popup);
           });
 
           map.fitBounds(bounds, { padding: 54, maxZoom: 13 });
@@ -325,9 +327,9 @@ export function TomTomTollDiagnosticMap({
       disposed = true;
       setMapReady(false);
       if (focusTimeoutRef.current) window.clearTimeout(focusTimeoutRef.current);
-      markersRef.current.forEach((marker) => marker.remove());
-      markersRef.current = [];
-      popupsByIdRef.current.clear();
+      mapMarkers.forEach((marker) => marker.remove());
+      mapMarkers.length = 0;
+      mapPopupsById.clear();
       mapRef.current?.remove();
       mapRef.current = null;
     };
