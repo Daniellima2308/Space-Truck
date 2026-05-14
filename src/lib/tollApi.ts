@@ -1,4 +1,8 @@
-import { getRememberedRoutePath, type Coordinates } from "@/lib/routeApi";
+import {
+  getRememberedRouteGeometry,
+  type Coordinates,
+  type RouteSegment,
+} from "@/lib/routeApi";
 import {
   calculateRouteToll,
   type TollCalculationResult,
@@ -36,6 +40,7 @@ export interface TollRouteDiagnostic {
   source: TollRouteDiagnosticSource;
   routeCorridorKm: number;
   routePath: Coordinates[];
+  routeSegments: RouteSegment[];
   items: TollRouteDiagnosticItem[];
   reason?: string;
 }
@@ -54,18 +59,24 @@ function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
     source: "no_route_path",
     routeCorridorKm: 0,
     routePath: [],
+    routeSegments: [],
     items: [],
     reason: "A distância da rota existe, mas a geometria não ficou disponível para cruzar com a base interna de pedágios.",
   };
 }
 
-function mapTollDiagnostic(result: TollApiCalculationResult, routePath: Coordinates[]): TollRouteDiagnostic {
+function mapTollDiagnostic(
+  result: TollApiCalculationResult,
+  routePath: Coordinates[],
+  routeSegments: RouteSegment[],
+): TollRouteDiagnostic {
   return {
     total: result.total,
     tollCount: result.matches.length,
     source: result.source,
     routeCorridorKm: result.routeCorridorKm,
     routePath,
+    routeSegments,
     items: result.matches.map((match) => ({
       order: match.routeOrder,
       id: match.point.id,
@@ -85,13 +96,13 @@ function mapTollDiagnostic(result: TollApiCalculationResult, routePath: Coordina
   };
 }
 
-function getRoutePathForParams(params: {
+function getRouteGeometryForParams(params: {
   originLat: number;
   originLng: number;
   destLat: number;
   destLng: number;
-}): Coordinates[] | null {
-  return getRememberedRoutePath({
+}): { routePath: Coordinates[]; routeSegments: RouteSegment[] } | null {
+  return getRememberedRouteGeometry({
     originLat: params.originLat,
     originLon: params.originLng,
     destLat: params.destLat,
@@ -106,11 +117,12 @@ export function calculateTollFromRememberedRoute(params: {
   destLng: number;
   axles: number;
 }): TollApiCalculationResult | null {
-  const routePath = getRoutePathForParams(params);
-  if (!routePath) return null;
+  const routeGeometry = getRouteGeometryForParams(params);
+  if (!routeGeometry) return null;
 
   return calculateRouteToll({
-    routePath,
+    routePath: routeGeometry.routePath,
+    routeSegments: routeGeometry.routeSegments,
     axles: params.axles,
   });
 }
@@ -122,18 +134,23 @@ export function calculateTollDiagnosticFromRememberedRoute(params: {
   destLng: number;
   axles: number;
 }): TollRouteDiagnostic {
-  const routePath = getRoutePathForParams(params);
-  if (!routePath) {
+  const routeGeometry = getRouteGeometryForParams(params);
+  if (!routeGeometry) {
     const diagnostic = buildNoRoutePathDiagnostic();
     publishTollDiagnostic(diagnostic);
     return diagnostic;
   }
 
   const result = calculateRouteToll({
-    routePath,
+    routePath: routeGeometry.routePath,
+    routeSegments: routeGeometry.routeSegments,
     axles: params.axles,
   });
-  const diagnostic = mapTollDiagnostic(result, routePath);
+  const diagnostic = mapTollDiagnostic(
+    result,
+    routeGeometry.routePath,
+    routeGeometry.routeSegments,
+  );
   publishTollDiagnostic(diagnostic);
   return diagnostic;
 }
