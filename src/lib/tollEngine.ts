@@ -3,6 +3,7 @@ import {
   SPACE_TRUCK_TOLL_BASE_SOURCE,
   SPACE_TRUCK_TOLL_POINTS,
   type TollAxleCount,
+  type TollDirectionNormalized,
   type TollPoint,
 } from "@/lib/tollPoints";
 
@@ -10,6 +11,8 @@ const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.08;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
+
+type InferredRoadDirection = Extract<TollDirectionNormalized, "increasing" | "decreasing"> | "unknown";
 
 export type TollCalculationSource =
   | typeof SPACE_TRUCK_TOLL_BASE_SOURCE
@@ -27,6 +30,9 @@ export interface TollPointMatch {
 }
 
 type TollPointCandidate = Omit<TollPointMatch, "routeOrder">;
+type DirectionalTollPointCandidate = TollPointCandidate & {
+  inferredRoadDirection: InferredRoadDirection;
+};
 
 export interface TollCalculationResult {
   total: number;
@@ -275,6 +281,73 @@ function chooseBestPhysicalMatch(current: TollPointCandidate | undefined, next: 
   return current;
 }
 
+function getRoadInferenceKey(match: TollPointCandidate): string | null {
+  if (!match.point.roadNormalized || match.point.kmNumber === null) return null;
+  return match.point.roadNormalized;
+}
+
+function inferRoadDirections(matches: TollPointCandidate[]): Map<string, InferredRoadDirection> {
+  const grouped = matches.reduce((groups, match) => {
+    const key = getRoadInferenceKey(match);
+    if (!key) return groups;
+    const group = groups.get(key) ?? [];
+    group.push(match);
+    groups.set(key, group);
+    return groups;
+  }, new Map<string, TollPointCandidate[]>());
+
+  const inferred = new Map<string, InferredRoadDirection>();
+
+  for (const [road, group] of grouped) {
+    const ordered = [...group]
+      .filter((match) => match.point.kmNumber !== null)
+      .sort((a, b) => a.distanceAlongRouteKm - b.distanceAlongRouteKm);
+
+    const first = ordered[0];
+    const last = ordered[ordered.length - 1];
+    const firstKm = first?.point.kmNumber;
+    const lastKm = last?.point.kmNumber;
+
+    if (ordered.length < 2 || firstKm === null || firstKm === undefined || lastKm === null || lastKm === undefined) {
+      inferred.set(road, "unknown");
+      continue;
+    }
+
+    const kmDelta = lastKm - firstKm;
+    if (Math.abs(kmDelta) < 0.1) {
+      inferred.set(road, "unknown");
+      continue;
+    }
+
+    inferred.set(road, kmDelta > 0 ? "increasing" : "decreasing");
+  }
+
+  return inferred;
+}
+
+function attachInferredRoadDirection(
+  matches: TollPointCandidate[],
+  inferredDirections: Map<string, InferredRoadDirection>,
+): DirectionalTollPointCandidate[] {
+  return matches.map((match) => ({
+    ...match,
+    inferredRoadDirection: match.point.roadNormalized
+      ? inferredDirections.get(match.point.roadNormalized) ?? "unknown"
+      : "unknown",
+  }));
+}
+
+function hasCompatibleDirection(match: DirectionalTollPointCandidate): boolean {
+  if (match.inferredRoadDirection === "unknown") return true;
+  if (match.point.directionNormalized === "both" || match.point.directionNormalized === "unknown") return true;
+  return match.point.directionNormalized === match.inferredRoadDirection;
+}
+
+function filterDirectionIncompatibleMatches(matches: TollPointCandidate[]): TollPointCandidate[] {
+  const inferredDirections = inferRoadDirections(matches);
+  return attachInferredRoadDirection(matches, inferredDirections).filter(hasCompatibleDirection);
+}
+
 function dedupePhysicalTollMatches(matches: TollPointCandidate[]): TollPointCandidate[] {
   const byPhysicalPoint = new Map<string, TollPointCandidate>();
 
@@ -337,30 +410,32 @@ export function calculateRouteToll({
     };
   }
 
+  const routeCandidates = tollPoints
+    .map((point) => {
+      const tollValue = point.tariffs[normalizedAxles];
+      if (typeof tollValue !== "number" || tollValue <= 0) return null;
+
+      const projection = getProjectionFromNormalizedRoute(
+        { lat: point.lat, lon: point.lon },
+        normalizedPath,
+      );
+
+      if (projection.distanceFromRouteKm > routeCorridorKm) return null;
+
+      return {
+        point,
+        tollValue,
+        distanceFromRouteKm: round2(projection.distanceFromRouteKm),
+        distanceAlongRouteKm: round2(projection.distanceAlongRouteKm),
+        routeSegmentIndex: projection.routeSegmentIndex,
+        routeBearingDegrees: projection.routeBearingDegrees,
+      } satisfies TollPointCandidate;
+    })
+    .filter((match): match is TollPointCandidate => Boolean(match));
+
   const matches = orderTollMatches(
     dedupePhysicalTollMatches(
-      tollPoints
-        .map((point) => {
-          const tollValue = point.tariffs[normalizedAxles];
-          if (typeof tollValue !== "number" || tollValue <= 0) return null;
-
-          const projection = getProjectionFromNormalizedRoute(
-            { lat: point.lat, lon: point.lon },
-            normalizedPath,
-          );
-
-          if (projection.distanceFromRouteKm > routeCorridorKm) return null;
-
-          return {
-            point,
-            tollValue,
-            distanceFromRouteKm: round2(projection.distanceFromRouteKm),
-            distanceAlongRouteKm: round2(projection.distanceAlongRouteKm),
-            routeSegmentIndex: projection.routeSegmentIndex,
-            routeBearingDegrees: projection.routeBearingDegrees,
-          } satisfies TollPointCandidate;
-        })
-        .filter((match): match is TollPointCandidate => Boolean(match)),
+      filterDirectionIncompatibleMatches(routeCandidates),
     ),
   );
 
