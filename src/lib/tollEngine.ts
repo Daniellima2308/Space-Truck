@@ -22,6 +22,8 @@ export interface TollPointMatch {
   distanceFromRouteKm: number;
   distanceAlongRouteKm: number;
   routeOrder: number;
+  routeSegmentIndex: number;
+  routeBearingDegrees: number;
 }
 
 type TollPointCandidate = Omit<TollPointMatch, "routeOrder">;
@@ -43,14 +45,24 @@ export interface CalculateRouteTollParams {
 interface RouteProjection {
   distanceFromRouteKm: number;
   distanceAlongRouteKm: number;
+  routeSegmentIndex: number;
+  routeBearingDegrees: number;
 }
 
 function toRadians(value: number): number {
   return (value * Math.PI) / 180;
 }
 
+function toDegrees(value: number): number {
+  return (value * 180) / Math.PI;
+}
+
 function round2(value: number): number {
   return Math.round(value * 100) / 100;
+}
+
+function roundBearing(value: number): number {
+  return Math.round(((value % 360) + 360) % 360);
 }
 
 function isValidCoordinate(point: Coordinates): boolean {
@@ -89,19 +101,33 @@ function haversineDistanceKm(a: Coordinates, b: Coordinates): number {
   return 2 * EARTH_RADIUS_KM * Math.asin(Math.min(1, Math.sqrt(h)));
 }
 
+function calculateBearingDegrees(start: Coordinates, end: Coordinates): number {
+  const startLat = toRadians(start.lat);
+  const endLat = toRadians(end.lat);
+  const deltaLon = toRadians(end.lon - start.lon);
+  const y = Math.sin(deltaLon) * Math.cos(endLat);
+  const x = Math.cos(startLat) * Math.sin(endLat) - Math.sin(startLat) * Math.cos(endLat) * Math.cos(deltaLon);
+
+  return roundBearing(toDegrees(Math.atan2(y, x)));
+}
+
 function getProjectionOnSegment(params: {
   point: Coordinates;
   segmentStart: Coordinates;
   segmentEnd: Coordinates;
   segmentLengthKm: number;
   accumulatedRouteKm: number;
+  routeSegmentIndex: number;
 }): RouteProjection {
-  const { point, segmentStart, segmentEnd, segmentLengthKm, accumulatedRouteKm } = params;
+  const { point, segmentStart, segmentEnd, segmentLengthKm, accumulatedRouteKm, routeSegmentIndex } = params;
+  const routeBearingDegrees = calculateBearingDegrees(segmentStart, segmentEnd);
 
   if (segmentLengthKm === 0) {
     return {
       distanceFromRouteKm: haversineDistanceKm(point, segmentStart),
       distanceAlongRouteKm: accumulatedRouteKm,
+      routeSegmentIndex,
+      routeBearingDegrees,
     };
   }
 
@@ -121,6 +147,8 @@ function getProjectionOnSegment(params: {
     return {
       distanceFromRouteKm: haversineDistanceKm(point, segmentStart),
       distanceAlongRouteKm: accumulatedRouteKm,
+      routeSegmentIndex,
+      routeBearingDegrees,
     };
   }
 
@@ -137,6 +165,8 @@ function getProjectionOnSegment(params: {
   return {
     distanceFromRouteKm: haversineDistanceKm(point, closest),
     distanceAlongRouteKm: accumulatedRouteKm + segmentLengthKm * projection,
+    routeSegmentIndex,
+    routeBearingDegrees,
   };
 }
 
@@ -148,6 +178,8 @@ function getProjectionFromNormalizedRoute(
     return {
       distanceFromRouteKm: Infinity,
       distanceAlongRouteKm: Infinity,
+      routeSegmentIndex: -1,
+      routeBearingDegrees: 0,
     };
   }
 
@@ -155,6 +187,8 @@ function getProjectionFromNormalizedRoute(
   let bestProjection: RouteProjection = {
     distanceFromRouteKm: Infinity,
     distanceAlongRouteKm: Infinity,
+    routeSegmentIndex: -1,
+    routeBearingDegrees: 0,
   };
 
   for (let index = 0; index < normalizedPath.length - 1; index += 1) {
@@ -167,6 +201,7 @@ function getProjectionFromNormalizedRoute(
       segmentEnd,
       segmentLengthKm,
       accumulatedRouteKm,
+      routeSegmentIndex: index,
     });
 
     if (projection.distanceFromRouteKm < bestProjection.distanceFromRouteKm) {
@@ -321,6 +356,8 @@ export function calculateRouteToll({
             tollValue,
             distanceFromRouteKm: round2(projection.distanceFromRouteKm),
             distanceAlongRouteKm: round2(projection.distanceAlongRouteKm),
+            routeSegmentIndex: projection.routeSegmentIndex,
+            routeBearingDegrees: projection.routeBearingDegrees,
           } satisfies TollPointCandidate;
         })
         .filter((match): match is TollPointCandidate => Boolean(match)),
