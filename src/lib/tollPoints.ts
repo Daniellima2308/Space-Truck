@@ -95,7 +95,12 @@ function normalizeText(value: unknown): string {
 function normalizeRoad(value: unknown): string | null {
   const text = normalizeText(value).toUpperCase();
   const match = text.match(/\b([A-Z]{2,3})[-\s]?(\d{2,3})\b/);
-  return match ? `${match[1]}-${Number(match[2])}` : text || null;
+  return match ? `${match[1]}-${match[2]}` : text || null;
+}
+
+function normalizeOfficialRoadKey(value: unknown): string {
+  const road = normalizeRoad(value);
+  return road ? road.replace(/^([A-Z]{2,3})-0*(\d{2,3})$/, "$1-$2") : "";
 }
 
 function asNumber(value: unknown): number | null {
@@ -175,15 +180,37 @@ function kmMatches(point: TollPoint, candidates: Array<string | number>): boolea
 }
 
 function getOfficialAnttKey(point: Pick<TollPoint, "roadNormalized" | "uf" | "km">): string {
-  return [point.roadNormalized || "", point.uf, normalizeKmKey(point.km)].join("|");
+  return [normalizeOfficialRoadKey(point.roadNormalized), point.uf, normalizeKmKey(point.km)].join("|");
+}
+
+function getOfficialOverrideKey(override: FederalAnttTollOfficialOverride): string {
+  return [normalizeOfficialRoadKey(override.road), override.uf, normalizeKmKey(override.km)].join("|");
+}
+
+const FEDERAL_ANTT_OFFICIAL_OVERRIDES_BY_KEY = FEDERAL_ANTT_OFFICIAL_OVERRIDES.reduce(
+  (map, override) => {
+    const key = getOfficialOverrideKey(override);
+    const values = map.get(key) ?? [];
+    values.push(override);
+    map.set(key, values);
+    return map;
+  },
+  new Map<string, FederalAnttTollOfficialOverride[]>(),
+);
+
+function isOfficialDirectionCompatible(point: TollPoint, override: FederalAnttTollOfficialOverride): boolean {
+  const officialDirection = normalizeDirection(override.direction);
+
+  if (point.directionNormalized === "both") return officialDirection === "both";
+  if (officialDirection === "both") return false;
+
+  return officialDirection === point.directionNormalized;
 }
 
 function getOfficialOverride(point: TollPoint): FederalAnttTollOfficialOverride | undefined {
   if (!isFederalAnttPoint(point)) return undefined;
-  const key = getOfficialAnttKey(point);
-  return FEDERAL_ANTT_OFFICIAL_OVERRIDES.find((override) => (
-    [override.road, override.uf, normalizeKmKey(override.km)].join("|") === key
-  ));
+  return (FEDERAL_ANTT_OFFICIAL_OVERRIDES_BY_KEY.get(getOfficialAnttKey(point)) ?? [])
+    .find((override) => isOfficialDirectionCompatible(point, override));
 }
 
 function findCoordinateOverride(point: TollPoint) {
@@ -206,18 +233,21 @@ function applyOfficialAnttOverride(point: TollPoint): TollPoint[] {
   const official = getOfficialOverride(point);
   if (!official) return [point];
 
+  const officialDirectionNormalized = normalizeDirection(official.direction);
+  const officialRoadNormalized = normalizeRoad(official.road);
+
   return [
     {
       ...point,
       name: official.name,
       concessionaire: official.concessionaire,
       road: official.road,
-      roadNormalized: official.road,
+      roadNormalized: officialRoadNormalized,
       km: official.km,
       kmNumber: parseKm(official.km),
       city: official.city,
       direction: official.direction,
-      directionNormalized: normalizeDirection(official.direction),
+      directionNormalized: officialDirectionNormalized,
       lat: official.lat,
       lon: official.lon,
       coordinateRole: "plaza_center",
