@@ -1,13 +1,39 @@
 import { describe, expect, it } from "vitest";
+import type { RouteSegment } from "@/lib/routeApi";
 import {
   calculateRouteToll,
   getDistanceFromRouteKm,
 } from "@/lib/tollEngine";
 import { SPACE_TRUCK_TOLL_BASE_SOURCE, type TollPoint } from "@/lib/tollPoints";
 
+function normalizeRoadForTest(value: string | null | undefined): string | null {
+  if (!value) return null;
+  const match = value.toUpperCase().match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  return match ? `${match[1]}-${match[2]}` : value.toUpperCase();
+}
+
+function parseKmForTest(value: string | null | undefined): number | null {
+  if (!value) return null;
+  const parsed = Number(value.replace(",", ".").replace(/[^0-9.-]/g, ""));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeDirectionForTest(value: string | null | undefined): TollPoint["directionNormalized"] {
+  const normalized = (value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+  if (normalized.includes("crescente") && normalized.includes("decrescente")) return "both";
+  if (normalized.includes("ambos")) return "both";
+  if (normalized.includes("crescente")) return "increasing";
+  if (normalized.includes("decrescente")) return "decreasing";
+  return "unknown";
+}
+
 function buildTollPoint(
   overrides: Partial<TollPoint> & Pick<TollPoint, "id" | "lat" | "lon">,
 ): TollPoint {
+  const road = overrides.road ?? "BR-000";
+  const km = overrides.km ?? "100";
+  const direction = overrides.direction ?? "ambos";
+
   return {
     id: overrides.id,
     name: overrides.name ?? `Praça ${overrides.id}`,
@@ -15,10 +41,13 @@ function buildTollPoint(
     regulator: overrides.regulator ?? "ANTT",
     jurisdiction: overrides.jurisdiction ?? "federal",
     concessionaire: overrides.concessionaire ?? "Concessionária teste",
-    road: overrides.road ?? "BR-000",
-    km: overrides.km ?? "100",
+    road,
+    roadNormalized: overrides.roadNormalized ?? normalizeRoadForTest(road),
+    km,
+    kmNumber: overrides.kmNumber ?? parseKmForTest(km),
     city: overrides.city ?? "Cidade teste",
-    direction: overrides.direction ?? "ambos",
+    direction,
+    directionNormalized: overrides.directionNormalized ?? normalizeDirectionForTest(direction),
     lat: overrides.lat,
     lon: overrides.lon,
     tariffs: overrides.tariffs ?? {
@@ -35,6 +64,17 @@ function buildTollPoint(
 const straightRoute = [
   { lat: 0, lon: 0 },
   { lat: 0, lon: 1 },
+];
+
+const br116RouteSegments: RouteSegment[] = [
+  {
+    startPointIndex: 0,
+    endPointIndex: 1,
+    roadNames: ["BR-116"],
+    roadNumbers: ["BR-116"],
+    roadNumbersNormalized: ["BR-116"],
+    source: "importantRoadStretch",
+  },
 ];
 
 describe("tollEngine", () => {
@@ -125,6 +165,75 @@ describe("tollEngine", () => {
     expect(result.matches.map((match) => match.routeOrder)).toEqual([1, 2, 3]);
     expect(result.matches[0].distanceAlongRouteKm).toBeLessThan(result.matches[1].distanceAlongRouteKm);
     expect(result.matches[1].distanceAlongRouteKm).toBeLessThan(result.matches[2].distanceAlongRouteKm);
+  });
+
+  it("aceita praça quando a rodovia do segmento real da rota é compatível", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      routeSegments: br116RouteSegments,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "br116-toll",
+          lat: 0.0001,
+          lon: 0.5,
+          road: "BR-116",
+          km: "120",
+          tariffs: { 6: 42 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(42);
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].matchedRouteRoads).toEqual(["BR-116"]);
+  });
+
+  it("rejeita praça próxima quando ela pertence a rodovia diferente do segmento da rota", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      routeSegments: br116RouteSegments,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "parallel-road-toll",
+          lat: 0.0001,
+          lon: 0.5,
+          road: "SP-055",
+          km: "120",
+          tariffs: { 6: 42 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(0);
+    expect(result.source).toBe("no_toll_points_found");
+    expect(result.matches).toHaveLength(0);
+  });
+
+  it("mantém o comportamento antigo quando a rota não tem metadados de rodovia", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      routeSegments: [],
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "metadata-missing-toll",
+          lat: 0.0001,
+          lon: 0.5,
+          road: "SP-055",
+          km: "120",
+          tariffs: { 6: 42 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(42);
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].matchedRouteRoads).toEqual([]);
   });
 
   it("deduplica registros equivalentes da mesma praça física", () => {
