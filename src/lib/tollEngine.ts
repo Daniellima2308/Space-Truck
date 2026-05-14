@@ -194,6 +194,16 @@ function normalizePhysicalPointPart(value: string | null | undefined): string {
     .trim();
 }
 
+function isSameNonEmptyPhysicalPart(
+  a: string | null | undefined,
+  b: string | null | undefined,
+): boolean {
+  const normalizedA = normalizePhysicalPointPart(a);
+  const normalizedB = normalizePhysicalPointPart(b);
+
+  return Boolean(normalizedA && normalizedB && normalizedA === normalizedB);
+}
+
 function buildPhysicalPointKey(match: TollPointCandidate): string {
   const { point } = match;
   const stableParts = [point.concessionaire, point.road, point.km, point.city]
@@ -208,12 +218,19 @@ function buildPhysicalPointKey(match: TollPointCandidate): string {
 }
 
 function shouldTreatAsSameRouteCharge(a: TollPointCandidate, b: TollPointCandidate): boolean {
-  const sameRoad = normalizePhysicalPointPart(a.point.road) === normalizePhysicalPointPart(b.point.road);
-  const sameConcessionaire = normalizePhysicalPointPart(a.point.concessionaire) === normalizePhysicalPointPart(b.point.concessionaire);
-  const sameCity = normalizePhysicalPointPart(a.point.city) === normalizePhysicalPointPart(b.point.city);
   const closeOnRoute = Math.abs(a.distanceAlongRouteKm - b.distanceAlongRouteKm) <= SAME_ROUTE_POSITION_TOLERANCE_KM;
+  if (!closeOnRoute) return false;
 
-  return closeOnRoute && (sameRoad || (sameConcessionaire && sameCity));
+  const sameKm = isSameNonEmptyPhysicalPart(a.point.km, b.point.km);
+  const sameRoad = isSameNonEmptyPhysicalPart(a.point.road, b.point.road);
+  const sameConcessionaire = isSameNonEmptyPhysicalPart(a.point.concessionaire, b.point.concessionaire);
+  const sameCity = isSameNonEmptyPhysicalPart(a.point.city, b.point.city);
+  const sameName = isSameNonEmptyPhysicalPart(a.point.name, b.point.name);
+
+  return (
+    (sameKm && (sameRoad || sameConcessionaire || sameCity)) ||
+    (sameName && sameConcessionaire && (sameRoad || sameCity))
+  );
 }
 
 function chooseBestPhysicalMatch(current: TollPointCandidate | undefined, next: TollPointCandidate): TollPointCandidate {
