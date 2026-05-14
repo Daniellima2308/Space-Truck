@@ -1,4 +1,9 @@
 import activeTollPointsData from "../../data/tolls/app_ready_toll_points_active.json";
+import {
+  FEDERAL_ANTT_OFFICIAL_EXCLUDED_IDS,
+  FEDERAL_ANTT_OFFICIAL_OVERRIDES,
+  type FederalAnttTollOfficialOverride,
+} from "./anttFederalTollOfficialOverrides";
 import { TOLL_POINT_COORDINATE_OVERRIDES } from "./tollPointCoordinateOverrides";
 
 export type TollAxleCount = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -90,7 +95,7 @@ function normalizeText(value: unknown): string {
 function normalizeRoad(value: unknown): string | null {
   const text = normalizeText(value).toUpperCase();
   const match = text.match(/\b([A-Z]{2,3})[-\s]?(\d{2,3})\b/);
-  return match ? `${match[1]}-${match[2]}` : text || null;
+  return match ? `${match[1]}-${Number(match[2])}` : text || null;
 }
 
 function asNumber(value: unknown): number | null {
@@ -119,6 +124,12 @@ function parseKm(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeKmKey(value: unknown): string {
+  const parsed = parseKm(value);
+  if (parsed === null) return normalizeText(value);
+  return parsed.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+}
+
 function normalizeDirection(value: unknown): TollDirectionNormalized {
   const text = normalizeText(value);
   if (!text) return "unknown";
@@ -129,6 +140,10 @@ function normalizeDirection(value: unknown): TollDirectionNormalized {
   if (text.includes("crescente")) return "increasing";
   if (text.includes("decrescente")) return "decreasing";
   return "unknown";
+}
+
+function isFederalAnttPoint(point: Pick<TollPoint, "regulator" | "jurisdiction">): boolean {
+  return point.regulator === "ANTT" && point.jurisdiction === "federal";
 }
 
 function isActiveCalculationPoint(point: RawTollPoint): boolean {
@@ -155,6 +170,18 @@ function kmMatches(point: TollPoint, candidates: Array<string | number>): boolea
   });
 }
 
+function getOfficialAnttKey(point: Pick<TollPoint, "roadNormalized" | "uf" | "km">): string {
+  return [point.roadNormalized || "", point.uf, normalizeKmKey(point.km)].join("|");
+}
+
+function getOfficialOverride(point: TollPoint): FederalAnttTollOfficialOverride | undefined {
+  if (!isFederalAnttPoint(point)) return undefined;
+  const key = getOfficialAnttKey(point);
+  return FEDERAL_ANTT_OFFICIAL_OVERRIDES.find((override) => (
+    [override.road, override.uf, normalizeKmKey(override.km)].join("|") === key
+  ));
+}
+
 function findCoordinateOverride(point: TollPoint) {
   const city = normalizeText(point.city);
   const name = normalizeText(point.name);
@@ -168,63 +195,30 @@ function findCoordinateOverride(point: TollPoint) {
   ));
 }
 
-function isSantaIsabelDutraPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-  const concessionaire = normalizeText(point.concessionaire);
+function applyOfficialAnttOverride(point: TollPoint): TollPoint[] {
+  if (!isFederalAnttPoint(point)) return [point];
+  if (FEDERAL_ANTT_OFFICIAL_EXCLUDED_IDS.has(point.id)) return [];
 
-  return (
-    point.uf === "SP" &&
-    point.roadNormalized === "BR-116" &&
-    (city.includes("santa isabel") || name.includes("santa isabel")) &&
-    (
-      concessionaire.includes("dutra") ||
-      concessionaire.includes("riosp") ||
-      concessionaire.includes("rio sp") ||
-      concessionaire.includes("nova dutra")
-    )
-  );
-}
-
-function isViuvaGracaSeropedicaPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-
-  return (
-    point.uf === "RJ" &&
-    point.roadNormalized === "BR-116" &&
-    city.includes("seropedica") &&
-    name.includes("viuva graca")
-  );
-}
-
-function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
-  if (!isSantaIsabelDutraPoint(point)) return [point];
+  const official = getOfficialOverride(point);
+  if (!official) return [point];
 
   return [
     {
       ...point,
-      id: `${point.id}_sentido_sp_rio`,
-      name: `${point.name} - Sentido SP-Rio`,
-      direction: "SP - Rio",
-      directionNormalized: "increasing",
-      lat: -23.3466529,
-      lon: -46.1648116,
-      coordinateRole: "directional_plaza",
-      expectedHeadingDegrees: 61,
-      headingToleranceDegrees: 75,
-    },
-    {
-      ...point,
-      id: `${point.id}_sentido_rio_sp`,
-      name: `${point.name} - Sentido Rio-SP`,
-      direction: "Rio - SP",
-      directionNormalized: "decreasing",
-      lat: -23.3387745,
-      lon: -46.1502881,
-      coordinateRole: "directional_plaza",
-      expectedHeadingDegrees: 241,
-      headingToleranceDegrees: 75,
+      name: official.name,
+      concessionaire: official.concessionaire,
+      road: official.road,
+      roadNormalized: official.road,
+      km: official.km,
+      kmNumber: parseKm(official.km),
+      city: official.city,
+      direction: official.direction,
+      directionNormalized: normalizeDirection(official.direction),
+      lat: official.lat,
+      lon: official.lon,
+      coordinateRole: "plaza_center",
+      expectedHeadingDegrees: null,
+      headingToleranceDegrees: null,
     },
   ];
 }
@@ -232,39 +226,39 @@ function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
 function applySinglePointOverrides(point: TollPoint): TollPoint[] {
   const coordinateOverride = findCoordinateOverride(point);
 
-  if (coordinateOverride) {
-    return [
-      {
-        ...point,
-        lat: coordinateOverride.lat,
-        lon: coordinateOverride.lon,
-        coordinateRole: "plaza_center",
-        expectedHeadingDegrees: null,
-        headingToleranceDegrees: null,
-      },
-    ];
-  }
-
-  if (!isViuvaGracaSeropedicaPoint(point)) return [point];
-
-  const name = normalizeText(point.name);
-  const concessionaire = normalizeText(point.concessionaire);
-
-  if (name.includes("norte") || concessionaire.includes("riosp") || concessionaire.includes("rio sp")) {
-    return [];
-  }
+  if (!coordinateOverride) return [point];
 
   return [
     {
       ...point,
-      name: "P04 Viúva Graça",
-      direction: "Crescente/Decrescente",
-      directionNormalized: "both",
-      lat: -22.7163169,
-      lon: -43.7166143,
+      lat: coordinateOverride.lat,
+      lon: coordinateOverride.lon,
       coordinateRole: "plaza_center",
       expectedHeadingDegrees: null,
       headingToleranceDegrees: null,
+    },
+  ];
+}
+
+function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
+  if (!isFederalAnttPoint(point) || point.directionNormalized !== "both") return [point];
+
+  return [
+    {
+      ...point,
+      id: `${point.id}_sentido_crescente`,
+      name: `${point.name} - Sentido Crescente`,
+      direction: "Crescente",
+      directionNormalized: "increasing",
+      coordinateRole: "directional_plaza",
+    },
+    {
+      ...point,
+      id: `${point.id}_sentido_decrescente`,
+      name: `${point.name} - Sentido Decrescente`,
+      direction: "Decrescente",
+      directionNormalized: "decreasing",
+      coordinateRole: "directional_plaza",
     },
   ];
 }
@@ -309,5 +303,6 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
 export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
   .filter((point): point is TollPoint => Boolean(point))
-  .flatMap(expandDirectionalOverrides)
-  .flatMap(applySinglePointOverrides);
+  .flatMap(applyOfficialAnttOverride)
+  .flatMap(applySinglePointOverrides)
+  .flatMap(expandFederalAnttDirections);
