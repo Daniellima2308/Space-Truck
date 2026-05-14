@@ -8,7 +8,7 @@ import {
 } from "@/lib/tollPoints";
 
 const EARTH_RADIUS_KM = 6371;
-const DEFAULT_ROUTE_CORRIDOR_KM = 0.08;
+const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
 
