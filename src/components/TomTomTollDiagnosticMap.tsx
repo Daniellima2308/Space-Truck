@@ -222,8 +222,8 @@ export function TomTomTollDiagnosticMap({
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<TomTomMap | null>(null);
   const markersRef = useRef<TomTomMarker[]>([]);
-  const markersByIdRef = useRef(new Map<string, TomTomMarker>());
   const popupsByIdRef = useRef(new Map<string, TomTomPopup>());
+  const focusTimeoutRef = useRef<ReturnType<typeof window.setTimeout> | null>(null);
   const [status, setStatus] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
@@ -249,7 +249,6 @@ export function TomTomTollDiagnosticMap({
         setStatus(null);
         markersRef.current.forEach((marker) => marker.remove());
         markersRef.current = [];
-        markersByIdRef.current.clear();
         popupsByIdRef.current.clear();
         mapRef.current?.remove();
 
@@ -311,7 +310,6 @@ export function TomTomTollDiagnosticMap({
               .addTo(map);
 
             markersRef.current.push(marker);
-            markersByIdRef.current.set(item.id, marker);
             popupsByIdRef.current.set(item.id, popup);
           });
 
@@ -326,9 +324,9 @@ export function TomTomTollDiagnosticMap({
     return () => {
       disposed = true;
       setMapReady(false);
+      if (focusTimeoutRef.current) window.clearTimeout(focusTimeoutRef.current);
       markersRef.current.forEach((marker) => marker.remove());
       markersRef.current = [];
-      markersByIdRef.current.clear();
       popupsByIdRef.current.clear();
       mapRef.current?.remove();
       mapRef.current = null;
@@ -342,11 +340,14 @@ export function TomTomTollDiagnosticMap({
     const popup = popupsByIdRef.current.get(focusedTollId);
     if (!item || !popup) return;
 
+    if (focusTimeoutRef.current) window.clearTimeout(focusTimeoutRef.current);
     mapRef.current.flyTo?.({ center: [item.lon, item.lat], zoom: 13, essential: true });
 
-    window.setTimeout(() => {
+    focusTimeoutRef.current = window.setTimeout(() => {
+      const map = mapRef.current;
+      if (!map) return;
       popup.setLngLat?.([item.lon, item.lat]);
-      popup.addTo?.(mapRef.current as TomTomMap);
+      popup.addTo?.(map);
     }, 260);
   }, [diagnostic.items, focusedTollId, focusRequestKey, mapReady]);
 
