@@ -160,6 +160,18 @@ function isSantaIsabelDutraPoint(point: TollPoint): boolean {
   );
 }
 
+function isViuvaGracaSeropedicaPoint(point: TollPoint): boolean {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+
+  return (
+    point.uf === "RJ" &&
+    point.roadNormalized === "BR-116" &&
+    city.includes("seropedica") &&
+    name.includes("viuva graca")
+  );
+}
+
 function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
   if (!isSantaIsabelDutraPoint(point)) return [point];
 
@@ -187,6 +199,31 @@ function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
       coordinateRole: "directional_plaza",
       expectedHeadingDegrees: 241,
       headingToleranceDegrees: 75,
+    },
+  ];
+}
+
+function applySinglePointOverrides(point: TollPoint): TollPoint[] {
+  if (!isViuvaGracaSeropedicaPoint(point)) return [point];
+
+  const name = normalizeText(point.name);
+  const concessionaire = normalizeText(point.concessionaire);
+
+  if (name.includes("norte") || concessionaire.includes("riosp") || concessionaire.includes("rio sp")) {
+    return [];
+  }
+
+  return [
+    {
+      ...point,
+      name: "P04 Viúva Graça",
+      direction: "Crescente/Decrescente",
+      directionNormalized: "both",
+      lat: -22.7163169,
+      lon: -43.7166143,
+      coordinateRole: "plaza_center",
+      expectedHeadingDegrees: null,
+      headingToleranceDegrees: null,
     },
   ];
 }
@@ -231,4 +268,5 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
 export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
   .filter((point): point is TollPoint => Boolean(point))
-  .flatMap(expandDirectionalOverrides);
+  .flatMap(expandDirectionalOverrides)
+  .flatMap(applySinglePointOverrides);
