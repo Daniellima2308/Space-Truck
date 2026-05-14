@@ -271,6 +271,36 @@ describe("tollEngine", () => {
     expect(result.matches[0].point.id).toBe("duplicate-closer");
   });
 
+  it("usa corredor padrão de 80 metros quando nenhum corredor é informado", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "inside-default", lat: 0.0005, lon: 0.4, tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "outside-default", lat: 0.001, lon: 0.6, tariffs: { 6: 20 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.08);
+    expect(result.total).toBe(10);
+    expect(result.matches.map((match) => match.point.id)).toEqual(["inside-default"]);
+  });
+
+  it("mantém fora da rota pontos acima do corredor padrão de 80 metros", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "outside-default", lat: 0.001, lon: 0.6, tariffs: { 6: 20 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.08);
+    expect(result.total).toBe(0);
+    expect(result.source).toBe("no_toll_points_found");
+    expect(result.matches).toHaveLength(0);
+  });
+
   it("ignora praças fora do corredor da rota", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,
