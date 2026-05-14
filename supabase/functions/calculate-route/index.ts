@@ -87,7 +87,7 @@ function normalizeText(value: unknown): string {
 
 function normalizeRoadNumber(value: unknown): string | null {
   const text = normalizeText(value).toUpperCase();
-  const match = text.match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  const match = text.match(/\b([A-Z]{2,3})[-\s]?(\d{2,3})\b/);
   return match ? `${match[1]}-${match[2]}` : null;
 }
 
@@ -97,8 +97,42 @@ function uniqueStrings(values: unknown[]): string[] {
 
 function extractRoadNumbersFromText(value: unknown): string[] {
   if (typeof value !== "string") return [];
-  const matches = value.match(/\b[A-Z]{2}[-\s]?\d{2,3}\b/gi) ?? [];
+  const matches = value.match(/\b[A-Z]{2,3}[-\s]?\d{2,3}\b/gi) ?? [];
   return [...new Set(matches.map(normalizeRoadNumber).filter((road): road is string => Boolean(road)))];
+}
+
+function collectStringValues(value: unknown, depth = 0): string[] {
+  if (depth > 4) return [];
+  if (typeof value === "string") return [value];
+  if (Array.isArray(value)) return value.flatMap((item) => collectStringValues(item, depth + 1));
+  if (value && typeof value === "object") {
+    return Object.values(value as Record<string, unknown>).flatMap((item) => collectStringValues(item, depth + 1));
+  }
+
+  return [];
+}
+
+function extractKnownRoadNameValues(sectionRecord: Record<string, unknown>): string[] {
+  return uniqueStrings([
+    ...collectStringValues(sectionRecord.streetName),
+    ...collectStringValues(sectionRecord.streetNames),
+    ...collectStringValues(sectionRecord.roadName),
+    ...collectStringValues(sectionRecord.roadNames),
+    ...collectStringValues(sectionRecord.name),
+  ]).filter((value) => {
+    const normalized = normalizeText(value);
+    return normalized !== "car" && normalized !== "importantroadstretch" && !/^\d+$/.test(value);
+  });
+}
+
+function extractKnownRoadNumberValues(sectionRecord: Record<string, unknown>): string[] {
+  return uniqueStrings([
+    ...collectStringValues(sectionRecord.roadNumber),
+    ...collectStringValues(sectionRecord.roadNumbers),
+    ...collectStringValues(sectionRecord.routeNumber),
+    ...collectStringValues(sectionRecord.routeNumbers),
+    ...extractKnownRoadNameValues(sectionRecord),
+  ]);
 }
 
 function buildLocationCandidates(raw: string): string[] {
@@ -178,14 +212,10 @@ function extractRoadSegmentFromSection(section: unknown, routePathLength: number
   const endPointIndex = getSectionPointIndex(sectionRecord.endPointIndex, -1);
   if (startPointIndex < 0 || endPointIndex <= startPointIndex || endPointIndex >= routePathLength) return null;
 
-  const roadNames = uniqueStrings([
-    sectionRecord.simpleCategory,
-    sectionRecord.effectiveSpeedInKmh,
-    sectionRecord.travelMode,
-  ]).filter((value) => !/^\d+$/.test(value));
-
-  const sectionTextValues = Object.values(sectionRecord).filter((value): value is string => typeof value === "string");
-  const roadNumbersNormalized = [...new Set(sectionTextValues.flatMap(extractRoadNumbersFromText))];
+  const roadNames = extractKnownRoadNameValues(sectionRecord);
+  const roadNumbersNormalized = [...new Set(
+    extractKnownRoadNumberValues(sectionRecord).flatMap(extractRoadNumbersFromText),
+  )];
   const roadNumbers = roadNumbersNormalized;
 
   if (roadNames.length === 0 && roadNumbersNormalized.length === 0) return null;
