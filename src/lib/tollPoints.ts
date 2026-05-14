@@ -172,6 +172,21 @@ function isViuvaGracaSeropedicaPoint(point: TollPoint): boolean {
   );
 }
 
+function isRaposoTavaresExternaPoint(point: TollPoint): boolean {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+  const km = normalizeText(point.km);
+
+  return (
+    point.uf === "SP" &&
+    point.roadNormalized === "SP-021" &&
+    city.includes("osasco") &&
+    name.includes("raposo tavares") &&
+    name.includes("externa") &&
+    (km === "24,000" || km === "24.000" || point.kmNumber === 24000 || point.kmNumber === 24)
+  );
+}
+
 function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
   if (!isSantaIsabelDutraPoint(point)) return [point];
 
@@ -204,6 +219,19 @@ function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
 }
 
 function applySinglePointOverrides(point: TollPoint): TollPoint[] {
+  if (isRaposoTavaresExternaPoint(point)) {
+    return [
+      {
+        ...point,
+        lat: -23.594113,
+        lon: -46.809286,
+        coordinateRole: "plaza_center",
+        expectedHeadingDegrees: null,
+        headingToleranceDegrees: null,
+      },
+    ];
+  }
+
   if (!isViuvaGracaSeropedicaPoint(point)) return [point];
 
   const name = normalizeText(point.name);
