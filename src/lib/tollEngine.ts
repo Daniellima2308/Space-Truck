@@ -24,7 +24,7 @@ export interface TollPointMatch {
   routeOrder: number;
 }
 
-interface TollPointCandidate extends Omit<TollPointMatch, "routeOrder"> {}
+type TollPointCandidate = Omit<TollPointMatch, "routeOrder">;
 
 export interface TollCalculationResult {
   total: number;
