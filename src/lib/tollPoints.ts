@@ -202,6 +202,21 @@ function isCastelloBrancoInternaPoint(point: TollPoint): boolean {
   );
 }
 
+function isCastelloBrancoExternaPoint(point: TollPoint): boolean {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+  const km = normalizeText(point.km);
+
+  return (
+    point.uf === "SP" &&
+    point.roadNormalized === "SP-021" &&
+    city.includes("barueri") &&
+    name.includes("castello branco") &&
+    name.includes("externa") &&
+    (km === "14,290" || km === "14.290" || point.kmNumber === 14290 || point.kmNumber === 14.29)
+  );
+}
+
 function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
   if (!isSantaIsabelDutraPoint(point)) return [point];
 
@@ -253,6 +268,19 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
         ...point,
         lat: -23.5171375,
         lon: -46.8127736,
+        coordinateRole: "plaza_center",
+        expectedHeadingDegrees: null,
+        headingToleranceDegrees: null,
+      },
+    ];
+  }
+
+  if (isCastelloBrancoExternaPoint(point)) {
+    return [
+      {
+        ...point,
+        lat: -23.5079522,
+        lon: -46.8233218,
         coordinateRole: "plaza_center",
         expectedHeadingDegrees: null,
         headingToleranceDegrees: null,
