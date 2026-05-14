@@ -260,7 +260,10 @@ function hasCompatibleRouteRoad(
 }
 
 function hasCompatibleBearing(point: TollPoint, routeBearingDegrees: number): boolean {
-  if (point.expectedHeadingDegrees === null || point.headingToleranceDegrees === null) return true;
+  if (typeof point.expectedHeadingDegrees !== "number" || typeof point.headingToleranceDegrees !== "number") {
+    return true;
+  }
+
   return getBearingDifferenceDegrees(routeBearingDegrees, point.expectedHeadingDegrees) <= point.headingToleranceDegrees;
 }
 
