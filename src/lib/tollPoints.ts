@@ -2,6 +2,7 @@ import activeTollPointsData from "../../data/tolls/app_ready_toll_points_active.
 
 export type TollAxleCount = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type TollDirectionNormalized = "both" | "increasing" | "decreasing" | "unknown";
+export type TollCoordinateRole = "plaza_center" | "directional_plaza" | "directional_gantry" | "approximate";
 
 export interface TollPoint {
   id: string;
@@ -22,6 +23,9 @@ export interface TollPoint {
   tariffs: Partial<Record<TollAxleCount, number>>;
   geoConfidence: string;
   valueConfidence: string;
+  coordinateRole: TollCoordinateRole;
+  expectedHeadingDegrees: number | null;
+  headingToleranceDegrees: number | null;
 }
 
 interface RawTollPoint {
@@ -118,6 +122,8 @@ function normalizeDirection(value: unknown): TollDirectionNormalized {
   if (!text) return "unknown";
   if (text.includes("crescente") && text.includes("decrescente")) return "both";
   if (text.includes("ambos") || text.includes("bidirecional") || text.includes("duplo")) return "both";
+  if (text.includes("sp") && text.includes("rio")) return "increasing";
+  if (text.includes("rio") && text.includes("sp")) return "decreasing";
   if (text.includes("crescente")) return "increasing";
   if (text.includes("decrescente")) return "decreasing";
   return "unknown";
@@ -134,6 +140,55 @@ function buildTariffs(point: RawTollPoint): Partial<Record<TollAxleCount, number
       return value && value > 0 ? [[axles, value]] : [];
     }),
   ) as Partial<Record<TollAxleCount, number>>;
+}
+
+function isSantaIsabelDutraPoint(point: TollPoint): boolean {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+  const concessionaire = normalizeText(point.concessionaire);
+
+  return (
+    point.uf === "SP" &&
+    point.roadNormalized === "BR-116" &&
+    (city.includes("santa isabel") || name.includes("santa isabel")) &&
+    (
+      concessionaire.includes("dutra") ||
+      concessionaire.includes("riosp") ||
+      concessionaire.includes("rio sp") ||
+      concessionaire.includes("nova dutra")
+    )
+  );
+}
+
+function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
+  if (!isSantaIsabelDutraPoint(point)) return [point];
+
+  return [
+    {
+      ...point,
+      id: `${point.id}_sentido_sp_rio`,
+      name: `${point.name} - Sentido SP-Rio`,
+      direction: "SP - Rio",
+      directionNormalized: "increasing",
+      lat: -23.3466529,
+      lon: -46.1648116,
+      coordinateRole: "directional_plaza",
+      expectedHeadingDegrees: 61,
+      headingToleranceDegrees: 75,
+    },
+    {
+      ...point,
+      id: `${point.id}_sentido_rio_sp`,
+      name: `${point.name} - Sentido Rio-SP`,
+      direction: "Rio - SP",
+      directionNormalized: "decreasing",
+      lat: -23.3387745,
+      lon: -46.1502881,
+      coordinateRole: "directional_plaza",
+      expectedHeadingDegrees: 241,
+      headingToleranceDegrees: 75,
+    },
+  ];
 }
 
 function mapTollPoint(point: RawTollPoint): TollPoint | null {
@@ -167,9 +222,13 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
     tariffs,
     geoConfidence: asString(point.confianca_geo),
     valueConfidence: asString(point.confianca_valor),
+    coordinateRole: "plaza_center",
+    expectedHeadingDegrees: null,
+    headingToleranceDegrees: null,
   };
 }
 
 export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
-  .filter((point): point is TollPoint => Boolean(point));
+  .filter((point): point is TollPoint => Boolean(point))
+  .flatMap(expandDirectionalOverrides);
