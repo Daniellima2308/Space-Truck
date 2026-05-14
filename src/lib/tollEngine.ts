@@ -272,6 +272,11 @@ function normalizePhysicalPointPart(value: string | null | undefined): string {
     .normalize("NFD")
     .replace(/[\u0300-\u036f]/g, "")
     .toLowerCase()
+    .replace(/\b(sentido|pista|faixa|direcao|direção)\b/g, "")
+    .replace(/\b(crescente|decrescente|norte|sul|leste|oeste|capital|interior|ida|volta)\b/g, "")
+    .replace(/\b(sp|sao paulo|são paulo|rio|rj)\b/g, "")
+    .replace(/[-–—_/]+/g, " ")
+    .replace(/\s+/g, " ")
     .trim();
 }
 
@@ -298,7 +303,29 @@ function buildPhysicalPointKey(match: TollPointCandidate): string {
   ].join("|");
 }
 
+function hasSameDirectionalChargeGroup(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  const sameKm = isSameNonEmptyPhysicalPart(a.point.km, b.point.km);
+  const sameRoad = isSameNonEmptyPhysicalPart(a.point.road, b.point.road);
+  const sameConcessionaire = isSameNonEmptyPhysicalPart(a.point.concessionaire, b.point.concessionaire);
+  const sameCity = isSameNonEmptyPhysicalPart(a.point.city, b.point.city);
+  const sameName = isSameNonEmptyPhysicalPart(a.point.name, b.point.name);
+
+  if (sameKm && sameRoad && sameConcessionaire && (sameCity || sameName)) {
+    return true;
+  }
+
+  if (sameKm && sameRoad && sameCity && sameName) {
+    return true;
+  }
+
+  return false;
+}
+
 function shouldTreatAsSameRouteCharge(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  if (hasSameDirectionalChargeGroup(a, b)) {
+    return true;
+  }
+
   const closeOnRoute = Math.abs(a.distanceAlongRouteKm - b.distanceAlongRouteKm) <= SAME_ROUTE_POSITION_TOLERANCE_KM;
   if (!closeOnRoute) return false;
 
