@@ -35,7 +35,13 @@ function findTollFieldGrid(): HTMLElement | null {
   return tollInput?.parentElement?.parentElement ?? null;
 }
 
-function InlineTollMapButton({ diagnostic, onOpen }: { diagnostic: TollRouteDiagnostic; onOpen: () => void }) {
+function InlineTollMapButton({
+  diagnostic,
+  onOpen,
+}: {
+  diagnostic: TollRouteDiagnostic;
+  onOpen: (button: HTMLButtonElement) => void;
+}) {
   const details = diagnostic.source === "no_route_path"
     ? "Diagnóstico da rota"
     : `${diagnostic.tollCount} ponto${diagnostic.tollCount === 1 ? "" : "s"}`;
@@ -43,7 +49,7 @@ function InlineTollMapButton({ diagnostic, onOpen }: { diagnostic: TollRouteDiag
   return (
     <button
       type="button"
-      onClick={onOpen}
+      onClick={(event) => onOpen(event.currentTarget)}
       className="mt-[1.55rem] flex h-12 w-full items-center justify-center gap-2 rounded-2xl border border-primary/35 bg-primary px-3 text-primary-foreground shadow-lg transition active:scale-[0.98]"
       style={{ gridColumn: "2 / 3", gridRow: "2 / 3", alignSelf: "start" }}
       aria-label="Ver pedágio da rota no mapa"
@@ -63,6 +69,9 @@ export function TollDiagnosticFloatingPanel() {
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
   const [focusedTollId, setFocusedTollId] = useState<string | null>(null);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
+  const closeButtonRef = useRef<HTMLButtonElement | null>(null);
+  const openerButtonRef = useRef<HTMLButtonElement | null>(null);
+  const wasOpenRef = useRef(false);
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -99,9 +108,28 @@ export function TollDiagnosticFloatingPanel() {
     return () => observer.disconnect();
   }, [diagnostic]);
 
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true;
+      window.setTimeout(() => closeButtonRef.current?.focus(), 0);
+      return;
+    }
+
+    if (!wasOpenRef.current) return;
+    wasOpenRef.current = false;
+    window.setTimeout(() => openerButtonRef.current?.focus(), 0);
+  }, [open]);
+
   const title = useMemo(() => {
     return diagnostic ? getDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
+
+  const closePanel = () => setOpen(false);
+
+  const handleOpenPanel = (button: HTMLButtonElement) => {
+    openerButtonRef.current = button;
+    setOpen(true);
+  };
 
   const handleTollCardClick = (tollId: string) => {
     setFocusedTollId(tollId);
@@ -114,25 +142,34 @@ export function TollDiagnosticFloatingPanel() {
   return (
     <>
       {buttonContainer && createPortal(
-        <InlineTollMapButton diagnostic={diagnostic} onOpen={() => setOpen(true)} />,
+        <InlineTollMapButton diagnostic={diagnostic} onOpen={handleOpenPanel} />,
         buttonContainer,
       )}
 
       {open && (
-        <div className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md" role="dialog" aria-modal="true">
+        <div
+          className="fixed inset-0 z-[70] bg-black/70 backdrop-blur-md"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="toll-diagnostic-title"
+          onKeyDown={(event) => {
+            if (event.key === "Escape") closePanel();
+          }}
+        >
           <div className="absolute inset-x-2 bottom-2 max-h-[92vh] overflow-hidden rounded-[2rem] border border-primary/20 bg-background shadow-2xl">
             <div className="sticky top-0 z-10 border-b border-border bg-background/95 p-4 backdrop-blur">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Space Truck</p>
-                  <h2 className="text-2xl font-black leading-tight text-foreground">{title}</h2>
+                  <h2 id="toll-diagnostic-title" className="text-2xl font-black leading-tight text-foreground">{title}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
                     {getSourceLabel(diagnostic.source)} • Corredor {diagnostic.routeCorridorKm} km
                   </p>
                 </div>
                 <button
+                  ref={closeButtonRef}
                   type="button"
-                  onClick={() => setOpen(false)}
+                  onClick={closePanel}
                   className="rounded-2xl border border-border bg-card px-4 py-3 text-sm font-black text-foreground shadow-sm"
                 >
                   Fechar
