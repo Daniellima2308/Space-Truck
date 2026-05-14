@@ -24,6 +24,15 @@ interface Coordinates {
   lon: number;
 }
 
+interface RouteSegment {
+  startPointIndex: number;
+  endPointIndex: number;
+  roadNames: string[];
+  roadNumbers: string[];
+  roadNumbersNormalized: string[];
+  source: "importantRoadStretch" | "guidance";
+}
+
 interface TomTomRoutePoint {
   latitude?: unknown;
   longitude?: unknown;
@@ -44,6 +53,7 @@ interface RouteFunctionPayload {
   originCoords: Coordinates | null;
   destCoords: Coordinates | null;
   routePath: Coordinates[];
+  routeSegments: RouteSegment[];
   reason: string | null;
   reasonCode?: string | null;
   originQueryUsed?: string;
@@ -62,6 +72,33 @@ function normalizeLocation(value: string): string {
   if (/\b(brasil|brazil)\b/i.test(normalized)) return normalized;
 
   return `${normalized}, Brazil`;
+}
+
+function normalizeText(value: unknown): string {
+  return typeof value === "string"
+    ? value
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .toLowerCase()
+      .replace(/\s+/g, " ")
+      .trim()
+    : "";
+}
+
+function normalizeRoadNumber(value: unknown): string | null {
+  const text = normalizeText(value).toUpperCase();
+  const match = text.match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  return match ? `${match[1]}-${match[2]}` : null;
+}
+
+function uniqueStrings(values: unknown[]): string[] {
+  return [...new Set(values.filter((value): value is string => typeof value === "string" && value.trim().length > 0).map((value) => value.trim()))];
+}
+
+function extractRoadNumbersFromText(value: unknown): string[] {
+  if (typeof value !== "string") return [];
+  const matches = value.match(/\b[A-Z]{2}[-\s]?\d{2,3}\b/gi) ?? [];
+  return [...new Set(matches.map(normalizeRoadNumber).filter((road): road is string => Boolean(road)))];
 }
 
 function buildLocationCandidates(raw: string): string[] {
@@ -128,6 +165,53 @@ function extractRoutePath(route: unknown): Coordinates[] {
   return dedupeSequentialCoordinates(points);
 }
 
+function getSectionPointIndex(value: unknown, fallback: number): number {
+  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : fallback;
+}
+
+function extractRoadSegmentFromSection(section: unknown, routePathLength: number): RouteSegment | null {
+  const sectionRecord = section as Record<string, unknown>;
+  const sectionType = normalizeText(sectionRecord.sectionType);
+  if (sectionType && sectionType !== "importantroadstretch") return null;
+
+  const startPointIndex = getSectionPointIndex(sectionRecord.startPointIndex, -1);
+  const endPointIndex = getSectionPointIndex(sectionRecord.endPointIndex, -1);
+  if (startPointIndex < 0 || endPointIndex <= startPointIndex || endPointIndex >= routePathLength) return null;
+
+  const roadNames = uniqueStrings([
+    sectionRecord.simpleCategory,
+    sectionRecord.effectiveSpeedInKmh,
+    sectionRecord.travelMode,
+  ]).filter((value) => !/^\d+$/.test(value));
+
+  const sectionTextValues = Object.values(sectionRecord).filter((value): value is string => typeof value === "string");
+  const roadNumbersNormalized = [...new Set(sectionTextValues.flatMap(extractRoadNumbersFromText))];
+  const roadNumbers = roadNumbersNormalized;
+
+  if (roadNames.length === 0 && roadNumbersNormalized.length === 0) return null;
+
+  return {
+    startPointIndex,
+    endPointIndex,
+    roadNames,
+    roadNumbers,
+    roadNumbersNormalized,
+    source: "importantRoadStretch",
+  };
+}
+
+function extractRouteSegments(route: unknown, routePath: Coordinates[]): RouteSegment[] {
+  if (routePath.length < 2) return [];
+
+  const sections = Array.isArray((route as { sections?: unknown }).sections)
+    ? ((route as { sections: unknown[] }).sections)
+    : [];
+
+  return sections
+    .map((section) => extractRoadSegmentFromSection(section, routePath.length))
+    .filter((segment): segment is RouteSegment => Boolean(segment));
+}
+
 async function geocodeLocation(
   cityName: string,
   apiKey: string,
@@ -189,6 +273,7 @@ serve(async (req) => {
         originCoords: null,
         destCoords: null,
         routePath: [],
+        routeSegments: [],
         reason: "Método não permitido para cálculo de rota.",
         reasonCode: "method_not_allowed",
       },
@@ -205,6 +290,7 @@ serve(async (req) => {
         originCoords: null,
         destCoords: null,
         routePath: [],
+        routeSegments: [],
         reason: "Serviço de rota indisponível no momento.",
         reasonCode: "missing_api_key",
       } satisfies RouteFunctionPayload,
@@ -224,6 +310,7 @@ serve(async (req) => {
         originCoords: null,
         destCoords: null,
         routePath: [],
+        routeSegments: [],
         reason: "Origem e destino não foram enviados corretamente.",
         reasonCode: "invalid_json_body",
       } satisfies RouteFunctionPayload,
@@ -244,6 +331,7 @@ serve(async (req) => {
         originCoords: null,
         destCoords: null,
         routePath: [],
+        routeSegments: [],
         reason:
           "Origem e destino precisam ser informados para calcular a rota.",
         reasonCode: "invalid_payload",
@@ -264,6 +352,7 @@ serve(async (req) => {
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
           routePath: [],
+          routeSegments: [],
           reason:
             originGeo.reason ||
             destinationGeo.reason ||
@@ -280,7 +369,7 @@ serve(async (req) => {
     }
 
     const routeResponse = await fetch(
-      `${TOMTOM_ROUTING_URL}/${originGeo.coords.lat},${originGeo.coords.lon}:${destinationGeo.coords.lat},${destinationGeo.coords.lon}/json?key=${encodeURIComponent(TOMTOM_API_KEY)}&routeType=fastest&traffic=false`,
+      `${TOMTOM_ROUTING_URL}/${originGeo.coords.lat},${originGeo.coords.lon}:${destinationGeo.coords.lat},${destinationGeo.coords.lon}/json?key=${encodeURIComponent(TOMTOM_API_KEY)}&routeType=fastest&traffic=false&sectionType=importantRoadStretch`,
     );
 
     if (!routeResponse.ok) {
@@ -298,6 +387,7 @@ serve(async (req) => {
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
           routePath: [],
+          routeSegments: [],
           reason: "Não deu para calcular a rota deste trecho agora.",
           reasonCode: "routing_http_error",
           originQueryUsed: originGeo.queryUsed,
@@ -324,6 +414,7 @@ serve(async (req) => {
           originCoords: originGeo.coords,
           destCoords: destinationGeo.coords,
           routePath: [],
+          routeSegments: [],
           reason: "Ainda não conseguimos estimar a distância deste trecho.",
           reasonCode: "routing_without_valid_route",
           originQueryUsed: originGeo.queryUsed,
@@ -334,6 +425,7 @@ serve(async (req) => {
     }
 
     const routePath = extractRoutePath(route);
+    const routeSegments = extractRouteSegments(route, routePath);
 
     return jsonResponse(
       {
@@ -341,6 +433,7 @@ serve(async (req) => {
         originCoords: originGeo.coords,
         destCoords: destinationGeo.coords,
         routePath: routePath.length > 1 ? routePath : [],
+        routeSegments,
         reason: null,
         reasonCode: null,
         originQueryUsed: originGeo.queryUsed,
@@ -361,6 +454,7 @@ serve(async (req) => {
         originCoords: null,
         destCoords: null,
         routePath: [],
+        routeSegments: [],
         reason: "Não deu para calcular a rota agora.",
         reasonCode: "unexpected_error",
       } satisfies RouteFunctionPayload,
