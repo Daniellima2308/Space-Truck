@@ -15,6 +15,12 @@ const tollBasePath = tollBasePathArg
   ? path.resolve(repoRoot, tollBasePathArg.replace("--file=", ""))
   : DEFAULT_TOLL_BASE_PATH;
 
+const relativeTollBasePath = path.relative(repoRoot, tollBasePath);
+if (relativeTollBasePath.startsWith("..") || path.isAbsolute(relativeTollBasePath)) {
+  console.error(`[audit] File must be inside the repository: ${tollBasePath}`);
+  process.exit(1);
+}
+
 const DIRECTION_ALIASES = [
   { value: "both", patterns: [/crescent.*decrescent/i, /decrescent.*crescent/i, /ambos/i, /duplo/i, /bidirecional/i] },
   { value: "increasing", patterns: [/crescente/i, /norte/i, /leste/i, /capital/i, /interior/i] },
@@ -22,7 +28,17 @@ const DIRECTION_ALIASES = [
 ];
 
 function readJson(filePath) {
-  return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  if (!fs.existsSync(filePath)) {
+    console.error(`[audit] File not found: ${filePath}`);
+    process.exit(1);
+  }
+
+  try {
+    return JSON.parse(fs.readFileSync(filePath, "utf8"));
+  } catch (error) {
+    console.error(`[audit] Failed to parse JSON at ${filePath}: ${error.message}`);
+    process.exit(1);
+  }
 }
 
 function normalizeText(value) {
@@ -36,13 +52,14 @@ function normalizeText(value) {
 
 function normalizeRoad(value) {
   const text = normalizeText(value).toUpperCase();
-  const match = text.match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  const match = text.match(/\b([A-Z]{2,3})[-\s]?(\d{2,3})\b/);
   return match ? `${match[1]}-${match[2]}` : text || null;
 }
 
 function parseKm(value) {
   if (value === null || value === undefined || value === "") return null;
-  const parsed = Number(String(value).replace(",", ".").replace(/[^0-9.-]/g, ""));
+  const normalized = String(value).replace(",", ".").replace("+", ".");
+  const parsed = Number(normalized.replace(/[^0-9.-]/g, ""));
   return Number.isFinite(parsed) ? parsed : null;
 }
 
@@ -124,7 +141,7 @@ function buildFinding(severity, code, message, points) {
 }
 
 function audit(points) {
-  const activeCalculationPoints = points.filter((point) => point.calcular_pedagio === true && point.status_operacional === "ativo");
+  const activeCalculationPoints = points.filter((point) => point.calcular_pedagio === true && String(point.status_operacional || "").startsWith("ativo"));
   const findings = [];
 
   const invalidCoordinates = activeCalculationPoints.filter((point) => {
@@ -233,6 +250,11 @@ function printHumanReport(report) {
 }
 
 const points = readJson(tollBasePath);
+if (!Array.isArray(points)) {
+  console.error(`[audit] Expected an array at JSON root: ${tollBasePath}`);
+  process.exit(1);
+}
+
 const report = audit(points);
 
 if (jsonMode) {
