@@ -73,6 +73,11 @@ function roundBearing(value: number): number {
   return Math.round(((value % 360) + 360) % 360);
 }
 
+function getBearingDifferenceDegrees(a: number, b: number): number {
+  const diff = Math.abs(roundBearing(a) - roundBearing(b));
+  return Math.min(diff, 360 - diff);
+}
+
 function isValidCoordinate(point: Coordinates): boolean {
   return (
     typeof point.lat === "number" &&
@@ -252,6 +257,11 @@ function hasCompatibleRouteRoad(
   if (matchedRouteRoads.length === 0) return true;
   if (!point.roadNormalized) return true;
   return matchedRouteRoads.includes(point.roadNormalized);
+}
+
+function hasCompatibleBearing(point: TollPoint, routeBearingDegrees: number): boolean {
+  if (point.expectedHeadingDegrees === null || point.headingToleranceDegrees === null) return true;
+  return getBearingDifferenceDegrees(routeBearingDegrees, point.expectedHeadingDegrees) <= point.headingToleranceDegrees;
 }
 
 function normalizePhysicalPointPart(value: string | null | undefined): string {
@@ -459,6 +469,7 @@ export function calculateRouteToll({
 
       const matchedRouteRoads = getRouteRoadsForSegment(projection.routeSegmentIndex, routeSegments);
       if (!hasCompatibleRouteRoad(point, matchedRouteRoads)) return null;
+      if (!hasCompatibleBearing(point, projection.routeBearingDegrees)) return null;
 
       return {
         point,
