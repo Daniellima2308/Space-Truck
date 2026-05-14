@@ -91,8 +91,8 @@ describe("tollEngine", () => {
       routePath: straightRoute,
       axles: 6,
       tollPoints: [
-        buildTollPoint({ id: "toll-1", lat: 0.01, lon: 0.25, tariffs: { 6: 28.4 } }),
-        buildTollPoint({ id: "toll-2", lat: -0.01, lon: 0.75, tariffs: { 6: 31.6 } }),
+        buildTollPoint({ id: "toll-1", lat: 0.01, lon: 0.25, km: "100", tariffs: { 6: 28.4 } }),
+        buildTollPoint({ id: "toll-2", lat: -0.01, lon: 0.75, km: "200", tariffs: { 6: 31.6 } }),
       ],
       routeCorridorKm: 2.5,
     });
@@ -110,9 +110,9 @@ describe("tollEngine", () => {
       routePath: straightRoute,
       axles: 6,
       tollPoints: [
-        buildTollPoint({ id: "third", lat: 0.01, lon: 0.75, tariffs: { 6: 10 } }),
-        buildTollPoint({ id: "first", lat: 0.01, lon: 0.25, tariffs: { 6: 10 } }),
-        buildTollPoint({ id: "second", lat: 0.01, lon: 0.5, tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "third", lat: 0.01, lon: 0.75, km: "300", tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "first", lat: 0.01, lon: 0.25, km: "100", tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "second", lat: 0.01, lon: 0.5, km: "200", tariffs: { 6: 10 } }),
       ],
       routeCorridorKm: 2.5,
     });
