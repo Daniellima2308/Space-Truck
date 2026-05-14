@@ -45,8 +45,6 @@ function publishTollDiagnostic(diagnostic: TollRouteDiagnostic): void {
 
   window.__SPACE_TRUCK_LAST_TOLL_DIAGNOSTIC__ = diagnostic;
   window.dispatchEvent(new CustomEvent("space-truck:toll-diagnostic", { detail: diagnostic }));
-  console.info("[Space Truck] Toll diagnostic", diagnostic);
-  console.table(diagnostic.items);
 }
 
 function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
@@ -57,7 +55,7 @@ function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
     routeCorridorKm: 0,
     routePath: [],
     items: [],
-    reason: "Route distance exists, but route geometry was not available for toll matching.",
+    reason: "A distância da rota existe, mas a geometria não ficou disponível para cruzar com a base interna de pedágios.",
   };
 }
 
