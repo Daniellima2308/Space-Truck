@@ -29,10 +29,19 @@ function getSourceLabel(source: TollRouteDiagnostic["source"]): string {
 }
 
 function findTollFieldGrid(): HTMLElement | null {
-  const tollInput = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
+  const explicitGrid = document.querySelector<HTMLElement>('[data-testid="toll-field-grid"]');
+  if (explicitGrid) return explicitGrid;
+
+  const explicitInput = document.querySelector<HTMLInputElement>('[data-testid="toll-field-input"]');
+  const explicitInputGrid = explicitInput?.closest<HTMLElement>('[data-testid="toll-field-grid"]')
+    ?? explicitInput?.parentElement?.parentElement
+    ?? null;
+  if (explicitInputGrid) return explicitInputGrid;
+
+  const fallbackInput = Array.from(document.querySelectorAll<HTMLInputElement>("input"))
     .find((input) => input.placeholder === "Ex: R$ 350,00");
 
-  return tollInput?.parentElement?.parentElement ?? null;
+  return fallbackInput?.parentElement?.parentElement ?? null;
 }
 
 function InlineTollMapButton({
