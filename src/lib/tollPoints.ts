@@ -1,4 +1,5 @@
 import activeTollPointsData from "../../data/tolls/app_ready_toll_points_active.json";
+import { TOLL_POINT_COORDINATE_OVERRIDES } from "./tollPointCoordinateOverrides";
 
 export type TollAxleCount = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
 export type TollDirectionNormalized = "both" | "increasing" | "decreasing" | "unknown";
@@ -142,6 +143,30 @@ function buildTariffs(point: RawTollPoint): Partial<Record<TollAxleCount, number
   ) as Partial<Record<TollAxleCount, number>>;
 }
 
+function kmMatches(point: TollPoint, candidates: Array<string | number>): boolean {
+  const kmText = normalizeText(point.km);
+  return candidates.some((candidate) => {
+    if (typeof candidate === "number") {
+      return point.kmNumber === candidate;
+    }
+
+    return kmText === normalizeText(candidate);
+  });
+}
+
+function findCoordinateOverride(point: TollPoint) {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+
+  return TOLL_POINT_COORDINATE_OVERRIDES.find((override) => (
+    point.uf === override.uf &&
+    point.roadNormalized === override.roadNormalized &&
+    city.includes(override.cityIncludes) &&
+    (!override.nameIncludes || override.nameIncludes.every((part) => name.includes(part))) &&
+    kmMatches(point, override.kmCandidates)
+  ));
+}
+
 function isSantaIsabelDutraPoint(point: TollPoint): boolean {
   const city = normalizeText(point.city);
   const name = normalizeText(point.name);
@@ -169,51 +194,6 @@ function isViuvaGracaSeropedicaPoint(point: TollPoint): boolean {
     point.roadNormalized === "BR-116" &&
     city.includes("seropedica") &&
     name.includes("viuva graca")
-  );
-}
-
-function isRaposoTavaresExternaPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-  const km = normalizeText(point.km);
-
-  return (
-    point.uf === "SP" &&
-    point.roadNormalized === "SP-021" &&
-    city.includes("osasco") &&
-    name.includes("raposo tavares") &&
-    name.includes("externa") &&
-    (km === "24,000" || km === "24.000" || point.kmNumber === 24000 || point.kmNumber === 24)
-  );
-}
-
-function isCastelloBrancoInternaPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-  const km = normalizeText(point.km);
-
-  return (
-    point.uf === "SP" &&
-    point.roadNormalized === "SP-021" &&
-    city.includes("barueri") &&
-    name.includes("castello branco") &&
-    name.includes("interna") &&
-    (km === "15,610" || km === "15.610" || point.kmNumber === 15610 || point.kmNumber === 15.61)
-  );
-}
-
-function isCastelloBrancoExternaPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-  const km = normalizeText(point.km);
-
-  return (
-    point.uf === "SP" &&
-    point.roadNormalized === "SP-021" &&
-    city.includes("barueri") &&
-    name.includes("castello branco") &&
-    name.includes("externa") &&
-    (km === "14,290" || km === "14.290" || point.kmNumber === 14290 || point.kmNumber === 14.29)
   );
 }
 
@@ -249,38 +229,14 @@ function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
 }
 
 function applySinglePointOverrides(point: TollPoint): TollPoint[] {
-  if (isRaposoTavaresExternaPoint(point)) {
-    return [
-      {
-        ...point,
-        lat: -23.594113,
-        lon: -46.809286,
-        coordinateRole: "plaza_center",
-        expectedHeadingDegrees: null,
-        headingToleranceDegrees: null,
-      },
-    ];
-  }
+  const coordinateOverride = findCoordinateOverride(point);
 
-  if (isCastelloBrancoInternaPoint(point)) {
+  if (coordinateOverride) {
     return [
       {
         ...point,
-        lat: -23.5171375,
-        lon: -46.8127736,
-        coordinateRole: "plaza_center",
-        expectedHeadingDegrees: null,
-        headingToleranceDegrees: null,
-      },
-    ];
-  }
-
-  if (isCastelloBrancoExternaPoint(point)) {
-    return [
-      {
-        ...point,
-        lat: -23.5079522,
-        lon: -46.8233218,
+        lat: coordinateOverride.lat,
+        lon: coordinateOverride.lon,
         coordinateRole: "plaza_center",
         expectedHeadingDegrees: null,
         headingToleranceDegrees: null,
