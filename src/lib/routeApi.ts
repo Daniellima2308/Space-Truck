@@ -6,11 +6,21 @@ export interface Coordinates {
   lon: number;
 }
 
+export interface RouteSegment {
+  startPointIndex: number;
+  endPointIndex: number;
+  roadNames: string[];
+  roadNumbers: string[];
+  roadNumbersNormalized: string[];
+  source: "importantRoadStretch" | "guidance";
+}
+
 export interface RouteResult {
   distanceKm: number;
   originCoords: Coordinates;
   destCoords: Coordinates;
   routePath: Coordinates[];
+  routeSegments: RouteSegment[];
 }
 
 export interface RouteDistanceDiagnostic {
@@ -26,6 +36,7 @@ interface RouteFunctionResponse {
   originCoords: Coordinates | null;
   destCoords: Coordinates | null;
   routePath?: Coordinates[] | null;
+  routeSegments?: RouteSegment[] | null;
   reason: string | null;
   reasonCode?: string | null;
   originQueryUsed?: string;
@@ -39,11 +50,16 @@ interface RouteResolution {
   destinationQueryUsed?: string;
 }
 
+interface RememberedRouteGeometry {
+  routePath: Coordinates[];
+  routeSegments: RouteSegment[];
+}
+
 const ROUTE_PROVIDER = "tomtom";
 const CACHE_HIT_WRITE_MIN_INTERVAL_MS = 6 * 60 * 60 * 1000;
 const ROUTE_PATH_CACHE_MAX_ENTRIES = 25;
 const COUNTRY_TOKENS = new Set(["brazil", "brasil", "br"]);
-const routePathMemoryCache = new Map<string, Coordinates[]>();
+const routePathMemoryCache = new Map<string, RememberedRouteGeometry>();
 
 function mapRouteInvokeErrorToUserReason(errorMessage: string): string {
   const normalized = errorMessage.toLowerCase();
@@ -85,6 +101,44 @@ function buildRoutePathCacheKey(params: {
   ].join("|");
 }
 
+function normalizeRoutePath(
+  response: RouteFunctionResponse,
+): Coordinates[] {
+  const points = Array.isArray(response.routePath)
+    ? response.routePath.filter((point): point is Coordinates => (
+      typeof point?.lat === "number" &&
+      typeof point?.lon === "number" &&
+      Number.isFinite(point.lat) &&
+      Number.isFinite(point.lon)
+    ))
+    : [];
+
+  return points.length > 1 ? points : [];
+}
+
+function normalizeRouteSegments(
+  response: RouteFunctionResponse,
+  routePath: Coordinates[],
+): RouteSegment[] {
+  if (!Array.isArray(response.routeSegments) || routePath.length < 2) return [];
+
+  return response.routeSegments
+    .map((segment) => ({
+      startPointIndex: Math.max(0, Math.min(routePath.length - 2, Math.trunc(segment.startPointIndex))),
+      endPointIndex: Math.max(0, Math.min(routePath.length - 1, Math.trunc(segment.endPointIndex))),
+      roadNames: Array.isArray(segment.roadNames) ? segment.roadNames.filter(Boolean) : [],
+      roadNumbers: Array.isArray(segment.roadNumbers) ? segment.roadNumbers.filter(Boolean) : [],
+      roadNumbersNormalized: Array.isArray(segment.roadNumbersNormalized)
+        ? [...new Set(segment.roadNumbersNormalized.filter(Boolean))]
+        : [],
+      source: segment.source === "guidance" ? "guidance" : "importantRoadStretch",
+    }))
+    .filter((segment) => (
+      segment.endPointIndex > segment.startPointIndex &&
+      (segment.roadNames.length > 0 || segment.roadNumbersNormalized.length > 0)
+    ));
+}
+
 function rememberRoutePath(result: RouteResult): void {
   if (result.routePath.length < 2) return;
 
@@ -96,7 +150,10 @@ function rememberRoutePath(result: RouteResult): void {
   });
 
   routePathMemoryCache.delete(cacheKey);
-  routePathMemoryCache.set(cacheKey, result.routePath);
+  routePathMemoryCache.set(cacheKey, {
+    routePath: result.routePath,
+    routeSegments: result.routeSegments,
+  });
 
   while (routePathMemoryCache.size > ROUTE_PATH_CACHE_MAX_ENTRIES) {
     const oldestKey = routePathMemoryCache.keys().next().value as string | undefined;
@@ -116,29 +173,24 @@ export function getRememberedRoutePath(params: {
   destLat: number;
   destLon: number;
 }): Coordinates[] | null {
+  const remembered = getRememberedRouteGeometry(params);
+  return remembered?.routePath ?? null;
+}
+
+export function getRememberedRouteGeometry(params: {
+  originLat: number;
+  originLon: number;
+  destLat: number;
+  destLon: number;
+}): RememberedRouteGeometry | null {
   const cacheKey = buildRoutePathCacheKey(params);
   const cached = routePathMemoryCache.get(cacheKey);
-  if (!cached || cached.length < 2) return null;
+  if (!cached || cached.routePath.length < 2) return null;
 
   routePathMemoryCache.delete(cacheKey);
   routePathMemoryCache.set(cacheKey, cached);
 
   return cached;
-}
-
-function normalizeRoutePath(
-  response: RouteFunctionResponse,
-): Coordinates[] {
-  const points = Array.isArray(response.routePath)
-    ? response.routePath.filter((point): point is Coordinates => (
-      typeof point?.lat === "number" &&
-      typeof point?.lon === "number" &&
-      Number.isFinite(point.lat) &&
-      Number.isFinite(point.lon)
-    ))
-    : [];
-
-  return points.length > 1 ? points : [];
 }
 
 export function normalizeRouteLabel(value: string): string {
@@ -201,11 +253,13 @@ async function resolveRoute(
       response.destCoords
     ) {
       const routePath = normalizeRoutePath(response);
+      const routeSegments = normalizeRouteSegments(response, routePath);
       const result: RouteResult = {
         distanceKm: response.distanceKm,
         originCoords: response.originCoords,
         destCoords: response.destCoords,
         routePath,
+        routeSegments,
       };
       rememberRoutePath(result);
 
@@ -215,6 +269,7 @@ async function resolveRoute(
         provider: ROUTE_PROVIDER,
         distanceKm: response.distanceKm,
         routePathPoints: routePath.length,
+        routeSegments: routeSegments.length,
       });
 
       return {
