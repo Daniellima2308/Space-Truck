@@ -93,10 +93,10 @@ function getProjectionOnSegment(params: {
   point: Coordinates;
   segmentStart: Coordinates;
   segmentEnd: Coordinates;
+  segmentLengthKm: number;
   accumulatedRouteKm: number;
 }): RouteProjection {
-  const { point, segmentStart, segmentEnd, accumulatedRouteKm } = params;
-  const segmentLengthKm = haversineDistanceKm(segmentStart, segmentEnd);
+  const { point, segmentStart, segmentEnd, segmentLengthKm, accumulatedRouteKm } = params;
 
   if (segmentLengthKm === 0) {
     return {
@@ -165,6 +165,7 @@ function getProjectionFromNormalizedRoute(
       point,
       segmentStart,
       segmentEnd,
+      segmentLengthKm,
       accumulatedRouteKm,
     });
 
