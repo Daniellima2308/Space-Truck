@@ -133,12 +133,16 @@ function normalizeKmKey(value: unknown): string {
 function normalizeDirection(value: unknown): TollDirectionNormalized {
   const text = normalizeText(value);
   if (!text) return "unknown";
-  if (text.includes("crescente") && text.includes("decrescente")) return "both";
+
+  const hasCrescente = /\bcrescente\b/.test(text);
+  const hasDecrescente = /\bdecrescente\b/.test(text);
+
+  if (hasCrescente && hasDecrescente) return "both";
   if (text.includes("ambos") || text.includes("bidirecional") || text.includes("duplo")) return "both";
   if (/\bsp\b.*\brio\b/.test(text)) return "increasing";
   if (/\brio\b.*\bsp\b/.test(text)) return "decreasing";
-  if (text.includes("crescente")) return "increasing";
-  if (text.includes("decrescente")) return "decreasing";
+  if (hasCrescente) return "increasing";
+  if (hasDecrescente) return "decreasing";
   return "unknown";
 }
 
