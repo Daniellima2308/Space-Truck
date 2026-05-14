@@ -71,8 +71,41 @@ function loadTomTomSdk(): Promise<TomTomSdk> {
 
     const existingScript = document.getElementById(TOMTOM_SCRIPT_ID) as HTMLScriptElement | null;
     if (existingScript) {
-      existingScript.addEventListener("load", () => window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable")), { once: true });
-      existingScript.addEventListener("error", () => reject(new Error("TomTom SDK load failed")), { once: true });
+      if (existingScript.dataset.tomtomStatus === "error") {
+        reject(new Error("TomTom SDK load failed"));
+        return;
+      }
+
+      if (existingScript.dataset.tomtomStatus === "loaded") {
+        reject(new Error("TomTom SDK unavailable"));
+        return;
+      }
+
+      let settled = false;
+      const timeoutId = window.setTimeout(() => {
+        if (settled) return;
+        settled = true;
+        reject(new Error("TomTom SDK load timed out"));
+      }, 15000);
+
+      const handleLoad = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        existingScript.dataset.tomtomStatus = "loaded";
+        window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable"));
+      };
+
+      const handleError = () => {
+        if (settled) return;
+        settled = true;
+        window.clearTimeout(timeoutId);
+        existingScript.dataset.tomtomStatus = "error";
+        reject(new Error("TomTom SDK load failed"));
+      };
+
+      existingScript.addEventListener("load", handleLoad, { once: true });
+      existingScript.addEventListener("error", handleError, { once: true });
       return;
     }
 
@@ -80,8 +113,15 @@ function loadTomTomSdk(): Promise<TomTomSdk> {
     script.id = TOMTOM_SCRIPT_ID;
     script.src = `https://api.tomtom.com/maps-sdk-for-web/cdn/6.x/${TOMTOM_SDK_VERSION}/maps/maps-web.min.js`;
     script.async = true;
-    script.onload = () => window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable"));
-    script.onerror = () => reject(new Error("TomTom SDK load failed"));
+    script.dataset.tomtomStatus = "loading";
+    script.onload = () => {
+      script.dataset.tomtomStatus = "loaded";
+      window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable"));
+    };
+    script.onerror = () => {
+      script.dataset.tomtomStatus = "error";
+      reject(new Error("TomTom SDK load failed"));
+    };
     document.body.appendChild(script);
   });
 }
