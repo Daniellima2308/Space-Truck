@@ -1,18 +1,12 @@
 import { useEffect, useRef, useState } from "react";
 import type { TollRouteDiagnostic, TollRouteDiagnosticItem } from "@/lib/tollApi";
 import type { Coordinates } from "@/lib/routeApi";
+import { formatTollCurrency } from "@/lib/tollDiagnosticView";
 
 const TOMTOM_SDK_VERSION = "6.25.0";
 const TOMTOM_SCRIPT_ID = "tomtom-maps-sdk";
 const TOMTOM_CSS_ID = "tomtom-maps-sdk-css";
 const TOMTOM_POPUP_STYLE_ID = "space-truck-tomtom-popup-style";
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
 
 type TomTomPopup = {
   setHTML: (html: string) => TomTomPopup;
@@ -176,10 +170,6 @@ function escapeHtml(value: string): string {
   }[char] || char));
 }
 
-function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
-}
-
 function createTollMarkerElement(item: TollRouteDiagnosticItem): HTMLElement {
   const marker = document.createElement("button");
   marker.type = "button";
@@ -283,7 +273,7 @@ function buildPopupHtml(item: TollRouteDiagnosticItem): string {
             <div>${escapeHtml(location || "Local não informado")}</div>
             <div>${escapeHtml(item.concessionaire || "Concessionária não informada")}</div>
           </div>
-          <div style="white-space:nowrap;color:#4ade80;font-size:17px;font-weight:950;text-shadow:0 0 18px rgba(74,222,128,.25);">${formatCurrency(item.value)}</div>
+          <div style="white-space:nowrap;color:#4ade80;font-size:17px;font-weight:950;text-shadow:0 0 18px rgba(74,222,128,.25);">${formatTollCurrency(item.value)}</div>
         </div>
         <div style="margin-top:12px;display:grid;grid-template-columns:1fr 1fr;gap:8px;">
           <div style="border-radius:14px;background:rgba(255,255,255,.08);padding:9px;color:#94a3b8;font-size:11px;font-weight:700;">Após<br/><strong style="display:block;margin-top:2px;color:#ffffff;font-size:12px;">${item.distanceAlongRouteKm} km</strong></div>
