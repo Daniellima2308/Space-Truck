@@ -91,8 +91,8 @@ describe("tollEngine", () => {
       routePath: straightRoute,
       axles: 6,
       tollPoints: [
-        buildTollPoint({ id: "toll-1", lat: 0.01, lon: 0.25, tariffs: { 6: 28.4 } }),
-        buildTollPoint({ id: "toll-2", lat: -0.01, lon: 0.75, tariffs: { 6: 31.6 } }),
+        buildTollPoint({ id: "toll-1", lat: 0.01, lon: 0.25, km: "100", tariffs: { 6: 28.4 } }),
+        buildTollPoint({ id: "toll-2", lat: -0.01, lon: 0.75, km: "200", tariffs: { 6: 31.6 } }),
       ],
       routeCorridorKm: 2.5,
     });
@@ -103,6 +103,28 @@ describe("tollEngine", () => {
       "toll-1",
       "toll-2",
     ]);
+  });
+
+  it("ordena pedágios pela sequência da viagem e informa posição na rota", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "third", lat: 0.01, lon: 0.75, km: "300", tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "first", lat: 0.01, lon: 0.25, km: "100", tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "second", lat: 0.01, lon: 0.5, km: "200", tariffs: { 6: 10 } }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.matches.map((match) => match.point.id)).toEqual([
+      "first",
+      "second",
+      "third",
+    ]);
+    expect(result.matches.map((match) => match.routeOrder)).toEqual([1, 2, 3]);
+    expect(result.matches[0].distanceAlongRouteKm).toBeLessThan(result.matches[1].distanceAlongRouteKm);
+    expect(result.matches[1].distanceAlongRouteKm).toBeLessThan(result.matches[2].distanceAlongRouteKm);
   });
 
   it("deduplica registros equivalentes da mesma praça física", () => {
@@ -136,6 +158,147 @@ describe("tollEngine", () => {
 
     expect(result.total).toBe(30);
     expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].routeOrder).toBe(1);
+  });
+
+  it("não deduplica praças distintas só por estarem próximas na mesma rodovia", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "distinct-a",
+          name: "Praça distinta A",
+          lat: 0.0001,
+          lon: 0.3,
+          road: "BR-101",
+          km: "100",
+          city: "Cidade A",
+          concessionaire: "Concessionária A",
+          tariffs: { 6: 10 },
+        }),
+        buildTollPoint({
+          id: "distinct-b",
+          name: "Praça distinta B",
+          lat: 0.0001,
+          lon: 0.3015,
+          road: "BR-101",
+          km: "101",
+          city: "Cidade A",
+          concessionaire: "Concessionária A",
+          tariffs: { 6: 20 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(30);
+    expect(result.matches.map((match) => match.point.id)).toEqual([
+      "distinct-a",
+      "distinct-b",
+    ]);
+  });
+
+  it("deduplica praças próximas quando a identidade física forte é a mesma", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "duplicate-low",
+          name: "Praça Principal",
+          lat: 0.0001,
+          lon: 0.4,
+          road: "BR-116",
+          km: "200",
+          city: "Cidade B",
+          concessionaire: "Concessionária B",
+          tariffs: { 6: 10 },
+        }),
+        buildTollPoint({
+          id: "duplicate-high",
+          name: "Praça Principal",
+          lat: 0.0001,
+          lon: 0.401,
+          road: "BR-116",
+          km: "200",
+          city: "Cidade B",
+          concessionaire: "Concessionária B",
+          tariffs: { 6: 20 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(20);
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.id).toBe("duplicate-high");
+  });
+
+  it("em empate de valor, deduplica escolhendo o registro mais próximo da rota", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "duplicate-farther",
+          name: "Praça Empate",
+          lat: 0.01,
+          lon: 0.6,
+          road: "BR-386",
+          km: "300",
+          city: "Cidade C",
+          concessionaire: "Concessionária C",
+          tariffs: { 6: 20 },
+        }),
+        buildTollPoint({
+          id: "duplicate-closer",
+          name: "Praça Empate",
+          lat: 0.001,
+          lon: 0.6005,
+          road: "BR-386",
+          km: "300",
+          city: "Cidade C",
+          concessionaire: "Concessionária C",
+          tariffs: { 6: 20 },
+        }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.total).toBe(20);
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.id).toBe("duplicate-closer");
+  });
+
+  it("usa corredor padrão de 80 metros quando nenhum corredor é informado", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "inside-default", lat: 0.0005, lon: 0.4, tariffs: { 6: 10 } }),
+        buildTollPoint({ id: "outside-default", lat: 0.001, lon: 0.6, tariffs: { 6: 20 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.08);
+    expect(result.total).toBe(10);
+    expect(result.matches.map((match) => match.point.id)).toEqual(["inside-default"]);
+  });
+
+  it("mantém fora da rota pontos acima do corredor padrão de 80 metros", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "outside-default", lat: 0.001, lon: 0.6, tariffs: { 6: 20 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.08);
+    expect(result.total).toBe(0);
+    expect(result.source).toBe("no_toll_points_found");
+    expect(result.matches).toHaveLength(0);
   });
 
   it("ignora praças fora do corredor da rota", () => {
