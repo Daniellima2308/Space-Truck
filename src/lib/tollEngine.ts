@@ -200,12 +200,10 @@ function buildPhysicalPointKey(match: TollPointCandidate): string {
     .map(normalizePhysicalPointPart)
     .filter(Boolean);
 
-  if (stableParts.length >= 2) return stableParts.join("|");
-
   return [
     ...stableParts,
-    point.lat.toFixed(3),
-    point.lon.toFixed(3),
+    point.lat.toFixed(5),
+    point.lon.toFixed(5),
   ].join("|");
 }
 
