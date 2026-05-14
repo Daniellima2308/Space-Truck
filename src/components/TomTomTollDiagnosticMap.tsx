@@ -144,15 +144,56 @@ function createTollMarkerElement(item: TollRouteDiagnosticItem): HTMLElement {
   marker.style.cursor = "pointer";
   marker.style.filter = "drop-shadow(0 14px 20px rgba(0, 0, 0, 0.48))";
 
-  marker.innerHTML = `
-    <span style="position:relative;display:block;width:42px;height:50px;">
-      <span style="position:absolute;left:50%;top:0;display:flex;width:38px;height:38px;align-items:center;justify-content:center;border-radius:16px;background:linear-gradient(135deg,#22c55e 0%,#16a34a 52%,#facc15 100%);border:3px solid #07111f;color:#ffffff;font-size:13px;font-weight:950;line-height:1;transform:translateX(-50%);box-shadow:0 0 0 4px rgba(34,197,94,.24), inset 0 1px 0 rgba(255,255,255,.28);">
-        ${item.order}
-      </span>
-      <span style="position:absolute;left:50%;bottom:6px;width:16px;height:16px;background:#16a34a;border-right:3px solid #07111f;border-bottom:3px solid #07111f;transform:translateX(-50%) rotate(45deg);border-bottom-right-radius:5px;"></span>
-      <span style="position:absolute;left:50%;top:5px;width:8px;height:8px;border-radius:999px;background:rgba(255,255,255,.9);transform:translateX(7px);"></span>
-    </span>
-  `;
+  const wrapper = document.createElement("span");
+  wrapper.style.position = "relative";
+  wrapper.style.display = "block";
+  wrapper.style.width = "42px";
+  wrapper.style.height = "50px";
+
+  const badge = document.createElement("span");
+  badge.textContent = String(item.order);
+  badge.style.position = "absolute";
+  badge.style.left = "50%";
+  badge.style.top = "0";
+  badge.style.display = "flex";
+  badge.style.width = "38px";
+  badge.style.height = "38px";
+  badge.style.alignItems = "center";
+  badge.style.justifyContent = "center";
+  badge.style.borderRadius = "16px";
+  badge.style.background = "linear-gradient(135deg,#22c55e 0%,#16a34a 52%,#facc15 100%)";
+  badge.style.border = "3px solid #07111f";
+  badge.style.color = "#ffffff";
+  badge.style.fontSize = "13px";
+  badge.style.fontWeight = "950";
+  badge.style.lineHeight = "1";
+  badge.style.transform = "translateX(-50%)";
+  badge.style.boxShadow = "0 0 0 4px rgba(34,197,94,.24), inset 0 1px 0 rgba(255,255,255,.28)";
+
+  const pointer = document.createElement("span");
+  pointer.style.position = "absolute";
+  pointer.style.left = "50%";
+  pointer.style.bottom = "6px";
+  pointer.style.width = "16px";
+  pointer.style.height = "16px";
+  pointer.style.background = "#16a34a";
+  pointer.style.borderRight = "3px solid #07111f";
+  pointer.style.borderBottom = "3px solid #07111f";
+  pointer.style.transform = "translateX(-50%) rotate(45deg)";
+  pointer.style.borderBottomRightRadius = "5px";
+
+  const shine = document.createElement("span");
+  shine.style.position = "absolute";
+  shine.style.left = "50%";
+  shine.style.top = "5px";
+  shine.style.width = "8px";
+  shine.style.height = "8px";
+  shine.style.borderRadius = "999px";
+  shine.style.background = "rgba(255,255,255,.9)";
+  shine.style.transform = "translateX(7px)";
+
+  wrapper.append(pointer, badge, shine);
+  marker.appendChild(wrapper);
 
   return marker;
 }
