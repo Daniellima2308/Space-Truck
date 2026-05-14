@@ -187,6 +187,21 @@ function isRaposoTavaresExternaPoint(point: TollPoint): boolean {
   );
 }
 
+function isCastelloBrancoInternaPoint(point: TollPoint): boolean {
+  const city = normalizeText(point.city);
+  const name = normalizeText(point.name);
+  const km = normalizeText(point.km);
+
+  return (
+    point.uf === "SP" &&
+    point.roadNormalized === "SP-021" &&
+    city.includes("barueri") &&
+    name.includes("castello branco") &&
+    name.includes("interna") &&
+    (km === "15,610" || km === "15.610" || point.kmNumber === 15610 || point.kmNumber === 15.61)
+  );
+}
+
 function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
   if (!isSantaIsabelDutraPoint(point)) return [point];
 
@@ -225,6 +240,19 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
         ...point,
         lat: -23.594113,
         lon: -46.809286,
+        coordinateRole: "plaza_center",
+        expectedHeadingDegrees: null,
+        headingToleranceDegrees: null,
+      },
+    ];
+  }
+
+  if (isCastelloBrancoInternaPoint(point)) {
+    return [
+      {
+        ...point,
+        lat: -23.5171375,
+        lon: -46.8127736,
         coordinateRole: "plaza_center",
         expectedHeadingDegrees: null,
         headingToleranceDegrees: null,
