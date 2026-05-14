@@ -15,8 +15,8 @@ export const TOLL_POINT_COORDINATE_OVERRIDES: readonly TollPointCoordinateOverri
     cityIncludes: "osasco",
     nameIncludes: ["externa"],
     kmCandidates: ["24,000", "24.000", 24000, 24],
-    lat: -23.594113,
-    lon: -46.809286,
+    lat: -23.5883227,
+    lon: -46.810068,
   },
   {
     uf: "SP",
