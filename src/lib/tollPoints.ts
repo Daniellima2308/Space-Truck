@@ -1,6 +1,7 @@
 import activeTollPointsData from "../../data/tolls/app_ready_toll_points_active.json";
 
 export type TollAxleCount = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
+export type TollDirectionNormalized = "both" | "increasing" | "decreasing" | "unknown";
 
 export interface TollPoint {
   id: string;
@@ -10,9 +11,12 @@ export interface TollPoint {
   jurisdiction: string;
   concessionaire: string;
   road: string | null;
+  roadNormalized: string | null;
   km: string | null;
+  kmNumber: number | null;
   city: string | null;
   direction: string | null;
+  directionNormalized: TollDirectionNormalized;
   lat: number;
   lon: number;
   tariffs: Partial<Record<TollAxleCount, number>>;
@@ -69,6 +73,21 @@ function asNullableString(value: unknown): string | null {
   return normalized || null;
 }
 
+function normalizeText(value: unknown): string {
+  return asString(value)
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
+function normalizeRoad(value: unknown): string | null {
+  const text = normalizeText(value).toUpperCase();
+  const match = text.match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  return match ? `${match[1]}-${match[2]}` : text || null;
+}
+
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
@@ -80,6 +99,28 @@ function asNumber(value: unknown): number | null {
     .replace(",", ".");
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
+}
+
+function parseKm(value: unknown): number | null {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value !== "string") return null;
+
+  const normalized = value
+    .trim()
+    .replace(",", ".")
+    .replace(/[^0-9.-]/g, "");
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function normalizeDirection(value: unknown): TollDirectionNormalized {
+  const text = normalizeText(value);
+  if (!text) return "unknown";
+  if (text.includes("crescente") && text.includes("decrescente")) return "both";
+  if (text.includes("ambos") || text.includes("bidirecional") || text.includes("duplo")) return "both";
+  if (text.includes("crescente")) return "increasing";
+  if (text.includes("decrescente")) return "decreasing";
+  return "unknown";
 }
 
 function isActiveCalculationPoint(point: RawTollPoint): boolean {
@@ -115,9 +156,12 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
     jurisdiction: asString(point.jurisdicao),
     concessionaire: asString(point.concessionaria),
     road: asNullableString(point.rodovia),
+    roadNormalized: normalizeRoad(point.rodovia),
     km: asNullableString(point.km),
+    kmNumber: parseKm(point.km),
     city: asNullableString(point.municipio),
     direction: asNullableString(point.sentido),
+    directionNormalized: normalizeDirection(point.sentido),
     lat,
     lon,
     tariffs,
