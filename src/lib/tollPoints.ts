@@ -89,7 +89,7 @@ function normalizeText(value: unknown): string {
 
 function normalizeRoad(value: unknown): string | null {
   const text = normalizeText(value).toUpperCase();
-  const match = text.match(/\b([A-Z]{2})[-\s]?(\d{2,3})\b/);
+  const match = text.match(/\b([A-Z]{2,3})[-\s]?(\d{2,3})\b/);
   return match ? `${match[1]}-${match[2]}` : text || null;
 }
 
@@ -113,6 +113,7 @@ function parseKm(value: unknown): number | null {
   const normalized = value
     .trim()
     .replace(",", ".")
+    .replace("+", ".")
     .replace(/[^0-9.-]/g, "");
   const parsed = Number(normalized);
   return Number.isFinite(parsed) ? parsed : null;
@@ -123,15 +124,15 @@ function normalizeDirection(value: unknown): TollDirectionNormalized {
   if (!text) return "unknown";
   if (text.includes("crescente") && text.includes("decrescente")) return "both";
   if (text.includes("ambos") || text.includes("bidirecional") || text.includes("duplo")) return "both";
-  if (text.includes("sp") && text.includes("rio")) return "increasing";
-  if (text.includes("rio") && text.includes("sp")) return "decreasing";
+  if (/\bsp\b.*\brio\b/.test(text)) return "increasing";
+  if (/\brio\b.*\bsp\b/.test(text)) return "decreasing";
   if (text.includes("crescente")) return "increasing";
   if (text.includes("decrescente")) return "decreasing";
   return "unknown";
 }
 
 function isActiveCalculationPoint(point: RawTollPoint): boolean {
-  return point.calcular_pedagio === true && asString(point.status_operacional) === "ativo";
+  return point.calcular_pedagio === true && asString(point.status_operacional).toLowerCase().startsWith("ativo");
 }
 
 function buildTariffs(point: RawTollPoint): Partial<Record<TollAxleCount, number>> {
