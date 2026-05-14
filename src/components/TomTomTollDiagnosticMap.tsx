@@ -93,7 +93,11 @@ function loadTomTomSdk(): Promise<TomTomSdk> {
         settled = true;
         window.clearTimeout(timeoutId);
         existingScript.dataset.tomtomStatus = "loaded";
-        window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable"));
+        if (window.tt) {
+          resolve(window.tt);
+        } else {
+          reject(new Error("TomTom SDK unavailable"));
+        }
       };
 
       const handleError = () => {
@@ -116,7 +120,11 @@ function loadTomTomSdk(): Promise<TomTomSdk> {
     script.dataset.tomtomStatus = "loading";
     script.onload = () => {
       script.dataset.tomtomStatus = "loaded";
-      window.tt ? resolve(window.tt) : reject(new Error("TomTom SDK unavailable"));
+      if (window.tt) {
+        resolve(window.tt);
+      } else {
+        reject(new Error("TomTom SDK unavailable"));
+      }
     };
     script.onerror = () => {
       script.dataset.tomtomStatus = "error";
