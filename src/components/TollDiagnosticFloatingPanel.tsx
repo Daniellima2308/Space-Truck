@@ -1,32 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import type { TollRouteDiagnostic } from "@/lib/tollApi";
+import {
+  formatTollCurrency,
+  getTollDiagnosticSourceLabel,
+  getTollDiagnosticTitle,
+} from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
-
-const currencyFormatter = new Intl.NumberFormat("pt-BR", {
-  style: "currency",
-  currency: "BRL",
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-function formatCurrency(value: number): string {
-  return currencyFormatter.format(value);
-}
-
-function getDiagnosticTitle(diagnostic: TollRouteDiagnostic): string {
-  if (diagnostic.source === "no_route_path") return "Pedágios da rota";
-  if (diagnostic.tollCount === 0) return "Nenhum pedágio encontrado";
-  return `${diagnostic.tollCount} pedágio${diagnostic.tollCount === 1 ? "" : "s"} na rota`;
-}
-
-function getSourceLabel(source: TollRouteDiagnostic["source"]): string {
-  if (source === "space_truck_toll_base") return "Base Space Truck";
-  if (source === "no_route_path") return "Sem geometria da rota";
-  if (source === "no_toll_points_found") return "Sem pontos encontrados";
-  if (source === "insufficient_route_geometry") return "Geometria insuficiente";
-  return source;
-}
 
 function findTollFieldGrid(): HTMLElement | null {
   const explicitGrid = document.querySelector<HTMLElement>('[data-testid="toll-field-grid"]');
@@ -130,7 +110,7 @@ export function TollDiagnosticFloatingPanel() {
   }, [open]);
 
   const title = useMemo(() => {
-    return diagnostic ? getDiagnosticTitle(diagnostic) : "Pedágios da rota";
+    return diagnostic ? getTollDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
 
   const closePanel = () => setOpen(false);
@@ -172,7 +152,7 @@ export function TollDiagnosticFloatingPanel() {
                   <p className="text-[11px] font-black uppercase tracking-[0.2em] text-primary">Space Truck</p>
                   <h2 id="toll-diagnostic-title" className="text-2xl font-black leading-tight text-foreground">{title}</h2>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    {getSourceLabel(diagnostic.source)} • Corredor {diagnostic.routeCorridorKm} km
+                    {getTollDiagnosticSourceLabel(diagnostic.source)} • Corredor {diagnostic.routeCorridorKm} km
                   </p>
                 </div>
                 <button
@@ -188,7 +168,7 @@ export function TollDiagnosticFloatingPanel() {
               <div className="mt-4 grid grid-cols-3 gap-2">
                 <div className="rounded-2xl border border-border bg-card p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Total</p>
-                  <p className="mt-1 text-sm font-black text-profit">{formatCurrency(diagnostic.total)}</p>
+                  <p className="mt-1 text-sm font-black text-profit">{formatTollCurrency(diagnostic.total)}</p>
                 </div>
                 <div className="rounded-2xl border border-border bg-card p-3">
                   <p className="text-[10px] font-bold uppercase tracking-[0.12em] text-muted-foreground">Pontos</p>
@@ -245,7 +225,7 @@ export function TollDiagnosticFloatingPanel() {
                             </p>
                           </div>
                           <div className="shrink-0 text-right">
-                            <p className="text-lg font-black text-profit">{formatCurrency(item.value)}</p>
+                            <p className="text-lg font-black text-profit">{formatTollCurrency(item.value)}</p>
                             <p className="mt-1 rounded-full bg-primary/10 px-2 py-1 text-[11px] font-bold text-primary">{Math.round(item.distanceFromRouteKm * 1000)} m da rota</p>
                           </div>
                         </div>
