@@ -9,6 +9,7 @@ import {
 
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
+const BR116_PFE_ROUTE_CORRIDOR_KM = 0.02;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
 
@@ -259,6 +260,19 @@ function hasCompatibleRouteRoad(
   return matchedRouteRoads.includes(point.roadNormalized);
 }
 
+function isBr116PfeFreeFlow(point: TollPoint): boolean {
+  const identity = `${point.id} ${point.name}`.toLowerCase();
+  return point.roadNormalized === "BR-116" && /\bpfe\d{3}\b/.test(identity);
+}
+
+function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
+  if (isBr116PfeFreeFlow(point)) {
+    return Math.min(routeCorridorKm, BR116_PFE_ROUTE_CORRIDOR_KM);
+  }
+
+  return routeCorridorKm;
+}
+
 function hasCompatibleBearing(point: TollPoint, routeBearingDegrees: number): boolean {
   if (typeof point.expectedHeadingDegrees !== "number" || typeof point.headingToleranceDegrees !== "number") {
     return true;
@@ -494,8 +508,9 @@ export function calculateRouteToll({
         { lat: point.lat, lon: point.lon },
         normalizedPath,
       );
+      const pointRouteCorridorKm = getPointRouteCorridorKm(point, routeCorridorKm);
 
-      if (projection.distanceFromRouteKm > routeCorridorKm) return null;
+      if (projection.distanceFromRouteKm > pointRouteCorridorKm) return null;
 
       const matchedRouteRoads = getRouteRoadsForSegment(projection.routeSegmentIndex, routeSegments);
       if (!hasCompatibleRouteRoad(point, matchedRouteRoads)) return null;
