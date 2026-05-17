@@ -282,9 +282,9 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
 function applyChargeGroups(points: TollPoint[]): TollPoint[] {
   return points.map((point) => {
     const normalizedName = normalizeText(point.name);
-    const normalizedConcessionaire = normalizeText(point.concessionaire);
     const normalizedCity = normalizeText(point.city);
-    const isRiospBr116 = point.roadNormalized === "BR-116" && normalizedConcessionaire === "riosp";
+    const normalizedConcessionaireKey = normalizeText(point.concessionaire).replace(/\s+/g, "");
+    const isRiospBr116 = point.roadNormalized === "BR-116" && normalizedConcessionaireKey.includes("riosp");
 
     if (isRiospBr116 && normalizedName.includes("aruja")) {
       return { ...point, chargeGroupId: "br116-aruja-riosp" };
@@ -335,8 +335,14 @@ function createManualBarueriPoints(points: TollPoint[]): TollPoint[] {
   ];
 }
 
+function getFederalAnttSplitChargeGroupId(point: TollPoint): string {
+  return point.chargeGroupId ?? `federal-antt-split:${point.id}`;
+}
+
 function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
   if (!isFederalAnttPoint(point) || point.directionNormalized !== "both") return [point];
+
+  const chargeGroupId = getFederalAnttSplitChargeGroupId(point);
 
   return [
     {
@@ -346,6 +352,7 @@ function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
       direction: "Crescente",
       directionNormalized: "increasing",
       coordinateRole: "directional_plaza",
+      chargeGroupId,
     },
     {
       ...point,
@@ -354,6 +361,7 @@ function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
       direction: "Decrescente",
       directionNormalized: "decreasing",
       coordinateRole: "directional_plaza",
+      chargeGroupId,
     },
   ];
 }
