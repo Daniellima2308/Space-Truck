@@ -6,10 +6,10 @@ import {
   type TollDirectionNormalized,
   type TollPoint,
 } from "@/lib/tollPoints";
+import { getPointRouteCorridorKm } from "@/lib/tollCorridor";
 
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
-const BR116_PFE_ROUTE_CORRIDOR_KM = 0.02;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
 
@@ -260,19 +260,6 @@ function hasCompatibleRouteRoad(
   return matchedRouteRoads.includes(point.roadNormalized);
 }
 
-function isBr116PfeFreeFlow(point: TollPoint): boolean {
-  const identity = `${point.id} ${point.name}`.toLowerCase();
-  return point.roadNormalized === "BR-116" && /\bpfe\d{3}\b/.test(identity);
-}
-
-function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
-  if (isBr116PfeFreeFlow(point)) {
-    return Math.min(routeCorridorKm, BR116_PFE_ROUTE_CORRIDOR_KM);
-  }
-
-  return routeCorridorKm;
-}
-
 function hasCompatibleBearing(point: TollPoint, routeBearingDegrees: number): boolean {
   if (typeof point.expectedHeadingDegrees !== "number" || typeof point.headingToleranceDegrees !== "number") {
     return true;
@@ -336,6 +323,10 @@ function hasSameDirectionalChargeGroup(a: TollPointCandidate, b: TollPointCandid
 }
 
 function shouldTreatAsSameRouteCharge(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  if (a.point.chargeGroupId && b.point.chargeGroupId && a.point.chargeGroupId === b.point.chargeGroupId) {
+    return true;
+  }
+
   if (hasSameDirectionalChargeGroup(a, b)) {
     return true;
   }

@@ -32,6 +32,8 @@ export interface TollPoint {
   coordinateRole: TollCoordinateRole;
   expectedHeadingDegrees: number | null;
   headingToleranceDegrees: number | null;
+  routeCorridorKm?: number;
+  chargeGroupId?: string;
 }
 
 interface RawTollPoint {
@@ -216,12 +218,15 @@ function getOfficialOverride(point: TollPoint): FederalAnttTollOfficialOverride 
 function findCoordinateOverride(point: TollPoint) {
   const city = normalizeText(point.city);
   const name = normalizeText(point.name);
+  const direction = normalizeText(point.direction);
 
   return TOLL_POINT_COORDINATE_OVERRIDES.find((override) => (
     point.uf === override.uf &&
     point.roadNormalized === override.roadNormalized &&
     city.includes(override.cityIncludes) &&
     (!override.nameIncludes || override.nameIncludes.every((part) => name.includes(part))) &&
+    (!override.directionIncludes || direction.includes(override.directionIncludes)) &&
+    (!override.directionNormalized || override.directionNormalized === point.directionNormalized) &&
     kmMatches(point, override.kmCandidates)
   ));
 }
@@ -271,6 +276,62 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
       expectedHeadingDegrees: null,
       headingToleranceDegrees: null,
     },
+  ];
+}
+
+function applyChargeGroups(points: TollPoint[]): TollPoint[] {
+  return points.map((point) => {
+    const normalizedName = normalizeText(point.name);
+    const normalizedConcessionaire = normalizeText(point.concessionaire);
+    const normalizedCity = normalizeText(point.city);
+    const isRiospBr116 = point.roadNormalized === "BR-116" && normalizedConcessionaire === "riosp";
+
+    if (isRiospBr116 && normalizedName.includes("aruja")) {
+      return { ...point, chargeGroupId: "br116-aruja-riosp" };
+    }
+    if (isRiospBr116 && normalizedName.includes("itatiaia")) {
+      return { ...point, chargeGroupId: "br116-itatiaia-riosp" };
+    }
+    if (point.roadNormalized === "SP-021" && normalizedCity.includes("barueri") && normalizedName.includes("castello branco")) {
+      return { ...point, chargeGroupId: "sp021-barueri-praca" };
+    }
+    return point;
+  });
+}
+
+function createManualBarueriPoints(points: TollPoint[]): TollPoint[] {
+  const barueriBase = points.find((point) =>
+    point.roadNormalized === "SP-021" &&
+    normalizeText(point.city).includes("barueri") &&
+    normalizeText(point.name).includes("castello branco") &&
+    Object.values(point.tariffs).some((value) => typeof value === "number" && value > 0),
+  );
+
+  if (!barueriBase) {
+    if (typeof console !== "undefined") {
+      console.warn("[tollPoints] base de Barueri (SP-021/Castello Branco) não encontrada; pontos manuais não foram criados.");
+    }
+    return [];
+  }
+
+  const createBarueri = (id: string, lat: number, lon: number): TollPoint => ({
+    ...barueriBase,
+    id,
+    name: "Praça de Pedágio Barueri",
+    direction: "Ambos",
+    directionNormalized: "both",
+    lat,
+    lon,
+    routeCorridorKm: 0.015,
+    chargeGroupId: "sp021-barueri-praca",
+    coordinateRole: "plaza_center",
+    expectedHeadingDegrees: null,
+    headingToleranceDegrees: null,
+  });
+
+  return [
+    createBarueri("sp_manual_barueri_praca_1", -23.510277, -46.817398),
+    createBarueri("sp_manual_barueri_praca_2", -23.509659, -46.817017),
   ];
 }
 
@@ -334,9 +395,15 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
   };
 }
 
-export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
+const BASE_TOLL_POINTS: TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
   .filter((point): point is TollPoint => Boolean(point))
   .flatMap(applyOfficialAnttOverride)
   .flatMap(applySinglePointOverrides)
   .flatMap(expandFederalAnttDirections);
+
+const GROUPED_TOLL_POINTS: TollPoint[] = applyChargeGroups(BASE_TOLL_POINTS);
+
+export const MANUAL_TOLL_POINTS: readonly TollPoint[] = createManualBarueriPoints(GROUPED_TOLL_POINTS);
+
+export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = [...GROUPED_TOLL_POINTS, ...MANUAL_TOLL_POINTS];
