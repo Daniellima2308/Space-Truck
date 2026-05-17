@@ -282,11 +282,18 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
 function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
   const grouped = points.map((point) => {
     const normalizedName = normalizeText(point.name);
-    if (point.roadNormalized === "BR-116" && point.concessionaire.toUpperCase() === "RIOSP" && normalizedName.includes("aruja")) {
+    const normalizedConcessionaire = normalizeText(point.concessionaire);
+    const normalizedCity = normalizeText(point.city);
+    const isRiospBr116 = point.roadNormalized === "BR-116" && normalizedConcessionaire === "riosp";
+
+    if (isRiospBr116 && normalizedName.includes("aruja")) {
       return { ...point, chargeGroupId: "br116-aruja-riosp" };
     }
-    if (point.roadNormalized === "BR-116" && point.concessionaire.toUpperCase() === "RIOSP" && normalizedName.includes("itatiaia")) {
+    if (isRiospBr116 && normalizedName.includes("itatiaia")) {
       return { ...point, chargeGroupId: "br116-itatiaia-riosp" };
+    }
+    if (point.roadNormalized === "SP-021" && normalizedCity.includes("barueri") && normalizedName.includes("castello branco")) {
+      return { ...point, chargeGroupId: "sp021-barueri-praca" };
     }
     return point;
   });
@@ -295,9 +302,8 @@ function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
     point.roadNormalized === "SP-021" &&
     normalizeText(point.city).includes("barueri") &&
     normalizeText(point.name).includes("castello branco") &&
-    typeof point.tariffs[2] === "number",
+    Object.values(point.tariffs).some((value) => typeof value === "number" && value > 0),
   );
-
 
   const manualPoints: TollPoint[] = [];
 
@@ -306,6 +312,8 @@ function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
       ...barueriBase,
       id,
       name: "Praça de Pedágio Barueri",
+      direction: "Ambos",
+      directionNormalized: "both",
       lat,
       lon,
       routeCorridorKm: 0.015,

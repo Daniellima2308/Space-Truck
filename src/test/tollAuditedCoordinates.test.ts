@@ -3,7 +3,7 @@ import { SPACE_TRUCK_TOLL_POINTS } from "@/lib/tollPoints";
 
 const findById = (id: string) => SPACE_TRUCK_TOLL_POINTS.find((p) => p.id === id);
 
-describe("toll audited coordinates", () => {
+describe("coordenadas de pedágio auditadas", () => {
   it("aplica coordenadas auditadas de Castello e BR-116", () => {
     expect(SPACE_TRUCK_TOLL_POINTS.some((p) => p.lat === -23.507804 && p.lon === -46.822332)).toBe(true);
     expect(SPACE_TRUCK_TOLL_POINTS.some((p) => p.lat === -23.51789087 && p.lon === -46.81385366)).toBe(true);
@@ -24,7 +24,10 @@ describe("toll audited coordinates", () => {
   });
 
   it("expõe pontos manuais de Barueri com corredor e grupo", () => {
-    const manualBarueri = SPACE_TRUCK_TOLL_POINTS.filter((p) => p.chargeGroupId === "sp021-barueri-praca");
+    const manualBarueri = SPACE_TRUCK_TOLL_POINTS.filter((p) => (
+      p.chargeGroupId === "sp021-barueri-praca" &&
+      p.id.startsWith("sp_manual_barueri_praca_")
+    ));
     expect(manualBarueri).toHaveLength(2);
     expect(manualBarueri.every((p) => p.routeCorridorKm === 0.015)).toBe(true);
   });

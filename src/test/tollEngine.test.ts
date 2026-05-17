@@ -308,6 +308,27 @@ describe("tollEngine", () => {
     expect(result.total).toBe(0);
   });
 
+  it("usa o corredor específico do ponto quando o corredor global é maior", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      routeCorridorKm: 2,
+      tollPoints: [
+        buildTollPoint({
+          id: "manual-corridor-match",
+          lat: 0.0001,
+          lon: 0.25,
+          tariffs: { 6: 10 },
+          routeCorridorKm: 0.5,
+        }),
+      ],
+    });
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.id).toBe("manual-corridor-match");
+    expect(result.total).toBe(10);
+  });
+
   it("não deduplica praças distintas só por estarem próximas na mesma rodovia", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,

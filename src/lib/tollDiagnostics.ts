@@ -5,10 +5,10 @@ import {
   type TollDirectionNormalized,
   type TollPoint,
 } from "@/lib/tollPoints";
+import { getPointRouteCorridorKm } from "@/lib/tollCorridor";
 
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
-const BR116_PFE_ROUTE_CORRIDOR_KM = 0.02;
 const DEFAULT_DIAGNOSTIC_CORRIDOR_KM = 0.5;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 
@@ -250,23 +250,6 @@ function hasCompatibleRouteRoad(point: TollPoint, matchedRouteRoads: string[]): 
   if (matchedRouteRoads.length === 0) return true;
   if (!point.roadNormalized) return true;
   return matchedRouteRoads.includes(point.roadNormalized);
-}
-
-function isBr116PfeFreeFlow(point: TollPoint): boolean {
-  const identity = `${point.id} ${point.name}`.toLowerCase();
-  return point.roadNormalized === "BR-116" && /\bpfe\d{3}\b/.test(identity);
-}
-
-function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
-  if (typeof point.routeCorridorKm === "number" && point.routeCorridorKm > 0) {
-    return Math.min(routeCorridorKm, point.routeCorridorKm);
-  }
-
-  if (isBr116PfeFreeFlow(point)) {
-    return Math.min(routeCorridorKm, BR116_PFE_ROUTE_CORRIDOR_KM);
-  }
-
-  return routeCorridorKm;
 }
 
 function hasCompatibleBearing(point: TollPoint, routeBearingDegrees: number): boolean {
