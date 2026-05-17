@@ -279,8 +279,8 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
   ];
 }
 
-function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
-  const grouped = points.map((point) => {
+function applyChargeGroups(points: TollPoint[]): TollPoint[] {
+  return points.map((point) => {
     const normalizedName = normalizeText(point.name);
     const normalizedConcessionaire = normalizeText(point.concessionaire);
     const normalizedCity = normalizeText(point.city);
@@ -297,36 +297,42 @@ function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
     }
     return point;
   });
+}
 
-  const barueriBase = grouped.find((point) =>
+function createManualBarueriPoints(points: TollPoint[]): TollPoint[] {
+  const barueriBase = points.find((point) =>
     point.roadNormalized === "SP-021" &&
     normalizeText(point.city).includes("barueri") &&
     normalizeText(point.name).includes("castello branco") &&
     Object.values(point.tariffs).some((value) => typeof value === "number" && value > 0),
   );
 
-  const manualPoints: TollPoint[] = [];
-
-  if (barueriBase) {
-    const createBarueri = (id: string, lat: number, lon: number): TollPoint => ({
-      ...barueriBase,
-      id,
-      name: "Praça de Pedágio Barueri",
-      direction: "Ambos",
-      directionNormalized: "both",
-      lat,
-      lon,
-      routeCorridorKm: 0.015,
-      chargeGroupId: "sp021-barueri-praca",
-      coordinateRole: "plaza_center",
-      expectedHeadingDegrees: null,
-      headingToleranceDegrees: null,
-    });
-    manualPoints.push(createBarueri("sp_manual_barueri_praca_1", -23.510277, -46.817398));
-    manualPoints.push(createBarueri("sp_manual_barueri_praca_2", -23.509659, -46.817017));
+  if (!barueriBase) {
+    if (typeof console !== "undefined") {
+      console.warn("[tollPoints] base de Barueri (SP-021/Castello Branco) não encontrada; pontos manuais não foram criados.");
+    }
+    return [];
   }
 
-  return [...grouped, ...manualPoints];
+  const createBarueri = (id: string, lat: number, lon: number): TollPoint => ({
+    ...barueriBase,
+    id,
+    name: "Praça de Pedágio Barueri",
+    direction: "Ambos",
+    directionNormalized: "both",
+    lat,
+    lon,
+    routeCorridorKm: 0.015,
+    chargeGroupId: "sp021-barueri-praca",
+    coordinateRole: "plaza_center",
+    expectedHeadingDegrees: null,
+    headingToleranceDegrees: null,
+  });
+
+  return [
+    createBarueri("sp_manual_barueri_praca_1", -23.510277, -46.817398),
+    createBarueri("sp_manual_barueri_praca_2", -23.509659, -46.817017),
+  ];
 }
 
 function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
@@ -396,4 +402,8 @@ const BASE_TOLL_POINTS: TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .flatMap(applySinglePointOverrides)
   .flatMap(expandFederalAnttDirections);
 
-export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = applyManualGroupsAndPoints(BASE_TOLL_POINTS);
+const GROUPED_TOLL_POINTS: TollPoint[] = applyChargeGroups(BASE_TOLL_POINTS);
+
+export const MANUAL_TOLL_POINTS: readonly TollPoint[] = createManualBarueriPoints(GROUPED_TOLL_POINTS);
+
+export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = [...GROUPED_TOLL_POINTS, ...MANUAL_TOLL_POINTS];
