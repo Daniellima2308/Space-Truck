@@ -258,6 +258,10 @@ function isBr116PfeFreeFlow(point: TollPoint): boolean {
 }
 
 function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
+  if (typeof point.routeCorridorKm === "number" && point.routeCorridorKm > 0) {
+    return Math.min(routeCorridorKm, point.routeCorridorKm);
+  }
+
   if (isBr116PfeFreeFlow(point)) {
     return Math.min(routeCorridorKm, BR116_PFE_ROUTE_CORRIDOR_KM);
   }

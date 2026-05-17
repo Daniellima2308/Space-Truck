@@ -32,6 +32,8 @@ export interface TollPoint {
   coordinateRole: TollCoordinateRole;
   expectedHeadingDegrees: number | null;
   headingToleranceDegrees: number | null;
+  routeCorridorKm?: number;
+  chargeGroupId?: string;
 }
 
 interface RawTollPoint {
@@ -216,12 +218,15 @@ function getOfficialOverride(point: TollPoint): FederalAnttTollOfficialOverride 
 function findCoordinateOverride(point: TollPoint) {
   const city = normalizeText(point.city);
   const name = normalizeText(point.name);
+  const direction = normalizeText(point.direction);
 
   return TOLL_POINT_COORDINATE_OVERRIDES.find((override) => (
     point.uf === override.uf &&
     point.roadNormalized === override.roadNormalized &&
     city.includes(override.cityIncludes) &&
     (!override.nameIncludes || override.nameIncludes.every((part) => name.includes(part))) &&
+    (!override.directionIncludes || direction.includes(override.directionIncludes)) &&
+    (!override.directionNormalized || override.directionNormalized === point.directionNormalized) &&
     kmMatches(point, override.kmCandidates)
   ));
 }
@@ -272,6 +277,48 @@ function applySinglePointOverrides(point: TollPoint): TollPoint[] {
       headingToleranceDegrees: null,
     },
   ];
+}
+
+function applyManualGroupsAndPoints(points: TollPoint[]): TollPoint[] {
+  const grouped = points.map((point) => {
+    const normalizedName = normalizeText(point.name);
+    if (point.roadNormalized === "BR-116" && point.concessionaire.toUpperCase() === "RIOSP" && normalizedName.includes("aruja")) {
+      return { ...point, chargeGroupId: "br116-aruja-riosp" };
+    }
+    if (point.roadNormalized === "BR-116" && point.concessionaire.toUpperCase() === "RIOSP" && normalizedName.includes("itatiaia")) {
+      return { ...point, chargeGroupId: "br116-itatiaia-riosp" };
+    }
+    return point;
+  });
+
+  const barueriBase = grouped.find((point) =>
+    point.roadNormalized === "SP-021" &&
+    normalizeText(point.city).includes("barueri") &&
+    normalizeText(point.name).includes("castello branco") &&
+    typeof point.tariffs[2] === "number",
+  );
+
+
+  const manualPoints: TollPoint[] = [];
+
+  if (barueriBase) {
+    const createBarueri = (id: string, lat: number, lon: number): TollPoint => ({
+      ...barueriBase,
+      id,
+      name: "Praça de Pedágio Barueri",
+      lat,
+      lon,
+      routeCorridorKm: 0.015,
+      chargeGroupId: "sp021-barueri-praca",
+      coordinateRole: "plaza_center",
+      expectedHeadingDegrees: null,
+      headingToleranceDegrees: null,
+    });
+    manualPoints.push(createBarueri("sp_manual_barueri_praca_1", -23.510277, -46.817398));
+    manualPoints.push(createBarueri("sp_manual_barueri_praca_2", -23.509659, -46.817017));
+  }
+
+  return [...grouped, ...manualPoints];
 }
 
 function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
@@ -334,9 +381,11 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
   };
 }
 
-export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
+const BASE_TOLL_POINTS: TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
   .filter((point): point is TollPoint => Boolean(point))
   .flatMap(applyOfficialAnttOverride)
   .flatMap(applySinglePointOverrides)
   .flatMap(expandFederalAnttDirections);
+
+export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = applyManualGroupsAndPoints(BASE_TOLL_POINTS);
