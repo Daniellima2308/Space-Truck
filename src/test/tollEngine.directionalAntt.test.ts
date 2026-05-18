@@ -25,6 +25,8 @@ function buildFederalAnttPoint(overrides: Partial<TollPoint> & Pick<TollPoint, "
     coordinateRole: overrides.coordinateRole ?? "directional_plaza",
     expectedHeadingDegrees: overrides.expectedHeadingDegrees ?? null,
     headingToleranceDegrees: overrides.headingToleranceDegrees ?? null,
+    routeCorridorKm: overrides.routeCorridorKm,
+    chargeGroupId: overrides.chargeGroupId,
   };
 }
 
@@ -87,5 +89,47 @@ describe("ANTT directional toll detection", () => {
       "anchor-increasing-end",
     ]);
     expect(result.total).toBe(12);
+  });
+
+  it("dedupes overlapping Viúva Graça matches when they share the same charge group", () => {
+    const result = calculateRouteToll({
+      routePath: [
+        { lat: 0, lon: 0 },
+        { lat: 0, lon: 1 },
+      ],
+      axles: 6,
+      routeCorridorKm: 1,
+      tollPoints: [
+        buildFederalAnttPoint({
+          id: "p04-viuva-graca-crescente",
+          name: "P04 Viúva Graça - Sentido Crescente",
+          lat: 0.0001,
+          lon: 0.45956,
+          km: "459,56",
+          kmNumber: 459.56,
+          direction: "Crescente",
+          directionNormalized: "increasing",
+          chargeGroupId: "br116-viuva-graca-p04-seropedica",
+          tariffs: { 6: 19.4 },
+        }),
+        buildFederalAnttPoint({
+          id: "viuva-graca-norte",
+          name: "Viúva Graça Norte",
+          lat: 0.0002,
+          lon: 0.45957,
+          km: "459,57",
+          kmNumber: 459.57,
+          direction: "Decrescente",
+          directionNormalized: "decreasing",
+          chargeGroupId: "br116-viuva-graca-p04-seropedica",
+          tariffs: { 6: 21.2 },
+        }),
+      ],
+    });
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.chargeGroupId).toBe("br116-viuva-graca-p04-seropedica");
+    expect(result.matches[0].point.id).toBe("viuva-graca-norte");
+    expect(result.total).toBe(21.2);
   });
 });

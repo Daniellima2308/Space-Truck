@@ -42,4 +42,23 @@ describe("ANTT federal toll synchronization", () => {
       "Viúva Graça Norte|Decrescente|-22.716155|-43.716697",
     ]);
   });
+
+  it("groups only P04 and Viúva Graça Norte under the shared charge group id", () => {
+    const viuvaGracaPoints = federalAnttPoints.filter((point) =>
+      point.roadNormalized === "BR-116" &&
+      point.uf === "RJ" &&
+      point.city === "Seropédica" &&
+      point.name.toLowerCase().includes("viúva graça"),
+    );
+
+    const p04AndNorth = viuvaGracaPoints.filter((point) =>
+      point.name.includes("P04 Viúva Graça") || point.name.includes("Viúva Graça Norte"),
+    );
+    const p05 = viuvaGracaPoints.filter((point) => point.name.includes("P05 Viúva Graça (B)"));
+
+    expect(p04AndNorth).toHaveLength(3);
+    expect(p04AndNorth.every((point) => point.chargeGroupId === "br116-viuva-graca-p04-seropedica")).toBe(true);
+    expect(p05).toHaveLength(2);
+    expect(p05.some((point) => point.chargeGroupId === "br116-viuva-graca-p04-seropedica")).toBe(false);
+  });
 });

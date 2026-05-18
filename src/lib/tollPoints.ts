@@ -295,6 +295,14 @@ function applyChargeGroups(points: TollPoint[]): TollPoint[] {
     if (point.roadNormalized === "SP-021" && normalizedCity.includes("barueri") && normalizedName.includes("castello branco")) {
       return { ...point, chargeGroupId: "sp021-barueri-praca" };
     }
+    if (
+      point.roadNormalized === "BR-116" &&
+      point.uf === "RJ" &&
+      (normalizedCity.includes("seropedica") || normalizedCity.includes("seropédica")) &&
+      (normalizedName.includes("p04 viuva graca") || normalizedName.includes("viuva graca norte"))
+    ) {
+      return { ...point, chargeGroupId: "br116-viuva-graca-p04-seropedica" };
+    }
     return point;
   });
 }
