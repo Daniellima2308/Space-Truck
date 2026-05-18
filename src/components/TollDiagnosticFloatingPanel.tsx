@@ -7,6 +7,50 @@ import {
   getTollDiagnosticTitle,
 } from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
+import { useAuth } from "@/context/auth-context";
+import { isApprovedAdminAccessProfile } from "@/features/access/accessTypes";
+import { useAccessProfile } from "@/features/access/useAccessProfile";
+import {
+  createTollIssueReportPayload,
+  getTollIssueSelectionKey,
+  type TollIssueType,
+} from "@/lib/tollIssueReport";
+
+const REPORT_FORM_ID = "toll-issue-report-form";
+const REPORT_PANEL_ID = "toll-issue-report-panel";
+
+const TOLL_ISSUE_TYPES: readonly { value: TollIssueType; label: string; description: string }[] = [
+  {
+    value: "missing_toll",
+    label: "Pedágio faltando",
+    description: "Uma praça que deveria aparecer não entrou no cálculo.",
+  },
+  {
+    value: "wrong_value",
+    label: "Valor errado",
+    description: "O valor calculado não bate com a praça real.",
+  },
+  {
+    value: "wrong_name",
+    label: "Nome errado",
+    description: "O nome, cidade ou concessionária estão incorretos.",
+  },
+  {
+    value: "duplicate_toll",
+    label: "Cobrança duplicada",
+    description: "A mesma praça apareceu mais de uma vez.",
+  },
+  {
+    value: "wrong_route",
+    label: "Pedágio na rota errada",
+    description: "A praça apareceu, mas não faz parte do trajeto.",
+  },
+  {
+    value: "other",
+    label: "Outro problema",
+    description: "Algo diferente aconteceu com o cálculo do pedágio.",
+  },
+];
 
 function findTollFieldGrid(): HTMLElement | null {
   const explicitGrid = document.querySelector<HTMLElement>('[data-testid="toll-field-grid"]');
@@ -22,6 +66,10 @@ function findTollFieldGrid(): HTMLElement | null {
     .find((input) => input.placeholder === "Ex: R$ 350,00");
 
   return fallbackInput?.parentElement?.parentElement ?? null;
+}
+
+function isInternalTollDiagnosticsEnabled(isAdminAccessProfile: boolean): boolean {
+  return isAdminAccessProfile || import.meta.env.DEV;
 }
 
 function getNearMissReasonLabel(reason: string): string {
@@ -67,12 +115,137 @@ function InlineTollMapButton({
   );
 }
 
+function TollIssueTypeSelector({
+  value,
+  onChange,
+}: {
+  value: TollIssueType;
+  onChange: (value: TollIssueType) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Tipo de problema" className="mt-2 grid grid-cols-1 gap-2">
+      {TOLL_ISSUE_TYPES.map((item) => {
+        const selected = item.value === value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(item.value)}
+            className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+              selected ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+            }`}
+          >
+            <span className="flex items-start justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-foreground">{item.label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
+              </span>
+              <span
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                  selected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                }`}
+              >
+                {selected && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TollIssuePointSelector({
+  value,
+  onChange,
+  items,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  items: TollRouteDiagnostic["items"];
+}) {
+  return (
+    <div role="radiogroup" aria-label="Praça relacionada" className="mt-2 space-y-2">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value === ""}
+        onClick={() => onChange("")}
+        className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+          value === "" ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+        }`}
+      >
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-sm font-black text-foreground">Praça que não apareceu</span>
+            <span className="mt-1 block text-xs text-muted-foreground">Use esta opção quando o erro for em um pedágio ausente ou quando não souber qual selecionar.</span>
+          </span>
+          <span
+            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+              value === "" ? "border-primary bg-primary" : "border-muted-foreground/40"
+            }`}
+          >
+            {value === "" && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+          </span>
+        </span>
+      </button>
+
+      <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+        {items.map((item) => {
+          const selectionKey = getTollIssueSelectionKey(item);
+          const selected = value === selectionKey;
+          return (
+            <button
+              key={selectionKey}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(selectionKey)}
+              className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                selected ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+              }`}
+            >
+              <span className="flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-foreground">{item.name}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    #{item.order} • {item.road || "Rodovia não informada"}{item.km ? ` • KM ${item.km}` : ""}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="text-sm font-black text-profit">{formatTollCurrency(item.value)}</span>
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                      selected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                    }`}
+                  >
+                    {selected && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                  </span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
+
 export function TollDiagnosticFloatingPanel() {
+  const { user } = useAuth();
+  const accessProfileQuery = useAccessProfile(user?.id);
   const [diagnostic, setDiagnostic] = useState<TollRouteDiagnostic | null>(null);
   const [open, setOpen] = useState(false);
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
   const [focusedTollId, setFocusedTollId] = useState<string | null>(null);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportType, setReportType] = useState<TollIssueType>("wrong_value");
+  const [reportTollKey, setReportTollKey] = useState<string>("");
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportSent, setReportSent] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const openerButtonRef = useRef<HTMLButtonElement | null>(null);
   const wasOpenRef = useRef(false);
@@ -124,9 +297,21 @@ export function TollDiagnosticFloatingPanel() {
     window.setTimeout(() => openerButtonRef.current?.focus(), 0);
   }, [open]);
 
+  useEffect(() => {
+    if (!open) return;
+    setReportOpen(false);
+    setReportSent(false);
+    setReportMessage("");
+    setReportTollKey("");
+    setReportType("wrong_value");
+  }, [open]);
+
   const title = useMemo(() => {
     return diagnostic ? getTollDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
+
+  const isAdminAccessProfile = isApprovedAdminAccessProfile(accessProfileQuery.data);
+  const showInternalDiagnostics = isInternalTollDiagnosticsEnabled(isAdminAccessProfile);
 
   const closePanel = () => setOpen(false);
 
@@ -141,9 +326,28 @@ export function TollDiagnosticFloatingPanel() {
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handleIssueReportSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
+    if (!diagnostic || typeof window === "undefined" || reportSent) return;
+
+    const reportPayload = createTollIssueReportPayload({
+      type: reportType,
+      selectedTollKey: reportTollKey,
+      message: reportMessage,
+      diagnostic,
+    });
+
+    window.dispatchEvent(new CustomEvent("space-truck:toll-issue-report", { detail: reportPayload }));
+    if (import.meta.env.DEV) {
+      console.info("[Space Truck] Toll issue report payload", reportPayload);
+    }
+    setReportSent(true);
+  };
+
   if (!diagnostic) return null;
 
   const nearMissItems = diagnostic.nearMissItems ?? [];
+  const reportTypeLabel = TOLL_ISSUE_TYPES.find((item) => item.value === reportType)?.label ?? "Erro no pedágio";
 
   return (
     <>
@@ -256,13 +460,104 @@ export function TollDiagnosticFloatingPanel() {
                 </div>
               )}
 
-              {nearMissItems.length > 0 && (
+              <section className="mt-6 rounded-[1.75rem] border border-primary/25 bg-primary/5 p-4">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Ajude a melhorar</p>
+                    <h3 className="mt-1 text-lg font-black text-foreground">Encontrou algum erro no pedágio?</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Avise se faltou uma praça, se o valor parece errado ou se apareceu cobrança duplicada.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    aria-expanded={reportOpen}
+                    aria-controls={REPORT_PANEL_ID}
+                    onClick={() => {
+                      setReportOpen((current) => !current);
+                      setReportSent(false);
+                    }}
+                    className="shrink-0 rounded-2xl border border-primary/30 bg-primary px-4 py-3 text-xs font-black text-primary-foreground shadow-sm transition active:scale-[0.98]"
+                  >
+                    Reportar erro
+                  </button>
+                </div>
+
+                {reportOpen && (
+                  <form
+                    id={REPORT_PANEL_ID}
+                    aria-labelledby={`${REPORT_FORM_ID}-title`}
+                    onSubmit={handleIssueReportSubmit}
+                    className="mt-4 space-y-4 rounded-[1.5rem] border border-border bg-card p-4"
+                  >
+                    <div>
+                      <p id={`${REPORT_FORM_ID}-title`} className="sr-only">Relatar erro no pedágio</p>
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                        Tipo de problema
+                      </p>
+                      <TollIssueTypeSelector
+                        value={reportType}
+                        onChange={(value) => {
+                          setReportType(value);
+                          setReportSent(false);
+                        }}
+                      />
+                    </div>
+
+                    <div>
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                        Praça relacionada
+                      </p>
+                      <TollIssuePointSelector
+                        value={reportTollKey}
+                        onChange={(value) => {
+                          setReportTollKey(value);
+                          setReportSent(false);
+                        }}
+                        items={diagnostic.items}
+                      />
+                    </div>
+
+                    <div>
+                      <label htmlFor="toll-issue-message" className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                        Observação opcional
+                      </label>
+                      <textarea
+                        id="toll-issue-message"
+                        value={reportMessage}
+                        onChange={(event) => {
+                          setReportMessage(event.target.value);
+                          setReportSent(false);
+                        }}
+                        placeholder="Ex: a praça apareceu duplicada, o valor estava diferente ou faltou um pedágio no trajeto."
+                        className="mt-2 min-h-24 w-full rounded-2xl border border-border bg-background px-3 py-3 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
+                      />
+                    </div>
+
+                    <button
+                      type="submit"
+                      disabled={reportSent}
+                      className="h-12 w-full rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
+                    >
+                      {reportSent ? "Relatório enviado" : "Enviar relatório"}
+                    </button>
+
+                    {reportSent && (
+                      <div className="rounded-2xl border border-profit/30 bg-profit/10 p-3 text-xs font-semibold text-foreground">
+                        Relatório registrado para revisão: {reportTypeLabel}. Obrigado por ajudar a melhorar a base de pedágios.
+                      </div>
+                    )}
+                  </form>
+                )}
+              </section>
+
+              {showInternalDiagnostics && nearMissItems.length > 0 && (
                 <section className="mt-6 rounded-[1.75rem] border border-warning/30 bg-warning/5 p-4">
                   <div className="mb-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico interno</p>
                     <h3 className="mt-1 text-lg font-black text-foreground">Pedágios próximos não cobrados</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Use esta lista para conferir praças perto da rota que foram rejeitadas pelo motor.
+                      Visível apenas para admin aprovado ou ambiente de desenvolvimento.
                     </p>
                   </div>
 

@@ -15,3 +15,6 @@ export const APPROVED_ACCESS_STATUS: AccessStatus = "approved";
 
 export const isApprovedAccessProfile = (profile: AccessProfile | null | undefined) =>
   profile?.accessStatus === APPROVED_ACCESS_STATUS;
+
+export const isApprovedAdminAccessProfile = (profile: AccessProfile | null | undefined) =>
+  profile?.role === "admin" && profile.accessStatus === APPROVED_ACCESS_STATUS;
