@@ -12,6 +12,8 @@ const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
 const MIN_ROUTE_POINTS_FOR_GEOMETRY = 2;
 const SAME_ROUTE_POSITION_TOLERANCE_KM = 0.2;
+const SAME_PHYSICAL_COORDINATE_TOLERANCE_KM = 0.08;
+const SAME_KM_NUMBER_TOLERANCE_KM = 0.2;
 
 type InferredRoadDirection = Extract<TollDirectionNormalized, "increasing" | "decreasing"> | "unknown";
 
@@ -291,6 +293,18 @@ function isSameNonEmptyPhysicalPart(
   return Boolean(normalizedA && normalizedB && normalizedA === normalizedB);
 }
 
+function hasCloseKmNumber(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  if (a.point.kmNumber === null || b.point.kmNumber === null) return false;
+  return Math.abs(a.point.kmNumber - b.point.kmNumber) <= SAME_KM_NUMBER_TOLERANCE_KM;
+}
+
+function hasCloseCoordinates(a: TollPointCandidate, b: TollPointCandidate): boolean {
+  return haversineDistanceKm(
+    { lat: a.point.lat, lon: a.point.lon },
+    { lat: b.point.lat, lon: b.point.lon },
+  ) <= SAME_PHYSICAL_COORDINATE_TOLERANCE_KM;
+}
+
 function buildPhysicalPointKey(match: TollPointCandidate): string {
   const { point } = match;
   const stableParts = [point.concessionaire, point.road, point.km, point.city]
@@ -304,52 +318,41 @@ function buildPhysicalPointKey(match: TollPointCandidate): string {
   ].join("|");
 }
 
-function hasSameDirectionalChargeGroup(a: TollPointCandidate, b: TollPointCandidate): boolean {
-  const sameKm = isSameNonEmptyPhysicalPart(a.point.km, b.point.km);
-  const sameRoad = isSameNonEmptyPhysicalPart(a.point.road, b.point.road);
-  const sameConcessionaire = isSameNonEmptyPhysicalPart(a.point.concessionaire, b.point.concessionaire);
-  const sameCity = isSameNonEmptyPhysicalPart(a.point.city, b.point.city);
-  const sameName = isSameNonEmptyPhysicalPart(a.point.name, b.point.name);
-
-  if (sameKm && sameRoad && sameConcessionaire && (sameCity || sameName)) {
-    return true;
-  }
-
-  if (sameKm && sameRoad && sameCity && sameName) {
-    return true;
-  }
-
-  return false;
-}
-
 function shouldTreatAsSameRouteCharge(a: TollPointCandidate, b: TollPointCandidate): boolean {
   if (a.point.chargeGroupId && b.point.chargeGroupId && a.point.chargeGroupId === b.point.chargeGroupId) {
-    return true;
-  }
-
-  if (hasSameDirectionalChargeGroup(a, b)) {
     return true;
   }
 
   const closeOnRoute = Math.abs(a.distanceAlongRouteKm - b.distanceAlongRouteKm) <= SAME_ROUTE_POSITION_TOLERANCE_KM;
   if (!closeOnRoute) return false;
 
-  const sameKm = isSameNonEmptyPhysicalPart(a.point.km, b.point.km);
-  const sameRoad = isSameNonEmptyPhysicalPart(a.point.road, b.point.road);
-  const sameConcessionaire = isSameNonEmptyPhysicalPart(a.point.concessionaire, b.point.concessionaire);
+  const sameRoad = isSameNonEmptyPhysicalPart(a.point.roadNormalized, b.point.roadNormalized);
+  const sameUf = (a.point.uf || "").trim().toLowerCase() === (b.point.uf || "").trim().toLowerCase();
   const sameCity = isSameNonEmptyPhysicalPart(a.point.city, b.point.city);
   const sameName = isSameNonEmptyPhysicalPart(a.point.name, b.point.name);
+  const sameKm = isSameNonEmptyPhysicalPart(a.point.km, b.point.km) || hasCloseKmNumber(a, b);
+  const closeCoordinates = hasCloseCoordinates(a, b);
 
-  return (
-    (sameKm && (sameRoad || sameConcessionaire || sameCity)) ||
-    (sameName && sameConcessionaire && (sameRoad || sameCity))
-  );
+  if (!sameRoad) return false;
+  if (a.point.uf && b.point.uf && !sameUf) return false;
+  if (sameKm && (sameCity || sameName || closeCoordinates)) return true;
+  return closeCoordinates && (sameCity || sameName);
 }
 
 function chooseBestPhysicalMatch(current: TollPointCandidate | undefined, next: TollPointCandidate): TollPointCandidate {
   if (!current) return next;
+  if (next.distanceFromRouteKm < current.distanceFromRouteKm) return next;
+  if (next.distanceFromRouteKm > current.distanceFromRouteKm) return current;
+
+  const currentDirectional = current.point.directionNormalized === "increasing" || current.point.directionNormalized === "decreasing";
+  const nextDirectional = next.point.directionNormalized === "increasing" || next.point.directionNormalized === "decreasing";
+  if (nextDirectional && !currentDirectional) return next;
+  if (currentDirectional && !nextDirectional) return current;
+
   if (next.tollValue > current.tollValue) return next;
-  if (next.tollValue === current.tollValue && next.distanceFromRouteKm < current.distanceFromRouteKm) return next;
+  if (next.tollValue < current.tollValue) return current;
+  if (next.distanceAlongRouteKm < current.distanceAlongRouteKm) return next;
+  if (next.distanceAlongRouteKm > current.distanceAlongRouteKm) return current;
   return current;
 }
 
@@ -358,7 +361,6 @@ function getRoadInferenceKey(match: TollPointCandidate): string | null {
   return [
     match.point.roadNormalized,
     match.point.uf,
-    match.point.concessionaire,
   ]
     .map(normalizePhysicalPointPart)
     .filter(Boolean)

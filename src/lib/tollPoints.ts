@@ -64,6 +64,7 @@ interface RawTollPoint {
 }
 
 export const SPACE_TRUCK_TOLL_BASE_SOURCE = "space_truck_toll_base" as const;
+export const VIUVA_GRACA_P04_CHARGE_GROUP_ID = "br116-viuva-graca-p04-seropedica" as const;
 
 const AXLE_FIELDS: Array<[TollAxleCount, keyof RawTollPoint]> = [
   [2, "eixos_2_brl"],
@@ -298,10 +299,10 @@ function applyChargeGroups(points: TollPoint[]): TollPoint[] {
     if (
       point.roadNormalized === "BR-116" &&
       point.uf === "RJ" &&
-      (normalizedCity.includes("seropedica") || normalizedCity.includes("seropédica")) &&
+      normalizedCity.includes("seropedica") &&
       (normalizedName.includes("p04 viuva graca") || normalizedName.includes("viuva graca norte"))
     ) {
-      return { ...point, chargeGroupId: "br116-viuva-graca-p04-seropedica" };
+      return { ...point, chargeGroupId: VIUVA_GRACA_P04_CHARGE_GROUP_ID };
     }
     return point;
   });
