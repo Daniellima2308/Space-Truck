@@ -7,7 +7,9 @@ import {
   getTollDiagnosticTitle,
 } from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
-import { isDevPreviewActive } from "@/lib/devPreview";
+import { useAuth } from "@/context/auth-context";
+import { APPROVED_ACCESS_STATUS } from "@/features/access/accessTypes";
+import { useAccessProfile } from "@/features/access/useAccessProfile";
 
 const DEBUG_TOLLS_STORAGE_KEY = "spaceTruck.debugTolls";
 const DEBUG_TOLLS_QUERY_PARAM = "debugTolls";
@@ -69,15 +71,15 @@ function findTollFieldGrid(): HTMLElement | null {
   return fallbackInput?.parentElement?.parentElement ?? null;
 }
 
-function isInternalTollDiagnosticsEnabled(): boolean {
+function isInternalTollDiagnosticsEnabled(isAdminAccessProfile: boolean): boolean {
+  if (isAdminAccessProfile) return true;
   if (import.meta.env.DEV) return true;
   if (typeof window === "undefined") return false;
 
-  const debugFromDevPreview = isDevPreviewActive();
   const debugFromStorage = window.localStorage.getItem(DEBUG_TOLLS_STORAGE_KEY) === "true";
   const debugFromQuery = new URLSearchParams(window.location.search).get(DEBUG_TOLLS_QUERY_PARAM) === "1";
 
-  return debugFromDevPreview || debugFromStorage || debugFromQuery;
+  return debugFromStorage || debugFromQuery;
 }
 
 function getNearMissReasonLabel(reason: string): string {
@@ -241,6 +243,8 @@ function TollIssuePointSelector({
 }
 
 export function TollDiagnosticFloatingPanel() {
+  const { user } = useAuth();
+  const accessProfileQuery = useAccessProfile(user?.id);
   const [diagnostic, setDiagnostic] = useState<TollRouteDiagnostic | null>(null);
   const [open, setOpen] = useState(false);
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
@@ -315,7 +319,14 @@ export function TollDiagnosticFloatingPanel() {
     return diagnostic ? getTollDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
 
-  const showInternalDiagnostics = useMemo(() => isInternalTollDiagnosticsEnabled(), [diagnostic]);
+  const isAdminAccessProfile =
+    accessProfileQuery.data?.role === "admin" &&
+    accessProfileQuery.data?.accessStatus === APPROVED_ACCESS_STATUS;
+
+  const showInternalDiagnostics = useMemo(
+    () => isInternalTollDiagnosticsEnabled(isAdminAccessProfile),
+    [isAdminAccessProfile],
+  );
 
   const closePanel = () => setOpen(false);
 
@@ -553,7 +564,7 @@ export function TollDiagnosticFloatingPanel() {
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico interno</p>
                     <h3 className="mt-1 text-lg font-black text-foreground">Pedágios próximos não cobrados</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Visível apenas em dev preview, modo interno, ou ?{DEBUG_TOLLS_QUERY_PARAM}=1.
+                      Visível apenas para admin aprovado ou modo interno.
                     </p>
                   </div>
 
