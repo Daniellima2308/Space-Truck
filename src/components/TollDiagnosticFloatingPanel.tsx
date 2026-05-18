@@ -8,6 +8,26 @@ import {
 } from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
 
+type TollIssueReportType =
+  | "missing_toll"
+  | "wrong_value"
+  | "wrong_name"
+  | "duplicate_toll"
+  | "wrong_route"
+  | "other";
+
+const TOLL_DEBUG_STORAGE_KEY = "spaceTruck.debugTolls";
+const TOLL_REPORT_STORAGE_KEY = "spaceTruck.tollIssueReports";
+
+const TOLL_ISSUE_REPORT_OPTIONS: Array<{ value: TollIssueReportType; label: string }> = [
+  { value: "missing_toll", label: "Faltou uma praça/pórtico" },
+  { value: "wrong_value", label: "Valor errado" },
+  { value: "wrong_name", label: "Nome ou praça errada" },
+  { value: "duplicate_toll", label: "Cobrou pedágio duplicado" },
+  { value: "wrong_route", label: "Apareceu na rota errada" },
+  { value: "other", label: "Outro problema" },
+];
+
 function findTollFieldGrid(): HTMLElement | null {
   const explicitGrid = document.querySelector<HTMLElement>('[data-testid="toll-field-grid"]');
   if (explicitGrid) return explicitGrid;
@@ -37,6 +57,45 @@ function getNearMissReasonLabel(reason: string): string {
     default:
       return "Não cobrado";
   }
+}
+
+function isInternalTollDebugEnabled(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === "undefined") return false;
+
+  const params = new URLSearchParams(window.location.search);
+  const debugParam = params.get("debugTolls");
+
+  if (debugParam === "1" || debugParam === "true") {
+    window.localStorage.setItem(TOLL_DEBUG_STORAGE_KEY, "true");
+    return true;
+  }
+
+  if (debugParam === "0" || debugParam === "false") {
+    window.localStorage.removeItem(TOLL_DEBUG_STORAGE_KEY);
+    return false;
+  }
+
+  return window.localStorage.getItem(TOLL_DEBUG_STORAGE_KEY) === "true";
+}
+
+function saveTollIssueReport(report: unknown): void {
+  if (typeof window === "undefined") return;
+
+  const currentReports = (() => {
+    try {
+      const raw = window.localStorage.getItem(TOLL_REPORT_STORAGE_KEY);
+      const parsed = raw ? JSON.parse(raw) : [];
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  })();
+
+  window.localStorage.setItem(
+    TOLL_REPORT_STORAGE_KEY,
+    JSON.stringify([report, ...currentReports].slice(0, 25)),
+  );
 }
 
 function InlineTollMapButton({
@@ -73,10 +132,16 @@ export function TollDiagnosticFloatingPanel() {
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
   const [focusedTollId, setFocusedTollId] = useState<string | null>(null);
   const [focusRequestKey, setFocusRequestKey] = useState(0);
+  const [reportOpen, setReportOpen] = useState(false);
+  const [reportType, setReportType] = useState<TollIssueReportType>("wrong_value");
+  const [selectedReportTollId, setSelectedReportTollId] = useState("");
+  const [reportMessage, setReportMessage] = useState("");
+  const [reportSent, setReportSent] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const openerButtonRef = useRef<HTMLButtonElement | null>(null);
   const wasOpenRef = useRef(false);
   const mapSectionRef = useRef<HTMLDivElement | null>(null);
+  const showInternalTollDiagnostics = useMemo(isInternalTollDebugEnabled, []);
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -113,6 +178,13 @@ export function TollDiagnosticFloatingPanel() {
   }, [diagnostic]);
 
   useEffect(() => {
+    setReportOpen(false);
+    setReportSent(false);
+    setReportMessage("");
+    setSelectedReportTollId("");
+  }, [diagnostic]);
+
+  useEffect(() => {
     if (open) {
       wasOpenRef.current = true;
       window.setTimeout(() => closeButtonRef.current?.focus(), 0);
@@ -141,9 +213,37 @@ export function TollDiagnosticFloatingPanel() {
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
+  const handleSubmitReport = () => {
+    if (!diagnostic) return;
+
+    const report = {
+      id: `toll-report-${Date.now()}`,
+      type: reportType,
+      selectedTollId: selectedReportTollId || null,
+      userMessage: reportMessage.trim() || null,
+      createdAt: new Date().toISOString(),
+      diagnosticSnapshot: diagnostic,
+    };
+
+    saveTollIssueReport(report);
+
+    if (typeof window !== "undefined") {
+      window.dispatchEvent(new CustomEvent("space-truck:toll-issue-report", { detail: report }));
+      if (showInternalTollDiagnostics) {
+        console.info("[Space Truck] Relatório de erro de pedágio salvo", report);
+      }
+    }
+
+    setReportSent(true);
+    setReportOpen(false);
+    setReportMessage("");
+    setSelectedReportTollId("");
+  };
+
   if (!diagnostic) return null;
 
   const nearMissItems = diagnostic.nearMissItems ?? [];
+  const reportableTollItems = diagnostic.items;
 
   return (
     <>
@@ -256,13 +356,93 @@ export function TollDiagnosticFloatingPanel() {
                 </div>
               )}
 
-              {nearMissItems.length > 0 && (
+              <section className="mt-6 rounded-[1.75rem] border border-border bg-card p-4 shadow-sm">
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-primary">Ajude a melhorar</p>
+                    <h3 className="mt-1 text-lg font-black text-foreground">Encontrou erro no pedágio?</h3>
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Avise se faltou praça, se o valor parece errado ou se apareceu cobrança duplicada.
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setReportOpen((current) => !current);
+                      setReportSent(false);
+                    }}
+                    className="shrink-0 rounded-2xl border border-primary/35 bg-primary/10 px-3 py-2 text-xs font-black text-primary transition active:scale-[0.98]"
+                  >
+                    Reportar
+                  </button>
+                </div>
+
+                {reportSent && (
+                  <div className="mt-4 rounded-2xl border border-profit/30 bg-profit/10 p-3 text-xs font-semibold text-foreground">
+                    Obrigado! O relatório ficou salvo para análise da base de pedágios.
+                  </div>
+                )}
+
+                {reportOpen && (
+                  <div className="mt-4 space-y-3">
+                    <label className="block text-xs font-bold text-foreground">
+                      Tipo do problema
+                      <select
+                        value={reportType}
+                        onChange={(event) => setReportType(event.currentTarget.value as TollIssueReportType)}
+                        className="mt-2 h-12 w-full rounded-2xl border border-border bg-background px-3 text-sm font-semibold text-foreground"
+                      >
+                        {TOLL_ISSUE_REPORT_OPTIONS.map((option) => (
+                          <option key={option.value} value={option.value}>{option.label}</option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block text-xs font-bold text-foreground">
+                      Praça relacionada
+                      <select
+                        value={selectedReportTollId}
+                        onChange={(event) => setSelectedReportTollId(event.currentTarget.value)}
+                        className="mt-2 h-12 w-full rounded-2xl border border-border bg-background px-3 text-sm font-semibold text-foreground"
+                      >
+                        <option value="">Uma praça que não apareceu / não sei informar</option>
+                        {reportableTollItems.map((item) => (
+                          <option key={`${item.id}-${item.order}`} value={item.id}>
+                            {item.name} • {formatTollCurrency(item.value)}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+
+                    <label className="block text-xs font-bold text-foreground">
+                      Observação opcional
+                      <textarea
+                        value={reportMessage}
+                        onChange={(event) => setReportMessage(event.currentTarget.value)}
+                        rows={3}
+                        placeholder="Ex: valor diferente da praça, duplicou cobrança, faltou pedágio..."
+                        className="mt-2 w-full rounded-2xl border border-border bg-background px-3 py-3 text-sm font-semibold text-foreground placeholder:text-muted-foreground"
+                      />
+                    </label>
+
+                    <button
+                      type="button"
+                      onClick={handleSubmitReport}
+                      className="h-12 w-full rounded-2xl bg-primary px-4 text-sm font-black text-primary-foreground shadow-sm transition active:scale-[0.98]"
+                    >
+                      Enviar relatório
+                    </button>
+                  </div>
+                )}
+              </section>
+
+              {showInternalTollDiagnostics && nearMissItems.length > 0 && (
                 <section className="mt-6 rounded-[1.75rem] border border-warning/30 bg-warning/5 p-4">
                   <div className="mb-3">
-                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico</p>
+                    <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico interno</p>
                     <h3 className="mt-1 text-lg font-black text-foreground">Pedágios próximos não cobrados</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Use esta lista para conferir praças perto da rota que foram rejeitadas pelo motor.
+                      Visível apenas em modo interno. Ative com ?debugTolls=1 ou localStorage {TOLL_DEBUG_STORAGE_KEY}=true.
                     </p>
                   </div>
 
