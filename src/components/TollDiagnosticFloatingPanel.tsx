@@ -7,6 +7,7 @@ import {
   getTollDiagnosticTitle,
 } from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
+import { isDevPreviewActive } from "@/lib/devPreview";
 
 const DEBUG_TOLLS_STORAGE_KEY = "spaceTruck.debugTolls";
 const DEBUG_TOLLS_QUERY_PARAM = "debugTolls";
@@ -72,10 +73,11 @@ function isInternalTollDiagnosticsEnabled(): boolean {
   if (import.meta.env.DEV) return true;
   if (typeof window === "undefined") return false;
 
+  const debugFromDevPreview = isDevPreviewActive();
   const debugFromStorage = window.localStorage.getItem(DEBUG_TOLLS_STORAGE_KEY) === "true";
   const debugFromQuery = new URLSearchParams(window.location.search).get(DEBUG_TOLLS_QUERY_PARAM) === "1";
 
-  return debugFromStorage || debugFromQuery;
+  return debugFromDevPreview || debugFromStorage || debugFromQuery;
 }
 
 function getNearMissReasonLabel(reason: string): string {
@@ -118,6 +120,123 @@ function InlineTollMapButton({
         <span className="mt-1 block truncate text-[10px] font-bold opacity-90">{details}</span>
       </span>
     </button>
+  );
+}
+
+function TollIssueTypeSelector({
+  value,
+  onChange,
+}: {
+  value: TollIssueType;
+  onChange: (value: TollIssueType) => void;
+}) {
+  return (
+    <div role="radiogroup" aria-label="Tipo de problema" className="mt-2 grid grid-cols-1 gap-2">
+      {TOLL_ISSUE_TYPES.map((item) => {
+        const selected = item.value === value;
+        return (
+          <button
+            key={item.value}
+            type="button"
+            role="radio"
+            aria-checked={selected}
+            onClick={() => onChange(item.value)}
+            className={`rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+              selected ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+            }`}
+          >
+            <span className="flex items-start justify-between gap-3">
+              <span className="min-w-0">
+                <span className="block text-sm font-black text-foreground">{item.label}</span>
+                <span className="mt-1 block text-xs text-muted-foreground">{item.description}</span>
+              </span>
+              <span
+                className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+                  selected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                }`}
+              >
+                {selected && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+              </span>
+            </span>
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+function TollIssuePointSelector({
+  value,
+  onChange,
+  items,
+}: {
+  value: string;
+  onChange: (value: string) => void;
+  items: TollRouteDiagnostic["items"];
+}) {
+  return (
+    <div role="radiogroup" aria-label="Praça relacionada" className="mt-2 space-y-2">
+      <button
+        type="button"
+        role="radio"
+        aria-checked={value === ""}
+        onClick={() => onChange("")}
+        className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+          value === "" ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+        }`}
+      >
+        <span className="flex items-start justify-between gap-3">
+          <span className="min-w-0">
+            <span className="block text-sm font-black text-foreground">Praça que não apareceu</span>
+            <span className="mt-1 block text-xs text-muted-foreground">Use esta opção quando o erro for em um pedágio ausente ou quando não souber qual selecionar.</span>
+          </span>
+          <span
+            className={`mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center rounded-full border ${
+              value === "" ? "border-primary bg-primary" : "border-muted-foreground/40"
+            }`}
+          >
+            {value === "" && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+          </span>
+        </span>
+      </button>
+
+      <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
+        {items.map((item) => {
+          const selected = value === item.id;
+          return (
+            <button
+              key={`${item.id}-${item.order}`}
+              type="button"
+              role="radio"
+              aria-checked={selected}
+              onClick={() => onChange(item.id)}
+              className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
+                selected ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
+              }`}
+            >
+              <span className="flex items-start justify-between gap-3">
+                <span className="min-w-0">
+                  <span className="block truncate text-sm font-black text-foreground">{item.name}</span>
+                  <span className="mt-1 block text-xs text-muted-foreground">
+                    #{item.order} • {item.road || "Rodovia não informada"}{item.km ? ` • KM ${item.km}` : ""}
+                  </span>
+                </span>
+                <span className="flex shrink-0 flex-col items-end gap-2">
+                  <span className="text-sm font-black text-profit">{formatTollCurrency(item.value)}</span>
+                  <span
+                    className={`flex h-5 w-5 items-center justify-center rounded-full border ${
+                      selected ? "border-primary bg-primary" : "border-muted-foreground/40"
+                    }`}
+                  >
+                    {selected && <span className="h-2 w-2 rounded-full bg-primary-foreground" />}
+                  </span>
+                </span>
+              </span>
+            </button>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 
@@ -367,47 +486,32 @@ export function TollDiagnosticFloatingPanel() {
                 </div>
 
                 {reportOpen && (
-                  <div className="mt-4 space-y-3 rounded-[1.5rem] border border-border bg-card p-4">
+                  <div className="mt-4 space-y-4 rounded-[1.5rem] border border-border bg-card p-4">
                     <div>
-                      <label htmlFor="toll-issue-type" className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
                         Tipo de problema
-                      </label>
-                      <select
-                        id="toll-issue-type"
+                      </p>
+                      <TollIssueTypeSelector
                         value={reportType}
-                        onChange={(event) => {
-                          setReportType(event.target.value as TollIssueType);
+                        onChange={(value) => {
+                          setReportType(value);
                           setReportSent(false);
                         }}
-                        className="mt-2 h-12 w-full rounded-2xl border border-border bg-background px-3 text-sm font-bold text-foreground"
-                      >
-                        {TOLL_ISSUE_TYPES.map((item) => (
-                          <option key={item.value} value={item.value}>{item.label}</option>
-                        ))}
-                      </select>
-                      <p className="mt-1 text-xs text-muted-foreground">
-                        {TOLL_ISSUE_TYPES.find((item) => item.value === reportType)?.description}
-                      </p>
+                      />
                     </div>
 
                     <div>
-                      <label htmlFor="toll-issue-point" className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
+                      <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
                         Praça relacionada
-                      </label>
-                      <select
-                        id="toll-issue-point"
+                      </p>
+                      <TollIssuePointSelector
                         value={reportTollId}
-                        onChange={(event) => {
-                          setReportTollId(event.target.value);
+                        onChange={(value) => {
+                          setReportTollId(value);
                           setReportSent(false);
                         }}
-                        className="mt-2 h-12 w-full rounded-2xl border border-border bg-background px-3 text-sm font-bold text-foreground"
-                      >
-                        <option value="">Praça que não apareceu ou não sei informar</option>
-                        {diagnostic.items.map((item) => (
-                          <option key={item.id} value={item.id}>{item.name} • {formatTollCurrency(item.value)}</option>
-                        ))}
-                      </select>
+                        items={diagnostic.items}
+                      />
                     </div>
 
                     <div>
@@ -449,7 +553,7 @@ export function TollDiagnosticFloatingPanel() {
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico interno</p>
                     <h3 className="mt-1 text-lg font-black text-foreground">Pedágios próximos não cobrados</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Visível apenas em modo interno. Ative com {DEBUG_TOLLS_STORAGE_KEY}=true ou ?{DEBUG_TOLLS_QUERY_PARAM}=1.
+                      Visível apenas em dev preview, modo interno, ou ?{DEBUG_TOLLS_QUERY_PARAM}=1.
                     </p>
                   </div>
 
