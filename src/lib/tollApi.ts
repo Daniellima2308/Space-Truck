@@ -7,6 +7,10 @@ import {
   calculateRouteToll,
   type TollCalculationResult,
 } from "@/lib/tollEngine";
+import {
+  getRouteTollDiagnostics,
+  type TollPointRejectionReason,
+} from "@/lib/tollDiagnostics";
 
 export type TollApiCalculationResult = TollCalculationResult;
 export type TollRouteDiagnosticSource = TollApiCalculationResult["source"] | "no_route_path";
@@ -34,6 +38,26 @@ export interface TollRouteDiagnosticItem {
   distanceFromRouteKm: number;
 }
 
+export interface TollRouteNearMissItem {
+  id: string;
+  name: string;
+  value: number;
+  reason: TollPointRejectionReason;
+  road: string | null;
+  km: string | null;
+  city: string | null;
+  uf: string;
+  concessionaire: string;
+  direction: string | null;
+  lat: number;
+  lon: number;
+  distanceAlongRouteKm: number;
+  distanceFromRouteKm: number;
+  routeCorridorKm: number;
+  matchedRouteRoads: string[];
+  inferredRoadDirection: "increasing" | "decreasing" | "unknown";
+}
+
 export interface TollRouteDiagnostic {
   total: number;
   tollCount: number;
@@ -42,6 +66,7 @@ export interface TollRouteDiagnostic {
   routePath: Coordinates[];
   routeSegments: RouteSegment[];
   items: TollRouteDiagnosticItem[];
+  nearMissItems: TollRouteNearMissItem[];
   reason?: string;
 }
 
@@ -61,6 +86,7 @@ function buildNoRoutePathDiagnostic(): TollRouteDiagnostic {
     routePath: [],
     routeSegments: [],
     items: [],
+    nearMissItems: [],
     reason: "A distância da rota existe, mas a geometria não ficou disponível para cruzar com a base interna de pedágios.",
   };
 }
@@ -69,7 +95,32 @@ function mapTollDiagnostic(
   result: TollApiCalculationResult,
   routePath: Coordinates[],
   routeSegments: RouteSegment[],
+  axles: number,
 ): TollRouteDiagnostic {
+  const nearMissItems = getRouteTollDiagnostics({
+    routePath,
+    routeSegments,
+    axles,
+  }).map((item) => ({
+    id: item.point.id,
+    name: item.point.name,
+    value: item.tollValue,
+    reason: item.reason,
+    road: item.point.road,
+    km: item.point.km,
+    city: item.point.city,
+    uf: item.point.uf,
+    concessionaire: item.point.concessionaire,
+    direction: item.point.direction,
+    lat: item.point.lat,
+    lon: item.point.lon,
+    distanceAlongRouteKm: item.distanceAlongRouteKm,
+    distanceFromRouteKm: item.distanceFromRouteKm,
+    routeCorridorKm: item.routeCorridorKm,
+    matchedRouteRoads: item.matchedRouteRoads,
+    inferredRoadDirection: item.inferredRoadDirection,
+  }));
+
   return {
     total: result.total,
     tollCount: result.matches.length,
@@ -77,6 +128,7 @@ function mapTollDiagnostic(
     routeCorridorKm: result.routeCorridorKm,
     routePath,
     routeSegments,
+    nearMissItems,
     items: result.matches.map((match) => ({
       order: match.routeOrder,
       id: match.point.id,
@@ -150,6 +202,7 @@ export function calculateTollDiagnosticFromRememberedRoute(params: {
     result,
     routeGeometry.routePath,
     routeGeometry.routeSegments,
+    params.axles,
   );
   publishTollDiagnostic(diagnostic);
   return diagnostic;

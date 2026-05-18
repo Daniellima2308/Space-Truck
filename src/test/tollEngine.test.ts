@@ -58,6 +58,8 @@ function buildTollPoint(
     },
     geoConfidence: overrides.geoConfidence ?? "alta",
     valueConfidence: overrides.valueConfidence ?? "alta",
+    routeCorridorKm: overrides.routeCorridorKm,
+    chargeGroupId: overrides.chargeGroupId,
   };
 }
 
@@ -268,6 +270,63 @@ describe("tollEngine", () => {
     expect(result.total).toBe(30);
     expect(result.matches).toHaveLength(1);
     expect(result.matches[0].routeOrder).toBe(1);
+  });
+
+  it("deduplica por chargeGroupId mantendo maior tarifa e depois menor distância", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "group-a", lat: 0.0002, lon: 0.25, tariffs: { 6: 20 }, chargeGroupId: "grp-1" }),
+        buildTollPoint({ id: "group-b", lat: 0.0001, lon: 0.26, tariffs: { 6: 30 }, chargeGroupId: "grp-1" }),
+        buildTollPoint({ id: "group-c", lat: 0.00005, lon: 0.27, tariffs: { 6: 30 }, chargeGroupId: "grp-1" }),
+      ],
+      routeCorridorKm: 2.5,
+    });
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.id).toBe("group-b");
+    expect(result.total).toBe(30);
+  });
+
+  it("respeita corredor específico do ponto quando routeCorridorKm está definido", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "manual-corridor",
+          lat: 0.00025,
+          lon: 0.5,
+          tariffs: { 6: 10 },
+          routeCorridorKm: 0.015,
+        }),
+      ],
+    });
+
+    expect(result.matches).toHaveLength(0);
+    expect(result.total).toBe(0);
+  });
+
+  it("usa o corredor específico do ponto quando o corredor global é maior", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      routeCorridorKm: 2,
+      tollPoints: [
+        buildTollPoint({
+          id: "manual-corridor-match",
+          lat: 0.0001,
+          lon: 0.25,
+          tariffs: { 6: 10 },
+          routeCorridorKm: 0.5,
+        }),
+      ],
+    });
+
+    expect(result.matches).toHaveLength(1);
+    expect(result.matches[0].point.id).toBe("manual-corridor-match");
+    expect(result.total).toBe(10);
   });
 
   it("não deduplica praças distintas só por estarem próximas na mesma rodovia", () => {

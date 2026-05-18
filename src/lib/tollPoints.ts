@@ -1,4 +1,9 @@
 import activeTollPointsData from "../../data/tolls/app_ready_toll_points_active.json";
+import {
+  FEDERAL_ANTT_OFFICIAL_EXCLUDED_IDS,
+  FEDERAL_ANTT_OFFICIAL_OVERRIDES,
+  type FederalAnttTollOfficialOverride,
+} from "./anttFederalTollOfficialOverrides";
 import { TOLL_POINT_COORDINATE_OVERRIDES } from "./tollPointCoordinateOverrides";
 
 export type TollAxleCount = 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9;
@@ -27,6 +32,8 @@ export interface TollPoint {
   coordinateRole: TollCoordinateRole;
   expectedHeadingDegrees: number | null;
   headingToleranceDegrees: number | null;
+  routeCorridorKm?: number;
+  chargeGroupId?: string;
 }
 
 interface RawTollPoint {
@@ -57,6 +64,7 @@ interface RawTollPoint {
 }
 
 export const SPACE_TRUCK_TOLL_BASE_SOURCE = "space_truck_toll_base" as const;
+export const VIUVA_GRACA_P04_CHARGE_GROUP_ID = "br116-viuva-graca-p04-seropedica" as const;
 
 const AXLE_FIELDS: Array<[TollAxleCount, keyof RawTollPoint]> = [
   [2, "eixos_2_brl"],
@@ -93,6 +101,11 @@ function normalizeRoad(value: unknown): string | null {
   return match ? `${match[1]}-${match[2]}` : text || null;
 }
 
+function normalizeOfficialRoadKey(value: unknown): string {
+  const road = normalizeRoad(value);
+  return road ? road.replace(/^([A-Z]{2,3})-0*(\d{2,3})$/, "$1-$2") : "";
+}
+
 function asNumber(value: unknown): number | null {
   if (typeof value === "number" && Number.isFinite(value)) return value;
   if (typeof value !== "string") return null;
@@ -119,16 +132,30 @@ function parseKm(value: unknown): number | null {
   return Number.isFinite(parsed) ? parsed : null;
 }
 
+function normalizeKmKey(value: unknown): string {
+  const parsed = parseKm(value);
+  if (parsed === null) return normalizeText(value);
+  return parsed.toFixed(3).replace(/\.0+$/, "").replace(/(\.\d*?)0+$/, "$1");
+}
+
 function normalizeDirection(value: unknown): TollDirectionNormalized {
   const text = normalizeText(value);
   if (!text) return "unknown";
-  if (text.includes("crescente") && text.includes("decrescente")) return "both";
+
+  const hasCrescente = /\bcrescente\b/.test(text);
+  const hasDecrescente = /\bdecrescente\b/.test(text);
+
+  if (hasCrescente && hasDecrescente) return "both";
   if (text.includes("ambos") || text.includes("bidirecional") || text.includes("duplo")) return "both";
   if (/\bsp\b.*\brio\b/.test(text)) return "increasing";
   if (/\brio\b.*\bsp\b/.test(text)) return "decreasing";
-  if (text.includes("crescente")) return "increasing";
-  if (text.includes("decrescente")) return "decreasing";
+  if (hasCrescente) return "increasing";
+  if (hasDecrescente) return "decreasing";
   return "unknown";
+}
+
+function isFederalAnttPoint(point: Pick<TollPoint, "regulator" | "jurisdiction">): boolean {
+  return point.regulator === "ANTT" && point.jurisdiction === "federal";
 }
 
 function isActiveCalculationPoint(point: RawTollPoint): boolean {
@@ -155,76 +182,83 @@ function kmMatches(point: TollPoint, candidates: Array<string | number>): boolea
   });
 }
 
+function getOfficialAnttKey(point: Pick<TollPoint, "roadNormalized" | "uf" | "km">): string {
+  return [normalizeOfficialRoadKey(point.roadNormalized), point.uf, normalizeKmKey(point.km)].join("|");
+}
+
+function getOfficialOverrideKey(override: FederalAnttTollOfficialOverride): string {
+  return [normalizeOfficialRoadKey(override.road), override.uf, normalizeKmKey(override.km)].join("|");
+}
+
+const FEDERAL_ANTT_OFFICIAL_OVERRIDES_BY_KEY = FEDERAL_ANTT_OFFICIAL_OVERRIDES.reduce(
+  (map, override) => {
+    const key = getOfficialOverrideKey(override);
+    const values = map.get(key) ?? [];
+    values.push(override);
+    map.set(key, values);
+    return map;
+  },
+  new Map<string, FederalAnttTollOfficialOverride[]>(),
+);
+
+function isOfficialDirectionCompatible(point: TollPoint, override: FederalAnttTollOfficialOverride): boolean {
+  const officialDirection = normalizeDirection(override.direction);
+
+  if (point.directionNormalized === "both") return officialDirection === "both";
+  if (officialDirection === "both") return false;
+
+  return officialDirection === point.directionNormalized;
+}
+
+function getOfficialOverride(point: TollPoint): FederalAnttTollOfficialOverride | undefined {
+  if (!isFederalAnttPoint(point)) return undefined;
+  return (FEDERAL_ANTT_OFFICIAL_OVERRIDES_BY_KEY.get(getOfficialAnttKey(point)) ?? [])
+    .find((override) => isOfficialDirectionCompatible(point, override));
+}
+
 function findCoordinateOverride(point: TollPoint) {
   const city = normalizeText(point.city);
   const name = normalizeText(point.name);
+  const direction = normalizeText(point.direction);
 
   return TOLL_POINT_COORDINATE_OVERRIDES.find((override) => (
     point.uf === override.uf &&
     point.roadNormalized === override.roadNormalized &&
     city.includes(override.cityIncludes) &&
     (!override.nameIncludes || override.nameIncludes.every((part) => name.includes(part))) &&
+    (!override.directionIncludes || direction.includes(override.directionIncludes)) &&
+    (!override.directionNormalized || override.directionNormalized === point.directionNormalized) &&
     kmMatches(point, override.kmCandidates)
   ));
 }
 
-function isSantaIsabelDutraPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-  const concessionaire = normalizeText(point.concessionaire);
+function applyOfficialAnttOverride(point: TollPoint): TollPoint[] {
+  if (!isFederalAnttPoint(point)) return [point];
+  if (FEDERAL_ANTT_OFFICIAL_EXCLUDED_IDS.has(point.id)) return [];
 
-  return (
-    point.uf === "SP" &&
-    point.roadNormalized === "BR-116" &&
-    (city.includes("santa isabel") || name.includes("santa isabel")) &&
-    (
-      concessionaire.includes("dutra") ||
-      concessionaire.includes("riosp") ||
-      concessionaire.includes("rio sp") ||
-      concessionaire.includes("nova dutra")
-    )
-  );
-}
+  const official = getOfficialOverride(point);
+  if (!official) return [point];
 
-function isViuvaGracaSeropedicaPoint(point: TollPoint): boolean {
-  const city = normalizeText(point.city);
-  const name = normalizeText(point.name);
-
-  return (
-    point.uf === "RJ" &&
-    point.roadNormalized === "BR-116" &&
-    city.includes("seropedica") &&
-    name.includes("viuva graca")
-  );
-}
-
-function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
-  if (!isSantaIsabelDutraPoint(point)) return [point];
+  const officialDirectionNormalized = normalizeDirection(official.direction);
+  const officialRoadNormalized = normalizeRoad(official.road);
 
   return [
     {
       ...point,
-      id: `${point.id}_sentido_sp_rio`,
-      name: `${point.name} - Sentido SP-Rio`,
-      direction: "SP - Rio",
-      directionNormalized: "increasing",
-      lat: -23.3466529,
-      lon: -46.1648116,
-      coordinateRole: "directional_plaza",
-      expectedHeadingDegrees: 61,
-      headingToleranceDegrees: 75,
-    },
-    {
-      ...point,
-      id: `${point.id}_sentido_rio_sp`,
-      name: `${point.name} - Sentido Rio-SP`,
-      direction: "Rio - SP",
-      directionNormalized: "decreasing",
-      lat: -23.3387745,
-      lon: -46.1502881,
-      coordinateRole: "directional_plaza",
-      expectedHeadingDegrees: 241,
-      headingToleranceDegrees: 75,
+      name: official.name,
+      concessionaire: official.concessionaire,
+      road: official.road,
+      roadNormalized: officialRoadNormalized,
+      km: official.km,
+      kmNumber: parseKm(official.km),
+      city: official.city,
+      direction: official.direction,
+      directionNormalized: officialDirectionNormalized,
+      lat: official.lat,
+      lon: official.lon,
+      coordinateRole: "plaza_center",
+      expectedHeadingDegrees: null,
+      headingToleranceDegrees: null,
     },
   ];
 }
@@ -232,39 +266,111 @@ function expandDirectionalOverrides(point: TollPoint): TollPoint[] {
 function applySinglePointOverrides(point: TollPoint): TollPoint[] {
   const coordinateOverride = findCoordinateOverride(point);
 
-  if (coordinateOverride) {
-    return [
-      {
-        ...point,
-        lat: coordinateOverride.lat,
-        lon: coordinateOverride.lon,
-        coordinateRole: "plaza_center",
-        expectedHeadingDegrees: null,
-        headingToleranceDegrees: null,
-      },
-    ];
-  }
-
-  if (!isViuvaGracaSeropedicaPoint(point)) return [point];
-
-  const name = normalizeText(point.name);
-  const concessionaire = normalizeText(point.concessionaire);
-
-  if (name.includes("norte") || concessionaire.includes("riosp") || concessionaire.includes("rio sp")) {
-    return [];
-  }
+  if (!coordinateOverride) return [point];
 
   return [
     {
       ...point,
-      name: "P04 Viúva Graça",
-      direction: "Crescente/Decrescente",
-      directionNormalized: "both",
-      lat: -22.7163169,
-      lon: -43.7166143,
+      lat: coordinateOverride.lat,
+      lon: coordinateOverride.lon,
       coordinateRole: "plaza_center",
       expectedHeadingDegrees: null,
       headingToleranceDegrees: null,
+    },
+  ];
+}
+
+function applyChargeGroups(points: TollPoint[]): TollPoint[] {
+  return points.map((point) => {
+    const normalizedName = normalizeText(point.name);
+    const normalizedCity = normalizeText(point.city);
+    const normalizedConcessionaireKey = normalizeText(point.concessionaire).replace(/\s+/g, "");
+    const isRiospBr116 = point.roadNormalized === "BR-116" && normalizedConcessionaireKey.includes("riosp");
+
+    if (isRiospBr116 && normalizedName.includes("aruja")) {
+      return { ...point, chargeGroupId: "br116-aruja-riosp" };
+    }
+    if (isRiospBr116 && normalizedName.includes("itatiaia")) {
+      return { ...point, chargeGroupId: "br116-itatiaia-riosp" };
+    }
+    if (point.roadNormalized === "SP-021" && normalizedCity.includes("barueri") && normalizedName.includes("castello branco")) {
+      return { ...point, chargeGroupId: "sp021-barueri-praca" };
+    }
+    if (
+      point.roadNormalized === "BR-116" &&
+      point.uf === "RJ" &&
+      normalizedCity.includes("seropedica") &&
+      (normalizedName.includes("p04 viuva graca") || normalizedName.includes("viuva graca norte"))
+    ) {
+      return { ...point, chargeGroupId: VIUVA_GRACA_P04_CHARGE_GROUP_ID };
+    }
+    return point;
+  });
+}
+
+function createManualBarueriPoints(points: TollPoint[]): TollPoint[] {
+  const barueriBase = points.find((point) =>
+    point.roadNormalized === "SP-021" &&
+    normalizeText(point.city).includes("barueri") &&
+    normalizeText(point.name).includes("castello branco") &&
+    Object.values(point.tariffs).some((value) => typeof value === "number" && value > 0),
+  );
+
+  if (!barueriBase) {
+    if (typeof console !== "undefined") {
+      console.warn("[tollPoints] base de Barueri (SP-021/Castello Branco) não encontrada; pontos manuais não foram criados.");
+    }
+    return [];
+  }
+
+  const createBarueri = (id: string, lat: number, lon: number): TollPoint => ({
+    ...barueriBase,
+    id,
+    name: "Praça de Pedágio Barueri",
+    direction: "Ambos",
+    directionNormalized: "both",
+    lat,
+    lon,
+    routeCorridorKm: 0.015,
+    chargeGroupId: "sp021-barueri-praca",
+    coordinateRole: "plaza_center",
+    expectedHeadingDegrees: null,
+    headingToleranceDegrees: null,
+  });
+
+  return [
+    createBarueri("sp_manual_barueri_praca_1", -23.510277, -46.817398),
+    createBarueri("sp_manual_barueri_praca_2", -23.509659, -46.817017),
+  ];
+}
+
+function getFederalAnttSplitChargeGroupId(point: TollPoint): string {
+  return point.chargeGroupId ?? `federal-antt-split:${point.id}`;
+}
+
+function expandFederalAnttDirections(point: TollPoint): TollPoint[] {
+  if (!isFederalAnttPoint(point) || point.directionNormalized !== "both") return [point];
+
+  const chargeGroupId = getFederalAnttSplitChargeGroupId(point);
+
+  return [
+    {
+      ...point,
+      id: `${point.id}_sentido_crescente`,
+      name: `${point.name} - Sentido Crescente`,
+      direction: "Crescente",
+      directionNormalized: "increasing",
+      coordinateRole: "directional_plaza",
+      chargeGroupId,
+    },
+    {
+      ...point,
+      id: `${point.id}_sentido_decrescente`,
+      name: `${point.name} - Sentido Decrescente`,
+      direction: "Decrescente",
+      directionNormalized: "decreasing",
+      coordinateRole: "directional_plaza",
+      chargeGroupId,
     },
   ];
 }
@@ -306,8 +412,15 @@ function mapTollPoint(point: RawTollPoint): TollPoint | null {
   };
 }
 
-export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = (activeTollPointsData as RawTollPoint[])
+const BASE_TOLL_POINTS: TollPoint[] = (activeTollPointsData as RawTollPoint[])
   .map(mapTollPoint)
   .filter((point): point is TollPoint => Boolean(point))
-  .flatMap(expandDirectionalOverrides)
-  .flatMap(applySinglePointOverrides);
+  .flatMap(applyOfficialAnttOverride)
+  .flatMap(applySinglePointOverrides)
+  .flatMap(expandFederalAnttDirections);
+
+const GROUPED_TOLL_POINTS: TollPoint[] = applyChargeGroups(BASE_TOLL_POINTS);
+
+export const MANUAL_TOLL_POINTS: readonly TollPoint[] = createManualBarueriPoints(GROUPED_TOLL_POINTS);
+
+export const SPACE_TRUCK_TOLL_POINTS: readonly TollPoint[] = [...GROUPED_TOLL_POINTS, ...MANUAL_TOLL_POINTS];
