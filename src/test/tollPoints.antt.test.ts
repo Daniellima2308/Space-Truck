@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { SPACE_TRUCK_TOLL_POINTS } from "@/lib/tollPoints";
+import { SPACE_TRUCK_TOLL_POINTS, VIUVA_GRACA_P04_CHARGE_GROUP_ID } from "@/lib/tollPoints";
 
 const federalAnttPoints = SPACE_TRUCK_TOLL_POINTS.filter(
   (point) => point.regulator === "ANTT" && point.jurisdiction === "federal",
@@ -41,5 +41,25 @@ describe("ANTT federal toll synchronization", () => {
       "P05 Viúva Graça (B) - Sentido Decrescente|Decrescente|-22.715213|-43.730252",
       "Viúva Graça Norte|Decrescente|-22.716155|-43.716697",
     ]);
+  });
+
+  it("groups only P04 and Viúva Graça Norte under the shared charge group id", () => {
+    const viuvaGracaPoints = federalAnttPoints.filter((point) =>
+      point.roadNormalized === "BR-116" &&
+      point.uf === "RJ" &&
+      point.city === "Seropédica" &&
+      point.name.toLowerCase().includes("viúva graça"),
+    );
+
+    const p04AndNorth = viuvaGracaPoints.filter((point) =>
+      point.name.includes("P04 Viúva Graça") || point.name.includes("Viúva Graça Norte"),
+    );
+    const p05 = viuvaGracaPoints.filter((point) => point.name.includes("P05 Viúva Graça (B)"));
+
+    // P04 é expandido em Crescente/Decrescente, e Viúva Graça Norte é um ponto direcional separado.
+    expect(p04AndNorth).toHaveLength(3);
+    expect(p04AndNorth.every((point) => point.chargeGroupId === VIUVA_GRACA_P04_CHARGE_GROUP_ID)).toBe(true);
+    expect(p05).toHaveLength(2);
+    expect(p05.some((point) => point.chargeGroupId === VIUVA_GRACA_P04_CHARGE_GROUP_ID)).toBe(false);
   });
 });
