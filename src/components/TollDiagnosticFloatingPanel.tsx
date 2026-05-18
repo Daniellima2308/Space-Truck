@@ -7,10 +7,9 @@ import {
   getTollDiagnosticTitle,
 } from "@/lib/tollDiagnosticView";
 import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
-import { isDevPreviewActive } from "@/lib/devPreview";
-
-const DEBUG_TOLLS_STORAGE_KEY = "spaceTruck.debugTolls";
-const DEBUG_TOLLS_QUERY_PARAM = "debugTolls";
+import { useAuth } from "@/context/auth-context";
+import { isApprovedAdminAccessProfile } from "@/features/access/accessTypes";
+import { useAccessProfile } from "@/features/access/useAccessProfile";
 
 type TollIssueType =
   | "missing_toll"
@@ -69,15 +68,8 @@ function findTollFieldGrid(): HTMLElement | null {
   return fallbackInput?.parentElement?.parentElement ?? null;
 }
 
-function isInternalTollDiagnosticsEnabled(): boolean {
-  if (import.meta.env.DEV) return true;
-  if (typeof window === "undefined") return false;
-
-  const debugFromDevPreview = isDevPreviewActive();
-  const debugFromStorage = window.localStorage.getItem(DEBUG_TOLLS_STORAGE_KEY) === "true";
-  const debugFromQuery = new URLSearchParams(window.location.search).get(DEBUG_TOLLS_QUERY_PARAM) === "1";
-
-  return debugFromDevPreview || debugFromStorage || debugFromQuery;
+function isInternalTollDiagnosticsEnabled(isAdminAccessProfile: boolean): boolean {
+  return isAdminAccessProfile || import.meta.env.DEV;
 }
 
 function getNearMissReasonLabel(reason: string): string {
@@ -241,6 +233,8 @@ function TollIssuePointSelector({
 }
 
 export function TollDiagnosticFloatingPanel() {
+  const { user } = useAuth();
+  const accessProfileQuery = useAccessProfile(user?.id);
   const [diagnostic, setDiagnostic] = useState<TollRouteDiagnostic | null>(null);
   const [open, setOpen] = useState(false);
   const [buttonContainer, setButtonContainer] = useState<HTMLElement | null>(null);
@@ -309,13 +303,14 @@ export function TollDiagnosticFloatingPanel() {
     setReportMessage("");
     setReportTollId("");
     setReportType("wrong_value");
-  }, [open, diagnostic]);
+  }, [open]);
 
   const title = useMemo(() => {
     return diagnostic ? getTollDiagnosticTitle(diagnostic) : "Pedágios da rota";
   }, [diagnostic]);
 
-  const showInternalDiagnostics = useMemo(() => isInternalTollDiagnosticsEnabled(), [diagnostic]);
+  const isAdminAccessProfile = isApprovedAdminAccessProfile(accessProfileQuery.data);
+  const showInternalDiagnostics = isInternalTollDiagnosticsEnabled(isAdminAccessProfile);
 
   const closePanel = () => setOpen(false);
 
@@ -331,7 +326,7 @@ export function TollDiagnosticFloatingPanel() {
   };
 
   const handleIssueReportSubmit = () => {
-    if (!diagnostic || typeof window === "undefined") return;
+    if (!diagnostic || typeof window === "undefined" || reportSent) return;
 
     const selectedToll = diagnostic.items.find((item) => item.id === reportTollId) ?? null;
     const reportPayload = {
@@ -340,11 +335,29 @@ export function TollDiagnosticFloatingPanel() {
       selectedTollName: selectedToll?.name ?? null,
       message: reportMessage.trim() || null,
       createdAt: new Date().toISOString(),
-      diagnosticSnapshot: diagnostic,
+      diagnosticSummary: {
+        source: diagnostic.source,
+        tollCount: diagnostic.tollCount,
+        total: diagnostic.total,
+        routeCorridorKm: diagnostic.routeCorridorKm,
+        chargedTolls: diagnostic.items.map((item) => ({
+          id: item.id,
+          order: item.order,
+          name: item.name,
+          value: item.value,
+          road: item.road,
+          km: item.km,
+          city: item.city,
+          uf: item.uf,
+          concessionaire: item.concessionaire,
+        })),
+      },
     };
 
     window.dispatchEvent(new CustomEvent("space-truck:toll-issue-report", { detail: reportPayload }));
-    console.info("[Space Truck] Toll issue report payload", reportPayload);
+    if (import.meta.env.DEV) {
+      console.info("[Space Truck] Toll issue report payload", reportPayload);
+    }
     setReportSent(true);
   };
 
@@ -532,10 +545,11 @@ export function TollDiagnosticFloatingPanel() {
 
                     <button
                       type="button"
+                      disabled={reportSent}
                       onClick={handleIssueReportSubmit}
-                      className="h-12 w-full rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm transition active:scale-[0.98]"
+                      className="h-12 w-full rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
                     >
-                      Enviar relatório
+                      {reportSent ? "Relatório enviado" : "Enviar relatório"}
                     </button>
 
                     {reportSent && (
@@ -553,7 +567,7 @@ export function TollDiagnosticFloatingPanel() {
                     <p className="text-[10px] font-black uppercase tracking-[0.18em] text-warning">Diagnóstico interno</p>
                     <h3 className="mt-1 text-lg font-black text-foreground">Pedágios próximos não cobrados</h3>
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Visível apenas em dev preview, modo interno, ou ?{DEBUG_TOLLS_QUERY_PARAM}=1.
+                      Visível apenas para admin aprovado ou ambiente de desenvolvimento.
                     </p>
                   </div>
 
