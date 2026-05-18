@@ -10,14 +10,14 @@ import { TomTomTollDiagnosticMap } from "@/components/TomTomTollDiagnosticMap";
 import { useAuth } from "@/context/auth-context";
 import { isApprovedAdminAccessProfile } from "@/features/access/accessTypes";
 import { useAccessProfile } from "@/features/access/useAccessProfile";
+import {
+  createTollIssueReportPayload,
+  getTollIssueSelectionKey,
+  type TollIssueType,
+} from "@/lib/tollIssueReport";
 
-type TollIssueType =
-  | "missing_toll"
-  | "wrong_value"
-  | "wrong_name"
-  | "duplicate_toll"
-  | "wrong_route"
-  | "other";
+const REPORT_FORM_ID = "toll-issue-report-form";
+const REPORT_PANEL_ID = "toll-issue-report-panel";
 
 const TOLL_ISSUE_TYPES: readonly { value: TollIssueType; label: string; description: string }[] = [
   {
@@ -194,14 +194,15 @@ function TollIssuePointSelector({
 
       <div className="max-h-64 space-y-2 overflow-y-auto pr-1">
         {items.map((item) => {
-          const selected = value === item.id;
+          const selectionKey = getTollIssueSelectionKey(item);
+          const selected = value === selectionKey;
           return (
             <button
-              key={`${item.id}-${item.order}`}
+              key={selectionKey}
               type="button"
               role="radio"
               aria-checked={selected}
-              onClick={() => onChange(item.id)}
+              onClick={() => onChange(selectionKey)}
               className={`w-full rounded-2xl border p-3 text-left transition active:scale-[0.99] ${
                 selected ? "border-primary/70 bg-primary/10 ring-2 ring-primary/15" : "border-border bg-background hover:border-primary/40 hover:bg-muted/20"
               }`}
@@ -242,7 +243,7 @@ export function TollDiagnosticFloatingPanel() {
   const [focusRequestKey, setFocusRequestKey] = useState(0);
   const [reportOpen, setReportOpen] = useState(false);
   const [reportType, setReportType] = useState<TollIssueType>("wrong_value");
-  const [reportTollId, setReportTollId] = useState<string>("");
+  const [reportTollKey, setReportTollKey] = useState<string>("");
   const [reportMessage, setReportMessage] = useState("");
   const [reportSent, setReportSent] = useState(false);
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
@@ -301,7 +302,7 @@ export function TollDiagnosticFloatingPanel() {
     setReportOpen(false);
     setReportSent(false);
     setReportMessage("");
-    setReportTollId("");
+    setReportTollKey("");
     setReportType("wrong_value");
   }, [open]);
 
@@ -325,34 +326,16 @@ export function TollDiagnosticFloatingPanel() {
     mapSectionRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
   };
 
-  const handleIssueReportSubmit = () => {
+  const handleIssueReportSubmit = (event?: React.FormEvent<HTMLFormElement>) => {
+    event?.preventDefault();
     if (!diagnostic || typeof window === "undefined" || reportSent) return;
 
-    const selectedToll = diagnostic.items.find((item) => item.id === reportTollId) ?? null;
-    const reportPayload = {
+    const reportPayload = createTollIssueReportPayload({
       type: reportType,
-      selectedTollId: reportTollId || null,
-      selectedTollName: selectedToll?.name ?? null,
-      message: reportMessage.trim() || null,
-      createdAt: new Date().toISOString(),
-      diagnosticSummary: {
-        source: diagnostic.source,
-        tollCount: diagnostic.tollCount,
-        total: diagnostic.total,
-        routeCorridorKm: diagnostic.routeCorridorKm,
-        chargedTolls: diagnostic.items.map((item) => ({
-          id: item.id,
-          order: item.order,
-          name: item.name,
-          value: item.value,
-          road: item.road,
-          km: item.km,
-          city: item.city,
-          uf: item.uf,
-          concessionaire: item.concessionaire,
-        })),
-      },
-    };
+      selectedTollKey: reportTollKey,
+      message: reportMessage,
+      diagnostic,
+    });
 
     window.dispatchEvent(new CustomEvent("space-truck:toll-issue-report", { detail: reportPayload }));
     if (import.meta.env.DEV) {
@@ -488,6 +471,8 @@ export function TollDiagnosticFloatingPanel() {
                   </div>
                   <button
                     type="button"
+                    aria-expanded={reportOpen}
+                    aria-controls={REPORT_PANEL_ID}
                     onClick={() => {
                       setReportOpen((current) => !current);
                       setReportSent(false);
@@ -499,8 +484,14 @@ export function TollDiagnosticFloatingPanel() {
                 </div>
 
                 {reportOpen && (
-                  <div className="mt-4 space-y-4 rounded-[1.5rem] border border-border bg-card p-4">
+                  <form
+                    id={REPORT_PANEL_ID}
+                    aria-labelledby={`${REPORT_FORM_ID}-title`}
+                    onSubmit={handleIssueReportSubmit}
+                    className="mt-4 space-y-4 rounded-[1.5rem] border border-border bg-card p-4"
+                  >
                     <div>
+                      <p id={`${REPORT_FORM_ID}-title`} className="sr-only">Relatar erro no pedágio</p>
                       <p className="text-[11px] font-black uppercase tracking-[0.14em] text-muted-foreground">
                         Tipo de problema
                       </p>
@@ -518,9 +509,9 @@ export function TollDiagnosticFloatingPanel() {
                         Praça relacionada
                       </p>
                       <TollIssuePointSelector
-                        value={reportTollId}
+                        value={reportTollKey}
                         onChange={(value) => {
-                          setReportTollId(value);
+                          setReportTollKey(value);
                           setReportSent(false);
                         }}
                         items={diagnostic.items}
@@ -544,9 +535,8 @@ export function TollDiagnosticFloatingPanel() {
                     </div>
 
                     <button
-                      type="button"
+                      type="submit"
                       disabled={reportSent}
-                      onClick={handleIssueReportSubmit}
                       className="h-12 w-full rounded-2xl bg-primary text-sm font-black text-primary-foreground shadow-sm transition active:scale-[0.98] disabled:opacity-50 disabled:active:scale-100"
                     >
                       {reportSent ? "Relatório enviado" : "Enviar relatório"}
@@ -557,7 +547,7 @@ export function TollDiagnosticFloatingPanel() {
                         Relatório registrado para revisão: {reportTypeLabel}. Obrigado por ajudar a melhorar a base de pedágios.
                       </div>
                     )}
-                  </div>
+                  </form>
                 )}
               </section>
 
