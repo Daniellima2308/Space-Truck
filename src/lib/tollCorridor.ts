@@ -8,7 +8,7 @@ function isBr116PfeFreeFlow(point: TollPoint): boolean {
   return point.roadNormalized === "BR-116" && /\bpfe\d{3}\b/.test(identity);
 }
 
-export function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
+function getBasePointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
   if (typeof point.routeCorridorKm === "number" && point.routeCorridorKm > 0) {
     return Math.min(routeCorridorKm, point.routeCorridorKm);
   }
@@ -20,11 +20,15 @@ export function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: numbe
   return routeCorridorKm;
 }
 
+export function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
+  return getBasePointRouteCorridorKm(point, routeCorridorKm) + ROUTE_CORRIDOR_EDGE_TOLERANCE_KM;
+}
+
 export function isInsidePointRouteCorridor(params: {
   distanceFromRouteKm: number;
   point: TollPoint;
   routeCorridorKm: number;
 }): boolean {
   const pointRouteCorridorKm = getPointRouteCorridorKm(params.point, params.routeCorridorKm);
-  return params.distanceFromRouteKm <= pointRouteCorridorKm + ROUTE_CORRIDOR_EDGE_TOLERANCE_KM;
+  return params.distanceFromRouteKm <= pointRouteCorridorKm;
 }
