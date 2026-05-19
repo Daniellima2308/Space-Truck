@@ -6,7 +6,7 @@ import {
   type TollDirectionNormalized,
   type TollPoint,
 } from "@/lib/tollPoints";
-import { getPointRouteCorridorKm, isInsidePointRouteCorridor } from "@/lib/tollCorridor";
+import { isInsidePointRouteCorridor } from "@/lib/tollCorridor";
 
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
@@ -501,7 +501,6 @@ export function calculateRouteToll({
         { lat: point.lat, lon: point.lon },
         normalizedPath,
       );
-      const pointRouteCorridorKm = getPointRouteCorridorKm(point, routeCorridorKm);
 
       if (!isInsidePointRouteCorridor({
         distanceFromRouteKm: projection.distanceFromRouteKm,
