@@ -21,7 +21,7 @@ function getBasePointRouteCorridorKm(point: TollPoint, routeCorridorKm: number):
 }
 
 export function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: number): number {
-  return getBasePointRouteCorridorKm(point, routeCorridorKm) + ROUTE_CORRIDOR_EDGE_TOLERANCE_KM;
+  return getBasePointRouteCorridorKm(point, routeCorridorKm);
 }
 
 export function isInsidePointRouteCorridor(params: {
@@ -29,6 +29,6 @@ export function isInsidePointRouteCorridor(params: {
   point: TollPoint;
   routeCorridorKm: number;
 }): boolean {
-  const pointRouteCorridorKm = getPointRouteCorridorKm(params.point, params.routeCorridorKm);
-  return params.distanceFromRouteKm <= pointRouteCorridorKm;
+  const pointRouteCorridorKm = getBasePointRouteCorridorKm(params.point, params.routeCorridorKm);
+  return params.distanceFromRouteKm <= pointRouteCorridorKm + ROUTE_CORRIDOR_EDGE_TOLERANCE_KM;
 }
