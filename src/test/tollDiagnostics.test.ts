@@ -73,7 +73,7 @@ describe("tollDiagnostics", () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
       reason: "outside_route_corridor",
-      routeCorridorKm: 0.025,
+      routeCorridorKm: 0.02,
     });
     expect(diagnostics[0].distanceFromRouteKm).toBeGreaterThan(0.025);
     expect(diagnostics[0].distanceFromRouteKm).toBeLessThan(0.05);
