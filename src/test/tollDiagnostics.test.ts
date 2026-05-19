@@ -30,10 +30,32 @@ function buildTollPoint(overrides: Partial<TollPoint> & Pick<TollPoint, "id" | "
     coordinateRole: overrides.coordinateRole ?? "directional_gantry",
     expectedHeadingDegrees: overrides.expectedHeadingDegrees ?? null,
     headingToleranceDegrees: overrides.headingToleranceDegrees ?? null,
+    routeCorridorKm: overrides.routeCorridorKm,
   };
 }
 
 describe("tollDiagnostics", () => {
+  it("não marca como fora do corredor uma praça dentro da tolerância de borda", () => {
+    const diagnostics = getRouteTollDiagnostics({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "edge-default",
+          name: "Pedágio na borda",
+          lat: 0.00049,
+          lon: 0.5,
+          direction: "ambos",
+          directionNormalized: "both",
+          road: "BR-000",
+          roadNormalized: "BR-000",
+        }),
+      ],
+    });
+
+    expect(diagnostics).toHaveLength(0);
+  });
+
   it("explica quando um PFE da BR-116 fica fora do corredor específico de 20 metros", () => {
     const diagnostics = getRouteTollDiagnostics({
       routePath: straightRoute,
@@ -51,9 +73,9 @@ describe("tollDiagnostics", () => {
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
       reason: "outside_route_corridor",
-      routeCorridorKm: 0.02,
+      routeCorridorKm: 0.025,
     });
-    expect(diagnostics[0].distanceFromRouteKm).toBeGreaterThan(0.02);
+    expect(diagnostics[0].distanceFromRouteKm).toBeGreaterThan(0.025);
     expect(diagnostics[0].distanceFromRouteKm).toBeLessThan(0.05);
   });
 
