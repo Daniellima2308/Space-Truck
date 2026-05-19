@@ -5,7 +5,7 @@ import {
   type TollDirectionNormalized,
   type TollPoint,
 } from "@/lib/tollPoints";
-import { getPointRouteCorridorKm } from "@/lib/tollCorridor";
+import { getPointRouteCorridorKm, isInsidePointRouteCorridor } from "@/lib/tollCorridor";
 
 const EARTH_RADIUS_KM = 6371;
 const DEFAULT_ROUTE_CORRIDOR_KM = 0.05;
@@ -391,7 +391,11 @@ export function getRouteTollDiagnostics({
       routeCorridorKm: pointRouteCorridorKm,
     });
 
-    if (projection.distanceFromRouteKm > pointRouteCorridorKm) {
+    if (!isInsidePointRouteCorridor({
+      distanceFromRouteKm: projection.distanceFromRouteKm,
+      point,
+      routeCorridorKm,
+    })) {
       diagnostics.push(buildDiagnostic(candidate, "outside_route_corridor"));
       continue;
     }
