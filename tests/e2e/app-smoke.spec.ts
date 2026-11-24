@@ -13,4 +13,14 @@ test.describe("Space Truck app smoke", () => {
     await expect(appRoot).toBeVisible();
     await expect(appRoot).toContainText(/a rota do lucro real|acesso antecipado|quero acesso antecipado/i);
   });
+
+  test("redirects a signed-out trip link to login and opens password recovery", async ({ page }) => {
+    await resetBrowserState(page);
+    await page.goto("/trip/ativa");
+    await expect(page).toHaveURL(/\/login$/);
+    await page.getByRole("link", { name: "Esqueci minha senha" }).click();
+    await expect(page).toHaveURL(/\/forgot-password$/);
+    await page.goBack();
+    await expect(page).toHaveURL(/\/login$/);
+  });
 });
