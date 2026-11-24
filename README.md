@@ -29,8 +29,8 @@ O projeto não é tratado como um app genérico de cadastro. As telas, dados e f
 
 ## Requisitos
 
-- Node 20.x
-- npm 10.x
+- Node 24.x
+- npm 11.x
 
 ## Setup local
 
