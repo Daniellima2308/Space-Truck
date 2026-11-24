@@ -1,8 +1,10 @@
 import { spawn } from "node:child_process";
 import { createRequire } from "node:module";
+import { dirname, resolve } from "node:path";
 
 const require = createRequire(import.meta.url);
-const vitestCli = require.resolve("vitest/vitest.mjs");
+const manifestPath = require.resolve("vitest/package.json");
+const vitestCli = resolve(dirname(manifestPath), require(manifestPath).bin.vitest);
 
 const rawArgs = process.argv.slice(2);
 const command = rawArgs[0] && !rawArgs[0].startsWith("-") ? rawArgs[0] : "run";
