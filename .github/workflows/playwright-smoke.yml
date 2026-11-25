@@ -20,7 +20,8 @@ concurrency:
 jobs:
   smoke:
     name: Run Playwright smoke test
-    runs-on: ubuntu-latest
+    # O Playwright 1.57 oferece suporte ao Chromium no Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
