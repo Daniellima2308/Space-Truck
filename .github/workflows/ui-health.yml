@@ -20,7 +20,8 @@ concurrency:
 jobs:
   accessibility:
     name: Run critical accessibility smoke test
-    runs-on: ubuntu-latest
+    # Playwright 1.57 ships Chromium for Ubuntu 24.04.
+    runs-on: ubuntu-24.04
     timeout-minutes: 20
 
     steps:
