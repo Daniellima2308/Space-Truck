@@ -29,7 +29,7 @@ O projeto não é tratado como um app genérico de cadastro. As telas, dados e f
 
 ## Requisitos
 
-- Node 24.x
+- Node 26.x
 - npm 11.x
 
 ## Setup local

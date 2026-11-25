@@ -7,7 +7,7 @@ Esta auditoria registra pontos encontrados na organização do repositório e or
 | Item | Situação |
 | --- | --- |
 | `README.md` | Reescrito para representar o projeto Space Truck, com setup local, variáveis de ambiente, comandos úteis, fluxo de desenvolvimento e referência ao Storybook. |
-| Ambiente Codespaces/Node | Padronizado com `.nvmrc`, `.node-version` e `.devcontainer/devcontainer.json` usando Node 24. |
+| Ambiente Codespaces/Node | Padronizado com `.nvmrc`, `.node-version` e `.devcontainer/devcontainer.json` usando Node 26. |
 | Artefatos locais de ferramentas | `.gitignore` ignora `.codex`, `.codex/` e temporários `vitest.config.ts.timestamp-*.mjs`. |
 | `src/pages/Index.tsx` | Removido por ser uma página antiga de fallback sem uso na rota raiz atual. |
 | `.lovable/plan.md` | Removido por ser um plano antigo da Lovable que não deve orientar o trabalho atual. |
