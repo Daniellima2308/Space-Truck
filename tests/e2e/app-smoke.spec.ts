@@ -20,6 +20,7 @@ test.describe("Space Truck app smoke", () => {
     await expect(page).toHaveURL(/\/login$/);
     await page.getByRole("link", { name: "Esqueci minha senha" }).click();
     await expect(page).toHaveURL(/\/forgot-password$/);
+    await expect(page.getByRole("button", { name: "Enviar link de recuperação" })).toBeVisible();
     await page.goBack();
     await expect(page).toHaveURL(/\/login$/);
   });
