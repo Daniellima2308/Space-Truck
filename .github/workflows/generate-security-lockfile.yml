@@ -1,0 +1,45 @@
+name: Generate security lockfile
+on:
+  push:
+    branches:
+      - manutencao/audit-lockfile
+permissions:
+  contents: read
+jobs:
+  generate:
+    name: Resolve patched dependencies
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Resolve lockfile without running install scripts
+        run: |
+          cp package-lock.json /tmp/old-lock.json
+          npm install --package-lock-only --ignore-scripts --no-audit --no-fund
+      - name: Report resolved changes
+        run: |
+          node --input-type=module <<'NODE'
+          import fs from 'node:fs';
+          import crypto from 'node:crypto';
+          const before = JSON.parse(fs.readFileSync('/tmp/old-lock.json', 'utf8'));
+          const after = JSON.parse(fs.readFileSync('package-lock.json', 'utf8'));
+          const old = before.packages;
+          const next = after.packages;
+          const changes = Object.entries(next).filter(([key, value]) => JSON.stringify(old[key]) !== JSON.stringify(value));
+          const removed = Object.keys(old).filter(key => !(key in next));
+          const rest = Object.fromEntries(Object.entries(after).filter(([key]) => key !== 'packages'));
+          const patch = JSON.stringify({changes, removed, rest, order:Object.keys(next)});
+          const encoded = Buffer.from(patch).toString('base64');
+          for (let i = 0; i < encoded.length; i += 3000) console.log('LOCKPATCH:' + encoded.slice(i, i+3000));
+          console.log('LOCKPATCH_SHA256:' + crypto.createHash('sha256').update(patch).digest('hex'));
+          NODE
+      - name: Audit candidate
+        run: |
+          npm audit --omit=dev --audit-level=moderate
+          npm audit --audit-level=moderate
