@@ -439,6 +439,35 @@ describe("tollEngine", () => {
     expect(result.matches[0].point.id).toBe("duplicate-closer");
   });
 
+  it("usa tolerância de 5 metros para evitar falso negativo na borda do corredor padrão", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "edge-default", lat: 0.00049, lon: 0.4, tariffs: { 6: 10 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.05);
+    expect(result.matches.map((match) => match.point.id)).toEqual(["edge-default"]);
+    expect(result.total).toBe(10);
+  });
+
+  it("mantém fora pontos claramente acima da tolerância de borda do corredor padrão", () => {
+    const result = calculateRouteToll({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({ id: "outside-edge-default", lat: 0.00065, lon: 0.4, tariffs: { 6: 10 } }),
+      ],
+    });
+
+    expect(result.routeCorridorKm).toBe(0.05);
+    expect(result.matches).toHaveLength(0);
+    expect(result.total).toBe(0);
+    expect(result.source).toBe("no_toll_points_found");
+  });
+
   it("usa corredor padrão de 50 metros quando nenhum corredor é informado", () => {
     const result = calculateRouteToll({
       routePath: straightRoute,

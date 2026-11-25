@@ -1,6 +1,7 @@
 import type { TollPoint } from "@/lib/tollPoints";
 
 const BR116_PFE_ROUTE_CORRIDOR_KM = 0.02;
+export const ROUTE_CORRIDOR_EDGE_TOLERANCE_KM = 0.005;
 
 function isBr116PfeFreeFlow(point: TollPoint): boolean {
   const identity = `${point.id} ${point.name}`.toLowerCase();
@@ -17,4 +18,13 @@ export function getPointRouteCorridorKm(point: TollPoint, routeCorridorKm: numbe
   }
 
   return routeCorridorKm;
+}
+
+export function isInsidePointRouteCorridor(params: {
+  distanceFromRouteKm: number;
+  point: TollPoint;
+  routeCorridorKm: number;
+}): boolean {
+  const pointRouteCorridorKm = getPointRouteCorridorKm(params.point, params.routeCorridorKm);
+  return params.distanceFromRouteKm <= pointRouteCorridorKm + ROUTE_CORRIDOR_EDGE_TOLERANCE_KM;
 }

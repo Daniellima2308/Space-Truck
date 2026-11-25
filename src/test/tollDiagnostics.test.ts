@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { getRouteTollDiagnostics } from "@/lib/tollDiagnostics";
+import { calculateRouteToll } from "@/lib/tollEngine";
 import type { TollPoint } from "@/lib/tollPoints";
 
 const straightRoute = [
@@ -30,31 +31,74 @@ function buildTollPoint(overrides: Partial<TollPoint> & Pick<TollPoint, "id" | "
     coordinateRole: overrides.coordinateRole ?? "directional_gantry",
     expectedHeadingDegrees: overrides.expectedHeadingDegrees ?? null,
     headingToleranceDegrees: overrides.headingToleranceDegrees ?? null,
+    routeCorridorKm: overrides.routeCorridorKm,
   };
 }
 
 describe("tollDiagnostics", () => {
-  it("explica quando um PFE da BR-116 fica fora do corredor específico de 20 metros", () => {
+  it("não marca como fora do corredor uma praça dentro da tolerância de borda", () => {
     const diagnostics = getRouteTollDiagnostics({
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "edge-default",
+          name: "Pedágio na borda",
+          lat: 0.00049,
+          lon: 0.5,
+          direction: "ambos",
+          directionNormalized: "both",
+          road: "BR-000",
+          roadNormalized: "BR-000",
+        }),
+      ],
+    });
+
+    expect(diagnostics).toHaveLength(0);
+  });
+
+  it("aceita um PFE da BR-116 a 24 metros da rota dentro da tolerância de borda", () => {
+    const params = {
+      routePath: straightRoute,
+      axles: 6,
+      tollPoints: [
+        buildTollPoint({
+          id: "pfe-inside-edge",
+          name: "Free Flow PFE009",
+          lat: 0.000216,
+          lon: 0.5,
+          direction: "ambos",
+          directionNormalized: "both",
+        }),
+      ],
+    };
+
+    expect(calculateRouteToll(params).matches.map(({ point }) => point.id)).toEqual(["pfe-inside-edge"]);
+    expect(getRouteTollDiagnostics(params)).toHaveLength(0);
+  });
+
+  it("explica quando um PFE da BR-116 a 26 metros ultrapassa a tolerância de borda", () => {
+    const params = {
       routePath: straightRoute,
       axles: 6,
       tollPoints: [
         buildTollPoint({
           id: "pfe-outside-20m",
           name: "Free Flow PFE009 - BAIRRO Norte",
-          lat: 0.00025,
+          lat: 0.000234,
           lon: 0.5,
         }),
       ],
-    });
+    };
 
+    const diagnostics = getRouteTollDiagnostics(params);
+    expect(calculateRouteToll(params).matches).toHaveLength(0);
     expect(diagnostics).toHaveLength(1);
     expect(diagnostics[0]).toMatchObject({
       reason: "outside_route_corridor",
       routeCorridorKm: 0.02,
+      distanceFromRouteKm: 0.03,
     });
-    expect(diagnostics[0].distanceFromRouteKm).toBeGreaterThan(0.02);
-    expect(diagnostics[0].distanceFromRouteKm).toBeLessThan(0.05);
   });
 
   it("explica quando uma praça próxima pertence a outra rodovia", () => {
