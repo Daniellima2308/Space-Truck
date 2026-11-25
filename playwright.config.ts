@@ -2,6 +2,7 @@ import { defineConfig, devices } from "@playwright/test";
 
 const localBaseUrl = "http://127.0.0.1:4173";
 const baseUrl = process.env.PLAYWRIGHT_BASE_URL || localBaseUrl;
+const useSystemChrome = process.env.PLAYWRIGHT_USE_SYSTEM_CHROME === "1";
 
 export default defineConfig({
   testDir: "./tests/e2e",
@@ -18,7 +19,8 @@ export default defineConfig({
     baseURL: baseUrl,
     trace: "retain-on-failure",
     screenshot: "only-on-failure",
-    video: "retain-on-failure",
+    // System Chrome does not require a separate Playwright FFmpeg download.
+    video: useSystemChrome ? "off" : "retain-on-failure",
   },
   webServer: process.env.PLAYWRIGHT_BASE_URL
     ? undefined
@@ -31,7 +33,7 @@ export default defineConfig({
   projects: [
     {
       name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
+      use: { ...devices["Desktop Chrome"], ...(useSystemChrome ? { channel: "chrome" as const } : {}) },
     },
   ],
 });
