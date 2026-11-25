@@ -219,7 +219,9 @@ export function FreightTab({
   const [isModeChooserOpen, setIsModeChooserOpen] = useState(false);
   const [selectedModeChoice, setSelectedModeChoice] = useState<"off" | "basic" | "complete" | null>(null);
   const [postCreateFreightId, setPostCreateFreightId] = useState<string | null>(null);
-  const [postCreateModeFreight, setPostCreateModeFreight] = useState<Freight | null>(null);
+  const postCreateModeFreight = postCreateFreightId
+    ? trip.freights.find((freight) => freight.id === postCreateFreightId)
+    : undefined;
   const [isSavingMode, setIsSavingMode] = useState(false);
   const [useCommission, setUseCommission] = useState(false);
   const [comm, setComm] = useState("");
@@ -404,12 +406,6 @@ export function FreightTab({
     setUseCommission(false);
     setComm("");
   }, [showForm, vehicle, defaultCommission]);
-
-  useEffect(() => {
-    if (!postCreateFreightId || postCreateModeFreight) return;
-    const found = trip.freights.find((freight) => freight.id === postCreateFreightId);
-    if (found) setPostCreateModeFreight(found);
-  }, [postCreateFreightId, postCreateModeFreight, trip.freights]);
 
   useEffect(() => {
     setMailReminderByFreight(getMailRemindersFromStorage());
@@ -666,7 +662,6 @@ export function FreightTab({
     if (mode === "off") {
       setIsModeChooserOpen(false);
       setPostCreateFreightId(null);
-      setPostCreateModeFreight(null);
       setSelectedModeChoice(null);
       return;
     }
@@ -696,7 +691,6 @@ export function FreightTab({
         commissionPercent: postCreateModeFreight.commissionPercent,
       });
       setIsModeChooserOpen(false);
-      setPostCreateModeFreight(null);
       setPostCreateFreightId(null);
       setSelectedModeChoice(null);
     } catch (error) {
@@ -2218,7 +2212,6 @@ export function FreightTab({
           if (open || isSavingMode) return;
           setIsModeChooserOpen(false);
           setPostCreateFreightId(null);
-          setPostCreateModeFreight(null);
           setSelectedModeChoice(null);
         }}
       >
