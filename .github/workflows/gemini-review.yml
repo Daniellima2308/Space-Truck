@@ -1,0 +1,57 @@
+name: Gemini code review
+
+on:
+  pull_request_target:
+    branches: [main]
+    types: [opened, reopened, synchronize, ready_for_review]
+  issue_comment:
+    types: [created]
+  workflow_dispatch:
+    inputs:
+      pr_number:
+        description: Número da pull request aberta
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  review:
+    name: Gemini review
+    if: >-
+      github.ref == 'refs/heads/main' &&
+      ((github.event_name == 'pull_request_target' &&
+        !github.event.pull_request.draft &&
+        github.event.pull_request.user.type != 'Bot' &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)) ||
+       (github.event_name == 'issue_comment' &&
+        github.event.issue.pull_request &&
+        (github.event.comment.body == '@gemini-cli /review' || github.event.comment.body == '/gemini review') &&
+        contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
+       github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: gemini-review-${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
+      cancel-in-progress: true
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      # O SHA do evento pull_request_target pertence à base, nunca ao head da PR.
+      - name: Checkout trusted base
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          ref: '${{ github.sha }}'
+          persist-credentials: false
+      - name: Setup Node.js
+        uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5
+        with:
+          node-version-file: .nvmrc
+      - name: Review diff with Gemini
+        run: node scripts/gemini-review.mjs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          GEMINI_MODEL: ${{ vars.GEMINI_REVIEW_MODEL }}
+          PR_NUMBER: ${{ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }}
