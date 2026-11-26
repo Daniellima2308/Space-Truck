@@ -17,10 +17,6 @@ permissions:
   contents: read
   pull-requests: write
 
-concurrency:
-  group: gemini-review-${ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }
-  cancel-in-progress: true
-
 jobs:
   review:
     name: Gemini review
@@ -28,6 +24,7 @@ jobs:
       github.ref == 'refs/heads/main' &&
       ((github.event_name == 'pull_request_target' &&
         !github.event.pull_request.draft &&
+        github.event.pull_request.user.type != 'Bot' &&
         github.event.pull_request.head.repo.full_name == github.repository &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.pull_request.author_association)) ||
        (github.event_name == 'issue_comment' &&
@@ -35,6 +32,9 @@ jobs:
         (github.event.comment.body == '@gemini-cli /review' || github.event.comment.body == '/gemini review') &&
         contains(fromJSON('["OWNER","MEMBER","COLLABORATOR"]'), github.event.comment.author_association)) ||
        github.event_name == 'workflow_dispatch')
+    concurrency:
+      group: gemini-review-${ github.event.pull_request.number || github.event.issue.number || inputs.pr_number }
+      cancel-in-progress: true
     runs-on: ubuntu-24.04
     timeout-minutes: 5
     steps:
